@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/bit_fns.h
+
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/main.cpp
+iostream
+-
+bit_fns.h
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/bit_fns.h
+string
+-
+
