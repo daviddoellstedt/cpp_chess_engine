@@ -1869,26 +1869,24 @@ void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
 
 int nodes2 = 0;
 
-double eval(uint64_t WR, uint64_t WN, uint64_t WB, uint64_t WQ, uint64_t WK,
-            uint64_t WP, uint64_t BR, uint64_t BN, uint64_t BB, uint64_t BQ,
-            uint64_t BK, uint64_t BP) {
+double eval(const GameState gamestate) {
 
   // material
   double counter = 0;
-  counter += ((double)std::bitset<64>(WP).count() -
-              (double)std::bitset<64>(BP).count()) *
+  counter += ((double)std::bitset<64>(gamestate.white.pawn).count() -
+              (double)std::bitset<64>(gamestate.black.pawn).count()) *
              100;
-  counter += ((double)std::bitset<64>(WB).count() -
-              (double)std::bitset<64>(BB).count()) *
+  counter += ((double)std::bitset<64>(gamestate.white.bishop).count() -
+              (double)std::bitset<64>(gamestate.black.bishop).count()) *
              300; // todo: add special case regarding number of bishops
-  counter += ((double)std::bitset<64>(WN).count() -
-              (double)std::bitset<64>(BN).count()) *
+  counter += ((double)std::bitset<64>(gamestate.white.knight).count() -
+              (double)std::bitset<64>(gamestate.black.knight).count()) *
              300;
-  counter += ((double)std::bitset<64>(WR).count() -
-              (double)std::bitset<64>(BR).count()) *
+  counter += ((double)std::bitset<64>(gamestate.white.rook).count() -
+              (double)std::bitset<64>(gamestate.black.rook).count()) *
              500;
-  counter += ((double)std::bitset<64>(WQ).count() -
-              (double)std::bitset<64>(BQ).count()) *
+  counter += ((double)std::bitset<64>(gamestate.white.queen).count() -
+              (double)std::bitset<64>(gamestate.black.queen).count()) *
              900;
 
   return counter;
@@ -1901,6 +1899,26 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
                   bool BCQ, bool CM, bool SM, int depth, bool my_turn,
                   double alpha = -100000000, double beta = 100000000) {
 
+  GameState gamestate;
+  gamestate.black.rook = BR;
+  gamestate.black.knight = BN;
+  gamestate.black.bishop = BB;
+  gamestate.black.queen = BQ;
+  gamestate.black.king = BK;
+  gamestate.black.pawn = BP;
+  gamestate.white.rook = WR;
+  gamestate.white.knight = WN;
+  gamestate.white.bishop = WB;
+  gamestate.white.queen = WQ;
+  gamestate.white.king = WK;
+  gamestate.white.pawn = WP;
+
+  WCK = gamestate.white.can_king_side_castle = WCK;
+  WCQ = gamestate.white.can_queen_side_castle = WCQ;
+  BCK = gamestate.black.can_king_side_castle = BCK;
+  BCQ = gamestate.black.can_queen_side_castle = BCQ;
+  gamestate.whites_turn = white_move;
+
   // std::cout<<"alpha: "<<alpha<<". beta: "<<beta<<"."<<std::endl;
 
   //  std::cout<<depth<<std::endl;
@@ -1908,8 +1926,7 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
     // todo add evaluation function
     //  std::cout<<"HEYYYYYYYYYYYY"<<std::endl;
     nodes2++;
-    AI_return leaf = {"string generico",
-                      eval(WR, WN, WB, WQ, WK, WP, BR, BN, BB, BQ, BK, BP)};
+    AI_return leaf = {"string generico", eval(gamestate)};
     //    std::cout<<leaf.value<<std::endl;
     return leaf;
   }
