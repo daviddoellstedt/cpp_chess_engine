@@ -6,11 +6,15 @@
 #include "Players.h"
 #include "Board.h"
 
-using namespace std;
 
 
 //todo: needs to take in a board object and return a move
-string Player:: get_move(){
+std::string Player:: get_move(){
+
+    int* p = new int[5];
+
+
+
 
 }
 

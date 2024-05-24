@@ -72,27 +72,40 @@
  * It ain't much, but it's honest work.
 */
 
-using namespace std;
 #include <iostream>
 #include "bit_fns.h"
+#include "unit_tests.h"
 #include <string>
 
 int main() {
 
-    string player_name;
-    int difficulty;
-    cout<<"------------------------------------------------------------------------"<<endl;
-    cout<<"   David Doellstedt's Chess Engine. Created during Quarantine 2020."<<endl;
-    cout<<"(My evaluation function needs A LOT of work. Don't judge my AI, they are still learning :) )"<<endl;
-    cout<<"------------------------------------------------------------------------"<<endl;
-    cout<<"What is your name?"<<endl;
-    cin>>player_name;
-    cout<<"Select an AI skill level (enter a number 1, 2, or 3) "<<endl;
-    cout<<"1: Easy"<<endl;
-    cout<<"2: Medium"<<endl;
-    cout<<"3: Hard"<<endl;
-    cin>>difficulty;
-    generate_board(player_name, difficulty);
+    // string player_name;
+    // int difficulty;
+    // std::cout<<"------------------------------------------------------------------------"<<endl;
+    // cout<<"   David Doellstedt's Chess Engine. Created during Quarantine 2020."<<endl;
+    // cout<<"(My evaluation function needs A LOT of work. Don't judge my AI, they are still learning :) )"<<endl;
+    // cout<<"------------------------------------------------------------------------"<<endl;
+    // cout<<"What is your name?"<<endl;
+    // cin>>player_name;
+    // cout<<"Select an AI skill level (enter a number 1, 2, or 3) "<<endl;
+    // cout<<"1: Easy"<<endl;
+    // cout<<"2: Medium"<<endl;
+    // cout<<"3: Hard"<<endl;
+    // cin>>difficulty;
+
+    uint8_t depth = 3;
+    std::string fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+
+    int result = legalMoveGeneratorTest(fen, depth);
+    if(result == 97862){
+        std::cout<< "YAY IT PASSED" << std::endl;
+    }
+    else{
+        std::cout<<"FAILED"<<std::endl;
+    }
+    std::cout << result <<std::endl;
+    
+    //generate_board(player_name, difficulty);
     return 0;
 }
 

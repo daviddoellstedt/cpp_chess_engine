@@ -8,7 +8,6 @@
 #include <ctime>
 #include <iostream>
 
-using namespace std;
 
 
 
@@ -31,7 +30,7 @@ public:
     }
     Player(bool h, bool c, int dif, int depth): human(h), color(c), difficulty(dif), max_depth(depth) {} //AI player created, determined color
 
-    string get_move();
+    std::string get_move();
 };
 
 

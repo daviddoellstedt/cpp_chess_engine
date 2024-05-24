@@ -6,13 +6,39 @@
 
 #IncludeRegexTransform: 
 
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/bit_fns.h
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/Helper_functions.h
+vector
+-
 
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/main.cpp
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/Players.h
+cstdlib
+-
+ctime
+-
 iostream
 -
-bit_fns.h
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/bit_fns.h
+
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/bit_fns.cpp
+iostream
+-
 string
 -
+bitset
+-
+cmath
+-
+vector
+-
+map
+-
+cstdlib
+-
+ctime
+-
+chrono
+-
+Players.h
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/Players.h
+Helper_functions.h
+/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/Helper_functions.h
 
