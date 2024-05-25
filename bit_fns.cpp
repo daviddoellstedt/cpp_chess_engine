@@ -1892,32 +1892,28 @@ double eval(const GameState gamestate) {
   return counter;
 }
 
-AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
-                  uint64_t WQ, uint64_t WK, uint64_t WP, uint64_t BR,
-                  uint64_t BN, uint64_t BB, uint64_t BQ, uint64_t BK,
-                  uint64_t BP, uint64_t E_P, bool WCK, bool WCQ, bool BCK,
-                  bool BCQ, bool CM, bool SM, int depth, bool my_turn,
-                  double alpha = -100000000, double beta = 100000000) {
+AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
+                  int depth, bool my_turn, double alpha = -100000000,
+                  double beta = 100000000) {
 
-  GameState gamestate;
-  gamestate.black.rook = BR;
-  gamestate.black.knight = BN;
-  gamestate.black.bishop = BB;
-  gamestate.black.queen = BQ;
-  gamestate.black.king = BK;
-  gamestate.black.pawn = BP;
-  gamestate.white.rook = WR;
-  gamestate.white.knight = WN;
-  gamestate.white.bishop = WB;
-  gamestate.white.queen = WQ;
-  gamestate.white.king = WK;
-  gamestate.white.pawn = WP;
+  uint64_t BR = gamestate.black.rook;
+  uint64_t BN = gamestate.black.knight;
+  uint64_t BB = gamestate.black.bishop;
+  uint64_t BQ = gamestate.black.queen;
+  uint64_t BK = gamestate.black.king;
+  uint64_t BP = gamestate.black.pawn;
+  uint64_t WR = gamestate.white.rook;
+  uint64_t WN = gamestate.white.knight;
+  uint64_t WB = gamestate.white.bishop;
+  uint64_t WQ = gamestate.white.queen;
+  uint64_t WK = gamestate.white.king;
+  uint64_t WP = gamestate.white.pawn;
 
-  WCK = gamestate.white.can_king_side_castle = WCK;
-  WCQ = gamestate.white.can_queen_side_castle = WCQ;
-  BCK = gamestate.black.can_king_side_castle = BCK;
-  BCQ = gamestate.black.can_queen_side_castle = BCQ;
-  gamestate.whites_turn = white_move;
+  bool WCK = gamestate.white.can_king_side_castle;
+  bool WCQ = gamestate.white.can_queen_side_castle;
+  bool BCK = gamestate.black.can_king_side_castle;
+  bool BCQ = gamestate.black.can_queen_side_castle;
+  bool white_move = gamestate.whites_turn;
 
   // std::cout<<"alpha: "<<alpha<<". beta: "<<beta<<"."<<std::endl;
 
@@ -1938,9 +1934,7 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
     double max_val = -10000000;
     AI_return a;
 
-    // TODO: uncomment this and fix
-    // get_W_moves(WP, WR, WN, WB, WQ, WK, BQ, BB, BR, BN, BP, BK, E_P, WCK,
-    // WCQ, CM, SM, w_moves);
+    get_W_moves(gamestate, E_P, CM, SM, w_moves);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
       AI_return leaf = {"CM", -10000};
       return leaf;
@@ -1959,6 +1953,10 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
       //      OCCUPIEDt , E_Pt = E_P;
       //    bool BCKt = BCK, BCQt = BCQ, WCKt = WCK, WCQt = WCQ, CMt = false,
       //    SMt = false, white_movet = white_move;
+
+      // GameState gamestate_temp;
+      // memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
+
       uint64_t BRt = BR, BNt = BN, BBt = BB, BQt = BQ, BKt = BK, BPt = BP,
                WRt = WR, WNt = WN, WBt = WB, WQt = WQ, WKt = WK, WPt = WP,
                E_Pt = E_P;
@@ -1967,10 +1965,28 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
 
       apply_move(white_movet, w_moves[i], WRt, WNt, WBt, WQt, WKt, WPt, BRt,
                  BNt, BBt, BQt, BKt, BPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
-      //
-      a = minimax(white_movet, WRt, WNt, WBt, WQt, WKt, WPt, BRt, BNt, BBt, BQt,
-                  BKt, BPt, E_Pt, WCKt, WCQt, BCKt, BCQt, CMt, SMt, depth - 1,
-                  !my_turn, alpha, beta);
+
+      GameState gamestate_temp;
+      gamestate_temp.black.rook = BRt;
+      gamestate_temp.black.knight = BNt;
+      gamestate_temp.black.bishop = BBt;
+      gamestate_temp.black.queen = BQt;
+      gamestate_temp.black.king = BKt;
+      gamestate_temp.black.pawn = BPt;
+      gamestate_temp.white.rook = WRt;
+      gamestate_temp.white.knight = WNt;
+      gamestate_temp.white.bishop = WBt;
+      gamestate_temp.white.queen = WQt;
+      gamestate_temp.white.king = WKt;
+      gamestate_temp.white.pawn = WPt;
+      gamestate_temp.white.can_king_side_castle = WCKt;
+      gamestate_temp.white.can_queen_side_castle = WCQt;
+      gamestate_temp.black.can_king_side_castle = BCKt;
+      gamestate_temp.black.can_queen_side_castle = BCQt;
+      gamestate_temp.whites_turn = white_movet;
+
+      a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
+                  beta);
 
       if (a.value > max_val) {
         max_val = a.value;
@@ -2021,9 +2037,27 @@ AI_return minimax(bool &white_move, uint64_t WR, uint64_t WN, uint64_t WB,
       apply_move(white_movet, b_moves[j], BRt, BNt, BBt, BQt, BKt, BPt, WRt,
                  WNt, WBt, WQt, WKt, WPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
 
-      a = minimax(white_movet, WRt, WNt, WBt, WQt, WKt, WPt, BRt, BNt, BBt, BQt,
-                  BKt, BPt, E_Pt, WCKt, WCQt, BCKt, BCQt, CMt, SMt, depth - 1,
-                  !my_turn, alpha, beta);
+      GameState gamestate_temp;
+      gamestate_temp.black.rook = BRt;
+      gamestate_temp.black.knight = BNt;
+      gamestate_temp.black.bishop = BBt;
+      gamestate_temp.black.queen = BQt;
+      gamestate_temp.black.king = BKt;
+      gamestate_temp.black.pawn = BPt;
+      gamestate_temp.white.rook = WRt;
+      gamestate_temp.white.knight = WNt;
+      gamestate_temp.white.bishop = WBt;
+      gamestate_temp.white.queen = WQt;
+      gamestate_temp.white.king = WKt;
+      gamestate_temp.white.pawn = WPt;
+      gamestate_temp.white.can_king_side_castle = WCKt;
+      gamestate_temp.white.can_queen_side_castle = WCQt;
+      gamestate_temp.black.can_king_side_castle = BCKt;
+      gamestate_temp.black.can_queen_side_castle = BCQt;
+      gamestate_temp.whites_turn = white_movet;
+
+      a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
+                  beta);
 
       if (a.value < min_val) {
         min_val = a.value;
@@ -2227,13 +2261,16 @@ void generate_board(std::string name, int diff) {
            WN = 0u, WB = 0u, WQ = 0u, WK = 0u, WP = 0u, BLACK_PIECES,
            WHITE_PIECES, OCCUPIED, E_P = 0u; // pow(2,20);;
 
-  read_FEN(grid, FEN, white_to_move, WCK, WCQ, BCK, BCQ);
+  GameState gamestate;
+  fenToGameState(FEN, gamestate);
 
-  grid_to_bbs(grid, BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
+  //   read_FEN(grid, FEN, white_to_move, WCK, WCQ, BCK, BCQ);
 
-  BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
-  WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
-  OCCUPIED = BLACK_PIECES | WHITE_PIECES;
+  //   grid_to_bbs(grid, BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
+
+  //   BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
+  //   WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
+  //   OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   AI_return AI_choice;
 
@@ -2255,22 +2292,29 @@ void generate_board(std::string name, int diff) {
   Player p2 = Player(true, true);
   std::cout << p.color << std::endl;
 
-  while (!CM and !SM and false) {
+  while (!CM and !SM and true) {
 
-    BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
-    WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
-    OCCUPIED = BLACK_PIECES | WHITE_PIECES;
-    // c
+    // BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
+    // WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
+    // OCCUPIED = BLACK_PIECES | WHITE_PIECES;
+    // // c
+    uint64_t BLACK_PIECES = gamestate.black.pawn | gamestate.black.rook |
+                            gamestate.black.knight | gamestate.black.bishop |
+                            gamestate.black.queen | gamestate.black.king;
+    uint64_t WHITE_PIECES = gamestate.white.pawn | gamestate.white.rook |
+                            gamestate.white.knight | gamestate.white.bishop |
+                            gamestate.white.queen | gamestate.white.king;
+    uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
-    if (white_to_move) {
+    if (gamestate.whites_turn) {
       // print_board(BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
 
       std::cout << "WHITE'S MOVE: " << std::endl;
       std::cout << "AI Agent thinking... wait a few seconds." << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
       // std::cout<<"WHITES MOVE (SHOULD BE 1): "<<white_to_move<<std::endl;
-      AI_choice = minimax(white_to_move, WR, WN, WB, WQ, WK, WP, BR, BN, BB, BQ,
-                          BK, BP, E_P, WCK, WCQ, BCK, BCQ, CM, SM, depth, true);
+
+      AI_choice = minimax(gamestate, E_P, CM, SM, depth, true);
       auto end = std::chrono::high_resolution_clock::now();
 
       std::cout << "Move chosen: " << AI_choice.move << std::endl;
@@ -2278,8 +2322,44 @@ void generate_board(std::string name, int diff) {
       std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
       //  std::cout<<"nodes: "<<nodes2<<std::endl;
 
+      BR = gamestate.black.rook;
+      BN = gamestate.black.knight;
+      BB = gamestate.black.bishop;
+      BQ = gamestate.black.queen;
+      BK = gamestate.black.king;
+      BP = gamestate.black.pawn;
+      WR = gamestate.white.rook;
+      WN = gamestate.white.knight;
+      WB = gamestate.white.bishop;
+      WQ = gamestate.white.queen;
+      WK = gamestate.white.king;
+      WP = gamestate.white.pawn;
+      WCK = gamestate.white.can_king_side_castle;
+      WCQ = gamestate.white.can_queen_side_castle;
+      BCK = gamestate.black.can_king_side_castle;
+      BCQ = gamestate.black.can_queen_side_castle;
+      white_to_move = gamestate.whites_turn;
+
       apply_move(white_to_move, AI_choice.move, WR, WN, WB, WQ, WK, WP, BR, BN,
                  BB, BQ, BK, BP, E_P, WCK, WCQ, BCK, BCQ);
+
+      gamestate.black.rook = BR;
+      gamestate.black.knight = BN;
+      gamestate.black.bishop = BB;
+      gamestate.black.queen = BQ;
+      gamestate.black.king = BK;
+      gamestate.black.pawn = BP;
+      gamestate.white.rook = WR;
+      gamestate.white.knight = WN;
+      gamestate.white.bishop = WB;
+      gamestate.white.queen = WQ;
+      gamestate.white.king = WK;
+      gamestate.white.pawn = WP;
+      gamestate.white.can_king_side_castle = WCK;
+      gamestate.white.can_queen_side_castle = WCQ;
+      gamestate.black.can_king_side_castle = BCK;
+      gamestate.black.can_queen_side_castle = BCQ;
+      gamestate.whites_turn = white_to_move;
 
       std::cout << "depth: " << depth << ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
@@ -2290,15 +2370,14 @@ void generate_board(std::string name, int diff) {
       std::cout << " " << std::endl;
       // break;
     } else {
-      // print_board(BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
+      print_board(gamestate);
       std::cout << "BLACK'S MOVE: " << std::endl;
 
       // todo: create a player class for their choosing mechanism
       std::vector<std::string> b_moves;
 
       // TODO: uncomment this and fix
-      // get_B_moves(BP, BR, BN, BB, BQ, BK, WQ, WB, WR, WN, WP, WK, E_P, BCK,
-      // BCQ, CM, SM, b_moves);
+      get_B_moves(gamestate, E_P, CM, SM, b_moves);
 
       //            if (depth == 2) {
       //                if ( b_moves[j] == "63>43>2"){
@@ -2311,8 +2390,44 @@ void generate_board(std::string name, int diff) {
       int user_choice;
       std::cin >> user_choice;
 
+      BR = gamestate.black.rook;
+      BN = gamestate.black.knight;
+      BB = gamestate.black.bishop;
+      BQ = gamestate.black.queen;
+      BK = gamestate.black.king;
+      BP = gamestate.black.pawn;
+      WR = gamestate.white.rook;
+      WN = gamestate.white.knight;
+      WB = gamestate.white.bishop;
+      WQ = gamestate.white.queen;
+      WK = gamestate.white.king;
+      WP = gamestate.white.pawn;
+      WCK = gamestate.white.can_king_side_castle;
+      WCQ = gamestate.white.can_queen_side_castle;
+      BCK = gamestate.black.can_king_side_castle;
+      BCQ = gamestate.black.can_queen_side_castle;
+      white_to_move = gamestate.whites_turn;
+
       apply_move(white_to_move, b_moves[user_choice - 1], BR, BN, BB, BQ, BK,
                  BP, WR, WN, WB, WQ, WK, WP, E_P, WCK, WCQ, BCK, BCQ);
+
+      gamestate.black.rook = BR;
+      gamestate.black.knight = BN;
+      gamestate.black.bishop = BB;
+      gamestate.black.queen = BQ;
+      gamestate.black.king = BK;
+      gamestate.black.pawn = BP;
+      gamestate.white.rook = WR;
+      gamestate.white.knight = WN;
+      gamestate.white.bishop = WB;
+      gamestate.white.queen = WQ;
+      gamestate.white.king = WK;
+      gamestate.white.pawn = WP;
+      gamestate.white.can_king_side_castle = WCK;
+      gamestate.white.can_queen_side_castle = WCQ;
+      gamestate.black.can_king_side_castle = BCK;
+      gamestate.black.can_queen_side_castle = BCQ;
+      gamestate.whites_turn = white_to_move;
 
       std::cout << "Move chosen: " << b_moves[user_choice - 1] << std::endl;
       std::cout << " " << std::endl;
@@ -2337,13 +2452,13 @@ void generate_board(std::string name, int diff) {
     for (int i = 0; i < 0; i++) {
 
       // TODO: uncomment when this is fixed with gamestate
-      // if (white_to_move) {
-      //     get_W_moves(WP, WR, WN, WB, WQ, WK, BQ, BB, BR, BN, BP, BK, E_P,
-      //     WCK, WCQ, CM, SM, moves);
-      // } else {
-      //     get_B_moves(BP, BR, BN, BB, BQ, BK, WQ, WB, WR, WN, WP, WK, E_P,
-      //     BCK, BCQ, CM, SM, moves);
-      // }
+      //   if (white_to_move) {
+      //       get_W_moves(WP, WR, WN, WB, WQ, WK, BQ, BB, BR, BN, BP, BK, E_P,
+      //       WCK, WCQ, CM, SM, moves);
+      //   } else {
+      //       get_B_moves(BP, BR, BN, BB, BQ, BK, WQ, WB, WR, WN, WP, WK, E_P,
+      //       BCK, BCQ, CM, SM, moves);
+      //   }
 
       // check to see if game has ended in checkmate or stalemate
       if (CM and white_to_move) {
