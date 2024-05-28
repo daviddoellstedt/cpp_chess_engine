@@ -97,6 +97,15 @@ uint64_t RANK_3 = 16711680u, RANK_4 = 4278190080u, RANK_5 = 1095216660480u,
          RANK_6 = 280375465082880u, RANK_8 = 18374686479671623680u,
          FILLED = 18446744073709551615u;
 uint64_t RANK_1 = 255u;
+
+uint64_t generateWhiteOccupiedBitboard(const GameState& gamestate){
+        return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight | gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
+}
+
+uint64_t generateBlackOccupiedBitboard(const GameState& gamestate){
+        return gamestate.black.pawn | gamestate.black.rook | gamestate.black.knight | gamestate.black.bishop | gamestate.black.queen | gamestate.black.king; 
+}
+
 /** Printing the board to the command line.
  *
  * arguments: the 12 bitboards for the all the pieces
@@ -1184,12 +1193,8 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
 void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
                  std::vector<std::string> &b_moves) {
 
-  uint64_t BLACK_PIECES = gamestate.black.pawn | gamestate.black.rook |
-                          gamestate.black.knight | gamestate.black.bishop |
-                          gamestate.black.queen | gamestate.black.king;
-  uint64_t WHITE_PIECES = gamestate.white.pawn | gamestate.white.rook |
-                          gamestate.white.knight | gamestate.white.bishop |
-                          gamestate.white.queen | gamestate.white.king;
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   uint64_t DZ = unsafe_for_XK("B", gamestate.white.pawn, gamestate.white.rook,
@@ -1342,12 +1347,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
                  std::vector<std::string> &w_moves) {
 
-  uint64_t BLACK_PIECES = gamestate.black.pawn | gamestate.black.rook |
-                          gamestate.black.knight | gamestate.black.bishop |
-                          gamestate.black.queen | gamestate.black.king;
-  uint64_t WHITE_PIECES = gamestate.white.pawn | gamestate.white.rook |
-                          gamestate.white.knight | gamestate.white.bishop |
-                          gamestate.white.queen | gamestate.white.king;
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   w_moves.clear();
@@ -1738,13 +1739,6 @@ void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
            std::vector<std::string> moves, uint64_t &E_P, bool CM, bool SM,
            int depth, int orig_depth, std::string n) {
 
-  // Make a function.
-  // BLACK_PIECES = gamestate.black.pawn | gamestate.black.rook |
-  // gamestate.black.knight | gamestate.black.bishop | gamestate.black.queen |
-  // gamestate.black.king; WHITE_PIECES = gamestate.white.pawn |
-  // gamestate.white.rook | gamestate.white.knight | gamestate.white.bishop |
-  // gamestate.white.queen | gamestate.white.king; OCCUPIED = BLACK_PIECES |
-  // WHITE_PIECES;
   bool check = false;
 
   uint64_t BR = gamestate.black.rook;
@@ -2294,17 +2288,9 @@ void generate_board(std::string name, int diff) {
 
   while (!CM and !SM and true) {
 
-    // BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
-    // WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
-    // OCCUPIED = BLACK_PIECES | WHITE_PIECES;
-    // // c
-    uint64_t BLACK_PIECES = gamestate.black.pawn | gamestate.black.rook |
-                            gamestate.black.knight | gamestate.black.bishop |
-                            gamestate.black.queen | gamestate.black.king;
-    uint64_t WHITE_PIECES = gamestate.white.pawn | gamestate.white.rook |
-                            gamestate.white.knight | gamestate.white.bishop |
-                            gamestate.white.queen | gamestate.white.king;
-    uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+  uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
     if (gamestate.whites_turn) {
       // print_board(BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
