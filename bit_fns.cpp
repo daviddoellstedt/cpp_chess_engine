@@ -1499,21 +1499,53 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   //  return check;
 }
 
-void apply_move(bool &white_move, std::string move, uint64_t &R, uint64_t &N,
-                uint64_t &B, uint64_t &Q, uint64_t &K, uint64_t &P,
-                uint64_t &OR, uint64_t &ON, uint64_t &OB, uint64_t &OQ,
-                uint64_t &OK, uint64_t &OP, uint64_t &E_P, bool &WCK, bool &WCQ,
-                bool &BCK, bool &BCQ) {
+void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
 
-  uint64_t WHITE_PIECES, BLACK_PIECES;
+  uint64_t P =
+      gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
+  uint64_t R =
+      gamestate.whites_turn ? gamestate.white.rook : gamestate.black.rook;
+  uint64_t N =
+      gamestate.whites_turn ? gamestate.white.knight : gamestate.black.knight;
+  uint64_t B =
+      gamestate.whites_turn ? gamestate.white.bishop : gamestate.black.bishop;
+  uint64_t Q =
+      gamestate.whites_turn ? gamestate.white.queen : gamestate.black.queen;
+  uint64_t K =
+      gamestate.whites_turn ? gamestate.white.king : gamestate.black.king;
 
-  if (white_move) {
-    WHITE_PIECES = (R | N | B | Q | K | P);
-    BLACK_PIECES = (OR | ON | OB | OQ | OK | OP);
-  } else {
-    BLACK_PIECES = (R | N | B | Q | K | P);
-    WHITE_PIECES = (OR | ON | OB | OQ | OK | OP);
-  }
+  uint64_t OP =
+      !gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
+  uint64_t OR =
+      !gamestate.whites_turn ? gamestate.white.rook : gamestate.black.rook;
+  uint64_t ON =
+      !gamestate.whites_turn ? gamestate.white.knight : gamestate.black.knight;
+  uint64_t OB =
+      !gamestate.whites_turn ? gamestate.white.bishop : gamestate.black.bishop;
+  uint64_t OQ =
+      !gamestate.whites_turn ? gamestate.white.queen : gamestate.black.queen;
+  uint64_t OK =
+      !gamestate.whites_turn ? gamestate.white.king : gamestate.black.king;
+
+  bool WCK = gamestate.white.can_king_side_castle;
+  bool WCQ = gamestate.white.can_queen_side_castle;
+  bool BCK = gamestate.black.can_king_side_castle;
+  bool BCQ = gamestate.black.can_queen_side_castle;
+
+  bool white_move = gamestate.whites_turn;
+
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+
+  // uint64_t WHITE_PIECES, BLACK_PIECES;
+
+  //   if (white_move) {
+  //     WHITE_PIECES = (R | N | B | Q | K | P);
+  //     BLACK_PIECES = (OR | ON | OB | OQ | OK | OP);
+  //   } else {
+  //     BLACK_PIECES = (R | N | B | Q | K | P);
+  //     WHITE_PIECES = (OR | ON | OB | OQ | OK | OP);
+  //   }
 
   int x1 = stoi(move.substr(0, 1)), y1 = stoi(move.substr(1, 1));
   int x2 = stoi(move.substr(3, 1)), y2 = stoi(move.substr(4, 1));
@@ -1713,7 +1745,26 @@ void apply_move(bool &white_move, std::string move, uint64_t &R, uint64_t &N,
     }
   }
 
+  gamestate.white.pawn = white_move ? P : OP;
+  gamestate.white.rook = white_move ? R : OR;
+  gamestate.white.knight = white_move ? N : ON;
+  gamestate.white.bishop = white_move ? B : OB;
+  gamestate.white.queen = white_move ? Q : OQ;
+  gamestate.white.king = white_move ? K : OK;
+  gamestate.white.can_king_side_castle = WCK;
+  gamestate.white.can_queen_side_castle = WCQ;
+
+  gamestate.black.pawn = !white_move ? P : OP;
+  gamestate.black.rook = !white_move ? R : OR;
+  gamestate.black.knight = !white_move ? N : ON;
+  gamestate.black.bishop = !white_move ? B : OB;
+  gamestate.black.queen = !white_move ? Q : OQ;
+  gamestate.black.king = !white_move ? K : OK;
+  gamestate.black.can_king_side_castle = BCK;
+  gamestate.black.can_queen_side_castle = BCQ;
+
   white_move = !white_move; // alternate the turn
+  gamestate.whites_turn = white_move;
 }
 
 void print_moves(bool white_move, std::vector<std::string> b_moves,
@@ -1741,86 +1792,22 @@ void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
 
   bool check = false;
 
-  uint64_t BR = gamestate.black.rook;
-  uint64_t BN = gamestate.black.knight;
-  uint64_t BB = gamestate.black.bishop;
-  uint64_t BQ = gamestate.black.queen;
-  uint64_t BK = gamestate.black.king;
-  uint64_t BP = gamestate.black.pawn;
-  uint64_t WR = gamestate.white.rook;
-  uint64_t WN = gamestate.white.knight;
-  uint64_t WB = gamestate.white.bishop;
-  uint64_t WQ = gamestate.white.queen;
-  uint64_t WK = gamestate.white.king;
-  uint64_t WP = gamestate.white.pawn;
-
-  bool WCK = gamestate.white.can_king_side_castle;
-  bool WCQ = gamestate.white.can_queen_side_castle;
-  bool BCK = gamestate.black.can_king_side_castle;
-  bool BCQ = gamestate.black.can_queen_side_castle;
-  bool white_move = gamestate.whites_turn;
-
-  if (white_move) {
+  if (gamestate.whites_turn) {
     get_W_moves(gamestate, E_P, CM, SM, moves);
   } else {
     get_B_moves(gamestate, E_P, CM, SM, moves);
   }
 
-  //    nodes++; //cap_counter += cap_count_temp;
-  // nodes++;
   if (depth != 0) {
 
-    // std::cout<<
-
     for (int i = 0; i < moves.size(); i++) {
-      // nodes++;
-      // std::cout<<i<<std::endl;
       int cap_count_temp = 0;
-
-      //   std::cout<<i<<std::endl;
-
-      //                    if (depth == 2) { std::cout << "  d1: " << moves[i]
-      //                    << std::endl; } if (depth == 1) { std::cout << i <<
-      //                    "     d2: " << moves[i] << std::endl; } if (depth ==
-      //                    1) {
-      //                        if (moves[i].size() > 5 and moves[i].substr(6,
-      //                        1) == "E") {
-      //                            std::cout << "EP" << std::endl;
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-
-      uint64_t BRt = BR, BNt = BN, BBt = BB, BQt = BQ, BKt = BK, BPt = BP,
-               WRt = WR, WNt = WN, WBt = WB, WQt = WQ, WKt = WK, WPt = WP,
-               E_Pt = E_P;
-      bool BCKt = BCK, BCQt = BCQ, WCKt = WCK, WCQt = WCQ, CMt = false,
-           SMt = false, white_movet = white_move;
-      if (white_movet) {
-        apply_move(white_movet, moves[i], WRt, WNt, WBt, WQt, WKt, WPt, BRt,
-                   BNt, BBt, BQt, BKt, BPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
-      } else {
-        apply_move(white_movet, moves[i], BRt, BNt, BBt, BQt, BKt, BPt, WRt,
-                   WNt, WBt, WQt, WKt, WPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
-      }
-
-      gamestate_temp.black.rook = BRt;
-      gamestate_temp.black.knight = BNt;
-      gamestate_temp.black.bishop = BBt;
-      gamestate_temp.black.queen = BQt;
-      gamestate_temp.black.king = BKt;
-      gamestate_temp.black.pawn = BPt;
-      gamestate_temp.white.rook = WRt;
-      gamestate_temp.white.knight = WNt;
-      gamestate_temp.white.bishop = WBt;
-      gamestate_temp.white.queen = WQt;
-      gamestate_temp.white.king = WKt;
-      gamestate_temp.white.pawn = WPt;
-
-      gamestate_temp.white.can_king_side_castle = WCKt;
-      gamestate_temp.white.can_queen_side_castle = WCQt;
-      gamestate_temp.black.can_king_side_castle = BCKt;
-      gamestate_temp.black.can_queen_side_castle = BCQt;
-      gamestate_temp.whites_turn = white_movet;
+      uint64_t E_Pt = E_P;
+      bool CMt = false, SMt = false;
+      apply_move(moves[i], gamestate_temp, E_Pt);
 
       //  std::cout<<"depth: "<< depth<<std::endl;
       //  std::cout<<"nodes: "<< nodes<<std::endl;
@@ -1840,6 +1827,7 @@ void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
                     << "% complete... -> d1:" << moves[i]
                     << "--------------------------------------------------"
                     << std::endl;
+
         } else if (n == "node") {
           std::cout << i << ":" << moves[i] << " " << nodes << std::endl;
           nodes = 0;
@@ -1890,31 +1878,10 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
                   int depth, bool my_turn, double alpha = -100000000,
                   double beta = 100000000) {
 
-  uint64_t BR = gamestate.black.rook;
-  uint64_t BN = gamestate.black.knight;
-  uint64_t BB = gamestate.black.bishop;
-  uint64_t BQ = gamestate.black.queen;
-  uint64_t BK = gamestate.black.king;
-  uint64_t BP = gamestate.black.pawn;
-  uint64_t WR = gamestate.white.rook;
-  uint64_t WN = gamestate.white.knight;
-  uint64_t WB = gamestate.white.bishop;
-  uint64_t WQ = gamestate.white.queen;
-  uint64_t WK = gamestate.white.king;
-  uint64_t WP = gamestate.white.pawn;
-
-  bool WCK = gamestate.white.can_king_side_castle;
-  bool WCQ = gamestate.white.can_queen_side_castle;
-  bool BCK = gamestate.black.can_king_side_castle;
-  bool BCQ = gamestate.black.can_queen_side_castle;
-  bool white_move = gamestate.whites_turn;
-
   // std::cout<<"alpha: "<<alpha<<". beta: "<<beta<<"."<<std::endl;
 
-  //  std::cout<<depth<<std::endl;
   if (depth == 0) { // todo: add a conditon for game over
     // todo add evaluation function
-    //  std::cout<<"HEYYYYYYYYYYYY"<<std::endl;
     nodes2++;
     AI_return leaf = {"string generico", eval(gamestate)};
     //    std::cout<<leaf.value<<std::endl;
@@ -1939,45 +1906,14 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     }
 
     for (int i = 0; i < w_moves.size(); i++) {
-      //   if((depth != 1 and depth != 2) or false){std::cout << "DEPTH: " <<
-      //   depth << " W move " << i + 1 << ": " << w_moves[i] << std::endl;}
-      //      uint64_t BRt = BR, BNt = BN, BBt = BB, BQt = BQ, BKt = BK, BPt =
-      //      BP, WRt = WR, WNt = WN, WBt = WB, WQt = WQ, WKt = WK, WPt = WP,
-      //      BLACK_PIECESt = BLACK_PIECES, WHITE_PIECESt = WHITE_PIECES,
-      //      OCCUPIEDt , E_Pt = E_P;
-      //    bool BCKt = BCK, BCQt = BCQ, WCKt = WCK, WCQt = WCQ, CMt = false,
-      //    SMt = false, white_movet = white_move;
-
-      // GameState gamestate_temp;
-      // memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-
-      uint64_t BRt = BR, BNt = BN, BBt = BB, BQt = BQ, BKt = BK, BPt = BP,
-               WRt = WR, WNt = WN, WBt = WB, WQt = WQ, WKt = WK, WPt = WP,
-               E_Pt = E_P;
-      bool BCKt = BCK, BCQt = BCQ, WCKt = WCK, WCQt = WCQ, CMt = false,
-           SMt = false, white_movet = white_move;
-
-      apply_move(white_movet, w_moves[i], WRt, WNt, WBt, WQt, WKt, WPt, BRt,
-                 BNt, BBt, BQt, BKt, BPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
 
       GameState gamestate_temp;
-      gamestate_temp.black.rook = BRt;
-      gamestate_temp.black.knight = BNt;
-      gamestate_temp.black.bishop = BBt;
-      gamestate_temp.black.queen = BQt;
-      gamestate_temp.black.king = BKt;
-      gamestate_temp.black.pawn = BPt;
-      gamestate_temp.white.rook = WRt;
-      gamestate_temp.white.knight = WNt;
-      gamestate_temp.white.bishop = WBt;
-      gamestate_temp.white.queen = WQt;
-      gamestate_temp.white.king = WKt;
-      gamestate_temp.white.pawn = WPt;
-      gamestate_temp.white.can_king_side_castle = WCKt;
-      gamestate_temp.white.can_queen_side_castle = WCQt;
-      gamestate_temp.black.can_king_side_castle = BCKt;
-      gamestate_temp.black.can_queen_side_castle = BCQt;
-      gamestate_temp.whites_turn = white_movet;
+      memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
+
+      uint64_t E_Pt = E_P;
+      bool CMt = false, SMt = false;
+
+      apply_move(w_moves[i], gamestate_temp, E_Pt);
 
       a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
                   beta);
@@ -2005,9 +1941,8 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     double min_val = 10000000;
     AI_return a;
 
-    // TODO: uncomment this and fix
-    // get_B_moves(BP, BR, BN, BB, BQ, BK, WQ, WB, WR, WN, WP, WK, E_P, BCK,
-    // BCQ, CM, SM, b_moves);
+    get_B_moves(gamestate, E_P, CM, SM, b_moves);
+
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
       AI_return leaf = {"CM", 10000};
       return leaf;
@@ -2018,37 +1953,13 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     }
 
     for (int j = 0; j < b_moves.size(); j++) {
-      //   if(depth == 1){nodes ++;}
-      //     std::cout << "DEPTH: " << depth << " B move " << j + 1 << ": " <<
-      //     b_moves[j] << std::endl;
-
-      uint64_t BRt = BR, BNt = BN, BBt = BB, BQt = BQ, BKt = BK, BPt = BP,
-               WRt = WR, WNt = WN, WBt = WB, WQt = WQ, WKt = WK, WPt = WP,
-               E_Pt = E_P;
-      bool BCKt = BCK, BCQt = BCQ, WCKt = WCK, WCQt = WCQ, CMt = false,
-           SMt = false, white_movet = white_move;
-
-      apply_move(white_movet, b_moves[j], BRt, BNt, BBt, BQt, BKt, BPt, WRt,
-                 WNt, WBt, WQt, WKt, WPt, E_Pt, WCKt, WCQt, BCKt, BCQt);
 
       GameState gamestate_temp;
-      gamestate_temp.black.rook = BRt;
-      gamestate_temp.black.knight = BNt;
-      gamestate_temp.black.bishop = BBt;
-      gamestate_temp.black.queen = BQt;
-      gamestate_temp.black.king = BKt;
-      gamestate_temp.black.pawn = BPt;
-      gamestate_temp.white.rook = WRt;
-      gamestate_temp.white.knight = WNt;
-      gamestate_temp.white.bishop = WBt;
-      gamestate_temp.white.queen = WQt;
-      gamestate_temp.white.king = WKt;
-      gamestate_temp.white.pawn = WPt;
-      gamestate_temp.white.can_king_side_castle = WCKt;
-      gamestate_temp.white.can_queen_side_castle = WCQt;
-      gamestate_temp.black.can_king_side_castle = BCKt;
-      gamestate_temp.black.can_queen_side_castle = BCQt;
-      gamestate_temp.whites_turn = white_movet;
+      memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
+      uint64_t E_Pt = E_P;
+      bool CMt = false, SMt = false;
+
+      apply_move(b_moves[j], gamestate_temp, E_Pt);
 
       a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
                   beta);
@@ -2308,44 +2219,7 @@ void generate_board(std::string name, int diff) {
       std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
       //  std::cout<<"nodes: "<<nodes2<<std::endl;
 
-      BR = gamestate.black.rook;
-      BN = gamestate.black.knight;
-      BB = gamestate.black.bishop;
-      BQ = gamestate.black.queen;
-      BK = gamestate.black.king;
-      BP = gamestate.black.pawn;
-      WR = gamestate.white.rook;
-      WN = gamestate.white.knight;
-      WB = gamestate.white.bishop;
-      WQ = gamestate.white.queen;
-      WK = gamestate.white.king;
-      WP = gamestate.white.pawn;
-      WCK = gamestate.white.can_king_side_castle;
-      WCQ = gamestate.white.can_queen_side_castle;
-      BCK = gamestate.black.can_king_side_castle;
-      BCQ = gamestate.black.can_queen_side_castle;
-      white_to_move = gamestate.whites_turn;
-
-      apply_move(white_to_move, AI_choice.move, WR, WN, WB, WQ, WK, WP, BR, BN,
-                 BB, BQ, BK, BP, E_P, WCK, WCQ, BCK, BCQ);
-
-      gamestate.black.rook = BR;
-      gamestate.black.knight = BN;
-      gamestate.black.bishop = BB;
-      gamestate.black.queen = BQ;
-      gamestate.black.king = BK;
-      gamestate.black.pawn = BP;
-      gamestate.white.rook = WR;
-      gamestate.white.knight = WN;
-      gamestate.white.bishop = WB;
-      gamestate.white.queen = WQ;
-      gamestate.white.king = WK;
-      gamestate.white.pawn = WP;
-      gamestate.white.can_king_side_castle = WCK;
-      gamestate.white.can_queen_side_castle = WCQ;
-      gamestate.black.can_king_side_castle = BCK;
-      gamestate.black.can_queen_side_castle = BCQ;
-      gamestate.whites_turn = white_to_move;
+      apply_move(AI_choice.move, gamestate, E_P);
 
       std::cout << "depth: " << depth << ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
@@ -2365,299 +2239,16 @@ void generate_board(std::string name, int diff) {
       // TODO: uncomment this and fix
       get_B_moves(gamestate, E_P, CM, SM, b_moves);
 
-      //            if (depth == 2) {
-      //                if ( b_moves[j] == "63>43>2"){
-      //                    print_board(BRt, BNt, BBt, BQt, BKt, BPt, WRt, WNt,
-      //                    WBt, WQt, WKt, WPt); debug = true;
-      //                }else{debug = false;}
       std::cout << "Please select your move: " << std::endl;
       print_moves(white_to_move, b_moves, b_moves);
 
       int user_choice;
       std::cin >> user_choice;
 
-      BR = gamestate.black.rook;
-      BN = gamestate.black.knight;
-      BB = gamestate.black.bishop;
-      BQ = gamestate.black.queen;
-      BK = gamestate.black.king;
-      BP = gamestate.black.pawn;
-      WR = gamestate.white.rook;
-      WN = gamestate.white.knight;
-      WB = gamestate.white.bishop;
-      WQ = gamestate.white.queen;
-      WK = gamestate.white.king;
-      WP = gamestate.white.pawn;
-      WCK = gamestate.white.can_king_side_castle;
-      WCQ = gamestate.white.can_queen_side_castle;
-      BCK = gamestate.black.can_king_side_castle;
-      BCQ = gamestate.black.can_queen_side_castle;
-      white_to_move = gamestate.whites_turn;
-
-      apply_move(white_to_move, b_moves[user_choice - 1], BR, BN, BB, BQ, BK,
-                 BP, WR, WN, WB, WQ, WK, WP, E_P, WCK, WCQ, BCK, BCQ);
-
-      gamestate.black.rook = BR;
-      gamestate.black.knight = BN;
-      gamestate.black.bishop = BB;
-      gamestate.black.queen = BQ;
-      gamestate.black.king = BK;
-      gamestate.black.pawn = BP;
-      gamestate.white.rook = WR;
-      gamestate.white.knight = WN;
-      gamestate.white.bishop = WB;
-      gamestate.white.queen = WQ;
-      gamestate.white.king = WK;
-      gamestate.white.pawn = WP;
-      gamestate.white.can_king_side_castle = WCK;
-      gamestate.white.can_queen_side_castle = WCQ;
-      gamestate.black.can_king_side_castle = BCK;
-      gamestate.black.can_queen_side_castle = BCQ;
-      gamestate.whites_turn = white_to_move;
+      apply_move(b_moves[user_choice - 1], gamestate, E_P);
 
       std::cout << "Move chosen: " << b_moves[user_choice - 1] << std::endl;
       std::cout << " " << std::endl;
     }
   }
-
-  std::vector<std::string> moves;
-  if (false) {
-
-    // generate_bit();
-    int turn_counter = 0, turns, game_counter = 0;
-    std::string chosen_move;
-    //  auto start = std::chrono::high_resolution_clock::now();
-
-    srand(time(nullptr));
-
-    // todo: get rid of all pow functions. use bitshifting instead
-
-    //
-
-    turns = 0;
-    for (int i = 0; i < 0; i++) {
-
-      // TODO: uncomment when this is fixed with gamestate
-      //   if (white_to_move) {
-      //       get_W_moves(WP, WR, WN, WB, WQ, WK, BQ, BB, BR, BN, BP, BK, E_P,
-      //       WCK, WCQ, CM, SM, moves);
-      //   } else {
-      //       get_B_moves(BP, BR, BN, BB, BQ, BK, WQ, WB, WR, WN, WP, WK, E_P,
-      //       BCK, BCQ, CM, SM, moves);
-      //   }
-
-      // check to see if game has ended in checkmate or stalemate
-      if (CM and white_to_move) {
-        //   std::cout << "CHECKMATE. BLACK WINS." << std::endl;
-        break;
-      } else if (CM and !white_to_move) {
-        //    std::cout << "CHECKMATE. WHITE WINS." << std::endl;
-        break;
-      } else if (SM) {
-        //    std::cout << "STALEMATE. IT'S A DRAW." << std::endl;
-        break;
-      }
-
-      // print methods for validation only
-      // print_moves(white_to_move, moves, moves);
-
-      // for now, just choose a random move for each player
-      //    r = (int) (rand() % moves.size());
-      //    chosen_move = moves[r];
-      //  std::cout<<r<<std::endl;
-      //  std::cout << "MOVE #" << r + 1 << " CHOSEN." << std::endl;
-      int cap_counter = 0;
-
-      // apply the move and update the board
-      if (white_to_move) {
-        apply_move(white_to_move, chosen_move, WR, WN, WB, WQ, WK, WP, BR, BN,
-                   BB, BQ, BK, BP, E_P, WCK, WCQ, BCK, BCQ);
-      } else {
-        apply_move(white_to_move, chosen_move, BR, BN, BB, BQ, BK, BP, WR, WN,
-                   WB, WQ, WK, WP, E_P, WCK, WCQ, BCK, BCQ);
-      }
-      turns++;
-
-      // b_moves.clear(); w_moves.clear();
-      // print_board(BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
-
-      // moves.clear();
-    }
-
-    game_counter++;
-    turn_counter += turns;
-  }
-
-  if (false) {
-    long nodes = 0;
-    std::string tests = " ";
-    bool new_line = false;
-    std::string FEN_;
-    bool FEN_done = false;
-    std::string d_num;
-    int num = 0;
-    for (int i = 0; i < tests.length(); i++) {
-      if (tests[i] == ';' or FEN_done) {
-        FEN_done = true;
-        // std::cout<<tests[i]<<tests[i + 1]<<std::endl;
-        if (tests[i] == 'D' and tests[i + 1] == '3') {
-          for (int j = 0; j < 100; j++) {
-            // std::cout<<tests[i + 1 + 2 + j]<<std::endl;
-            if (isdigit(tests[i + 1 + 2 + j])) {
-              d_num += tests[i + 1 + 2 + j];
-            } else {
-              break;
-            }
-          }
-          num = stoi(d_num);
-        }
-      } else if (FEN_done == false) {
-        FEN_ += tests[i];
-      }
-      if (tests[i] == '\n') {
-
-        std::cout << FEN_ << "-----> D3: " << d_num << std::endl;
-        FEN_done = false;
-
-        // todo: add code here
-
-        char grid[8][8] = {//  | 0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 7
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 6
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 5
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 4
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 3
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 2
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 1
-                           {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}}; // 0
-
-        BR = 0u, BN = 0u, BB = 0u, BQ = 0u, BK = 0u, BP = 0u, WR = 0u, WN = 0u,
-        WB = 0u, WQ = 0u, WK = 0u, WP = 0u, E_P = 0u; // pow(2,20);;
-
-        int depth = 4;
-        // std::string n = "total";
-        std::string n = "total";
-
-        // std::cout<<1<<std::endl;
-        nodes = 0;
-        int cap_counter = 0;
-        BCK = false, BCQ = false, WCK = false, WCQ = false, CM = false,
-        SM = false, white_to_move = true;
-
-        // std::string FEN = FEN_;
-        std::string FEN = "8/2k1p3/3pP3/3P2K1/8/8/8/8 b - - 0 1";
-        // FEN = "rnRq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 0 8";
-        //     FEN = "rnRq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 0 8";
-        // FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/P7/1PP1NnPP/RNBQK2R b KQ - 0 8";
-        // FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/P7/1PP1N1PP/RNBQK2n w Q - 0 9";
-
-        read_FEN(grid, FEN, white_to_move, WCK, WCQ, BCK, BCQ);
-
-        grid_to_bbs(grid, BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
-        // viz_bb(BR);
-        // print_board(BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
-
-        //  BCK = true, BCQ = true, WCK = true, WCQ = true, CM = false, SM =
-        //  false, check = false, white_to_move = true;
-
-        // E_P = pow(2,21);
-        // throw;
-        std::cout << "HEY" << std::endl;
-        // perft(nodes, cap_counter, white_to_move, WR, WN, WB, WQ, WK, WP, BR,
-        // BN, BB, BQ, BK, BP, WHITE_PIECES,
-        //       BLACK_PIECES, OCCUPIED, moves, E_P, WCK, WCQ, BCK, BCQ, CM, SM,
-        //       depth, depth, n);
-
-        if (nodes != num) {
-          std::cout << "generated nodes: " << nodes << std::endl;
-          std::cout << "expected nodes: " << num << std::endl;
-
-          throw;
-        }
-
-        std::cout << "depth " << depth << ":" << std::endl;
-        std::cout << "total nodes: " << nodes << std::endl;
-        std::cout << "total captures: " << cap_counter << std::endl;
-
-        FEN_ = "";
-        d_num = "";
-      }
-    }
-  }
-
-  if (true) {
-
-    char grid[8][8] = {//  | 0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 7
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 6
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 5
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 4
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 3
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 2
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 1
-                       {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}}; // 0
-
-    int depth = 3;
-    // std::string n = "total";
-    std::string n = "total";
-
-    // std::cout<<1<<std::endl;
-    uint32_t nodes = 0;
-    uint32_t cap_counter = 0;
-    // E_P = pow(2,19);
-    // std::string FEN = FEN_;
-    //  std::string FEN = "8/3K4/2p5/p2b2r1/5k2/8/8/1q6 b - 1 67";
-    std::string FEN =
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    FEN = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
-    //          FEN = "8/2p5/3p4/KP5r/1R3p1k/4P3/6P1/8 b - - 0 1";
-    //          FEN = "8/2p5/8/KP1p3r/1R3p1k/4P3/6P1/8 w - - 0 2";
-    //          FEN = "8/2p5/8/KP1p3r/1R3pPk/4P3/8/8 b - g3 0 2";
-    // FEN = "rnRq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 0 8";
-    //     FEN = "rnRq1k1r/pp2bppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R b KQ - 0 8";
-    // FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/P7/1PP1NnPP/RNBQK2R b KQ - 0 8";
-    // FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/P7/1PP1N1PP/RNBQK2n w Q - 0 9";
-
-    GameState gamestate;
-    fenToGameState(FEN, gamestate);
-
-    // GameState newone;
-    // gamestate = newone;
-
-    // read_FEN(grid, FEN, white_to_move, WCK, WCQ, BCK, BCQ);
-
-    // grid_to_bbs(grid, BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
-    // std::cout<< WP<<std::endl;;
-
-    // viz_bb(BR);
-    // std::cout<<"hey"<<std::endl;
-    print_board(gamestate);
-
-    //  BCK = true, BCQ = true, WCK = true, WCQ = true, CM = false, SM = false,
-    //  check = false, white_to_move = true;
-
-    // E_P = pow(2,21);
-    // throw;
-
-    perft(nodes, cap_counter, gamestate, moves, E_P, CM, SM, depth, depth, n);
-
-    std::cout << "depth " << depth << ":" << std::endl;
-    std::cout << "total nodes: " << nodes << std::endl;
-    std::cout << "total captureds: " << cap_counter << std::endl;
-  }
 }
-
-//  for (int i = 0; i <10000000; i++) {
-//    a = (uint64_t) 1u << 63;
-// }
-
-//    auto end = std::chrono::high_resolution_clock::now();
-//    std::cout<<"bitshifting: "<<(end - start).count()/10000<<std::endl;
-//
-//     start = std::chrono::high_resolution_clock::now();
-//
-//    for (int i = 0; i <10000000; i++) {
-//        a = pow(2, 63);
-//    }
-//    end = std::chrono::high_resolution_clock::now();
-//    std::cout<<"power: "<<(end - start).count()/10000<<std::endl;
