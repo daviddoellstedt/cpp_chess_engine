@@ -4,6 +4,7 @@
 #include "bit_fns.h"
 #include "Helper_functions.h"
 #include "Players.h"
+#include "constants.h"
 #include <bitset>
 #include <chrono> // for high_resolution_clock
 #include <cmath>
@@ -20,90 +21,14 @@ struct AI_return {
   double value;
 };
 
-// Bit masks for ranks 1 - 8.
-uint64_t rank_masks[8] = {
-    0xFF,         0xFF00,         0xFF0000,         0xFF000000,
-    0xFF00000000, 0xFF0000000000, 0xFF000000000000, 0xFF00000000000000};
-
-// Bit masls for files A - G.
-uint64_t file_masks[8] = {
-    0x101010101010101,  0x202020202020202,  0x404040404040404,
-    0x808080808080808,  0x1010101010101010, 0x2020202020202020,
-    0x4040404040404040, 0x8080808080808080}; // left to right (file A-G)
-
-// Bit masks for right/down diagnols (start at A1 end at H8).
-uint64_t diag_dn_r_masks[15] = {1u,
-                                258u,
-                                66052u,
-                                16909320u,
-                                4328785936u,
-                                1108169199648u,
-                                283691315109952u,
-                                72624976668147840u,
-                                145249953336295424u,
-                                290499906672525312u,
-                                580999813328273408u,
-                                1161999622361579520u,
-                                2323998145211531264u,
-                                4647714815446351872u,
-                                9223372036854775808u};
-
-// Bit masks for left/up diagnols (start at A8 end at H1).
-uint64_t diag_up_r_masks[15] = {72057594037927936u,
-                                144396663052566528u,
-                                288794425616760832u,
-                                577588855528488960u,
-                                1155177711073755136u,
-                                2310355422147575808u,
-                                4620710844295151872u,
-                                9241421688590303745u,
-                                36099303471055874u,
-                                141012904183812u,
-                                550831656968u,
-                                2151686160u,
-                                8405024u,
-                                32832u,
-                                128u};
-
-uint8_t loc_masks[64][4] =
-    {{0, 0, 0, 7},   {0, 1, 1, 8},   {0, 2, 2, 9},
-     {0, 3, 3, 10},  {0, 4, 4, 11},  {0, 5, 5, 12},
-     {0, 6, 6, 13},  {0, 7, 7, 14},  {1, 0, 1, 6},
-     {1, 1, 2, 7},   {1, 2, 3, 8},   {1, 3, 4, 9},
-     {1, 4, 5, 10},  {1, 5, 6, 11},  {1, 6, 7, 12},
-     {1, 7, 8, 13},  {2, 0, 2, 5},   {2, 1, 3, 6},
-     {2, 2, 4, 7},   {2, 3, 5, 8},   {2, 4, 6, 9},
-     {2, 5, 7, 10},  {2, 6, 8, 11},  {2, 7, 9, 12},
-     {3, 0, 3, 4},   {3, 1, 4, 5},   {3, 2, 5, 6},
-     {3, 3, 6, 7},   {3, 4, 7, 8},   {3, 5, 8, 9},
-     {3, 6, 9, 10},  {3, 7, 10, 11}, {4, 0, 4, 3},
-     {4, 1, 5, 4},   {4, 2, 6, 5},   {4, 3, 7, 6},
-     {4, 4, 8, 7},   {4, 5, 9, 8},   {4, 6, 10, 9},
-     {4, 7, 11, 10}, {5, 0, 5, 2},   {5, 1, 6, 3},
-     {5, 2, 7, 4},   {5, 3, 8, 5},   {5, 4, 9, 6},
-     {5, 5, 10, 7},  {5, 6, 11, 8},  {5, 7, 12, 9},
-     {6, 0, 6, 1},   {6, 1, 7, 2},   {6, 2, 8, 3},
-     {6, 3, 9, 4},   {6, 4, 10, 5},  {6, 5, 11, 6},
-     {6, 6, 12, 7},  {6, 7, 13, 8},  {7, 0, 7, 0},
-     {7, 1, 8, 1},   {7, 2, 9, 2},   {7, 3, 10, 3},
-     {7, 4, 11, 4},  {7, 5, 12, 5},  {7, 6, 13, 6},
-     {7, 7, 14, 7}}; // mask index table, rank, file, diag down and right, diag
-                     // up and right
-
-uint64_t FILE_A = 72340172838076673u, FILE_H = 9259542123273814144u,
-         FILE_AB = 217020518514230019u, FILE_GH = 13889313184910721216u;
-uint64_t KNIGHT_MOVES = 345879119952u, KING_MOVES = 14721248u;
-uint64_t RANK_3 = 16711680u, RANK_4 = 4278190080u, RANK_5 = 1095216660480u,
-         RANK_6 = 280375465082880u, RANK_8 = 18374686479671623680u,
-         FILLED = 18446744073709551615u;
-uint64_t RANK_1 = 255u;
-
 uint64_t generateWhiteOccupiedBitboard(const GameState& gamestate){
-        return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight | gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
+  return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight |
+         gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
 }
 
 uint64_t generateBlackOccupiedBitboard(const GameState& gamestate){
-        return gamestate.black.pawn | gamestate.black.rook | gamestate.black.knight | gamestate.black.bishop | gamestate.black.queen | gamestate.black.king; 
+  return gamestate.black.pawn | gamestate.black.rook | gamestate.black.knight |
+         gamestate.black.bishop | gamestate.black.queen | gamestate.black.king;
 }
 
 /** Printing the board to the command line.
@@ -111,7 +36,7 @@ uint64_t generateBlackOccupiedBitboard(const GameState& gamestate){
  * arguments: the 12 bitboards for the all the pieces
  */
 void print_board(const GameState gamestate) {
-  char grid[8][8] = {//  | 0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
+  char grid[8][8] = {// 0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
                      {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 7
                      {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 6
                      {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},  // 5
@@ -152,10 +77,6 @@ void print_board(const GameState gamestate) {
     }
   }
 
-  std::cout << "    |-----|-----|-----|-----|-----|-----|-----|-----|"
-            << std::endl;
-  std::cout << "    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |"
-            << std::endl;
   std::string line;
   for (int i = 0; i <= 7; i++) {
     std::cout << "|---|-----|-----|-----|-----|-----|-----|-----|-----|"
@@ -170,6 +91,11 @@ void print_board(const GameState gamestate) {
     std::cout << line + "  |" << std::endl;
   }
   std::cout << "|---|-----|-----|-----|-----|-----|-----|-----|-----|"
+            << std::endl;
+  std::cout << "    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |"
+            << std::endl;
+
+  std::cout << "    |-----|-----|-----|-----|-----|-----|-----|-----|"
             << std::endl;
 }
 
@@ -232,7 +158,7 @@ void grid_to_bbs(char g[8][8], uint64_t &BR, uint64_t &BN, uint64_t &BB,
 uint64_t h_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
   uint64_t horiz_moves =
       (((OCCUPIED)-2 * piece) ^ rev((rev(OCCUPIED) - 2 * rev(piece)))) &
-      rank_masks[loc_masks[sl_bit][0]];
+      directional_mask[sl_bit][RANKS];
   return horiz_moves;
 }
 
@@ -246,10 +172,10 @@ uint64_t h_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  */
 uint64_t v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
   uint64_t vert_moves =
-      (((OCCUPIED & file_masks[loc_masks[sl_bit][1]]) - 2 * piece) ^
-       rev((rev(OCCUPIED & file_masks[loc_masks[sl_bit][1]]) -
+      (((OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * piece) ^
+       rev((rev(OCCUPIED & directional_mask[sl_bit][FILES]) -
             2 * rev(piece)))) &
-      file_masks[loc_masks[sl_bit][1]];
+      directional_mask[sl_bit][FILES];
   return vert_moves;
 }
 
@@ -291,10 +217,11 @@ uint64_t h_v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
  */
 uint64_t ddr_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
   uint64_t ddr_moves =
-      (((OCCUPIED & diag_dn_r_masks[loc_masks[sl_bit][2]]) - 2 * piece) ^
-       rev((rev(OCCUPIED & diag_dn_r_masks[loc_masks[sl_bit][2]]) -
+      (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_DOWN_RIGHT]) -
+        2 * piece) ^
+       rev((rev(OCCUPIED & directional_mask[sl_bit][DIAGONOLS_DOWN_RIGHT]) -
             2 * rev(piece)))) &
-      diag_dn_r_masks[loc_masks[sl_bit][2]];
+      directional_mask[sl_bit][DIAGONOLS_DOWN_RIGHT];
   return ddr_moves;
 }
 
@@ -308,10 +235,10 @@ uint64_t ddr_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  */
 uint64_t dur_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
   uint64_t dur_moves =
-      (((OCCUPIED & diag_up_r_masks[loc_masks[sl_bit][3]]) - 2 * piece) ^
-       rev((rev(OCCUPIED & diag_up_r_masks[loc_masks[sl_bit][3]]) -
+      (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) - 2 * piece) ^
+       rev((rev(OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) -
             2 * rev(piece)))) &
-      diag_up_r_masks[loc_masks[sl_bit][3]];
+      directional_mask[sl_bit][DIAGONOLS_UP_RIGHT];
   return dur_moves;
 }
 
@@ -358,15 +285,15 @@ uint64_t get_mask(uint64_t p1, uint64_t p2) {
   int k_y = (k_bit % 8), p_y = (p_bit % 8);
 
   if (k_x - p_x == 0) { // return horizontal mask
-    return rank_masks[loc_masks[k_bit][0]];
+    return directional_mask[k_bit][RANKS];
   } else if (k_y - p_y == 0) { // return vertical mask
-    return file_masks[loc_masks[k_bit][1]];
+    return directional_mask[k_bit][FILES];
   } else if (((p_x - k_x) > 0 and (p_y - k_y) < 0) or
              ((p_x - k_x) < 0 and (p_y - k_y) > 0)) { // return ddr_mask
-    return diag_dn_r_masks[loc_masks[k_bit][2]];
+    return directional_mask[k_bit][DIAGONOLS_DOWN_RIGHT];
   } else if (((p_x - k_x) < 0 and (p_y - k_y) < 0) or
              ((p_x - k_x) > 0 and (p_y - k_y) > 0)) { // return dur_mask
-    return diag_up_r_masks[loc_masks[k_bit][3]];
+    return directional_mask[k_bit][DIAGONOLS_UP_RIGHT];
   } else {
     std::cout << "ERROR in get_pinned_mask" << std::endl;
     return 0u;
@@ -416,59 +343,63 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
         // todo add if logic for player turn
 
         if ((((E_P << 8) & K_slider) != 0 and
-             ((E_P << 7) & ~FILE_H & P & H_moves)) or
+             ((E_P << 7) & ~file_h & P & H_moves)) or
             (((E_P << 8) & H_moves) != 0 and
-             ((E_P << 7) & ~FILE_H & P & K_slider))) {
+             ((E_P << 7) & ~file_h & P & K_slider))) {
           NEW_PIN |= (E_P << 7);
-          // E_P_special = file_masks[loc_masks[(int)log2((E_P << 7))][1]];
+          // E_P_special = files[directional_mask[(int)log2((E_P << 7))][1]];
           //  E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
           //  E_P);
-          E_P_special = (file_masks[loc_masks[(int)log2((E_P << 7))][1]] |
-                         diag_dn_r_masks[loc_masks[(int)log2((E_P << 7))][2]] |
-                         diag_up_r_masks[loc_masks[(int)log2((E_P << 7))][3]]) &
-                        ~get_mask((E_P << 7), E_P);
+          E_P_special =
+              (directional_mask[(int)log2((E_P << 7))][FILES] |
+               directional_mask[(int)log2((E_P << 7))][DIAGONOLS_DOWN_RIGHT] |
+               directional_mask[(int)log2((E_P << 7))][DIAGONOLS_UP_RIGHT]) &
+              ~get_mask((E_P << 7), E_P);
 
           //  viz_bb(E_P_special);
         }
 
         if ((((E_P << 8) & K_slider) != 0 and
-             ((E_P << 9) & ~FILE_A & P & H_moves)) or
+             ((E_P << 9) & ~file_a & P & H_moves)) or
             (((E_P << 8) & H_moves) != 0 and
-             ((E_P << 9) & ~FILE_A & P & K_slider))) {
+             ((E_P << 9) & ~file_a & P & K_slider))) {
           NEW_PIN |= (E_P << 9);
-          E_P_special = (file_masks[loc_masks[(int)log2((E_P << 9))][1]] |
-                         diag_dn_r_masks[loc_masks[(int)log2((E_P << 9))][2]] |
-                         diag_up_r_masks[loc_masks[(int)log2((E_P << 9))][3]]) &
-                        ~get_mask((E_P << 9), E_P);
+          E_P_special =
+              (directional_mask[(int)log2((E_P << 9))][FILES] |
+               directional_mask[(int)log2((E_P << 9))][DIAGONOLS_DOWN_RIGHT] |
+               directional_mask[(int)log2((E_P << 9))][DIAGONOLS_UP_RIGHT]) &
+              ~get_mask((E_P << 9), E_P);
         }
 
         // for white
         if ((((E_P >> 8) & K_slider) != 0 and
-             ((E_P >> 9) & ~FILE_H & P & H_moves)) or
+             ((E_P >> 9) & ~file_h & P & H_moves)) or
             (((E_P >> 8) & H_moves) != 0 and
-             ((E_P >> 9) & ~FILE_H & P & K_slider))) {
+             ((E_P >> 9) & ~file_h & P & K_slider))) {
           NEW_PIN |= (E_P >> 9);
-          // E_P_special = file_masks[loc_masks[(int)log2((E_P >> 9))][1]];
+          // E_P_special = files[directional_mask[(int)log2((E_P >> 9))][1]];
           // E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
           // E_P);
-          E_P_special = (file_masks[loc_masks[(int)log2((E_P >> 9))][1]] |
-                         diag_dn_r_masks[loc_masks[(int)log2((E_P >> 9))][2]] |
-                         diag_up_r_masks[loc_masks[(int)log2((E_P >> 9))][3]]) &
-                        ~get_mask((E_P >> 9), E_P);
+          E_P_special =
+              (directional_mask[(int)log2((E_P >> 9))][FILES] |
+               directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_DOWN_RIGHT] |
+               directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_UP_RIGHT]) &
+              ~get_mask((E_P >> 9), E_P);
         }
 
         if ((((E_P >> 8) & K_slider) != 0 and
-             ((E_P >> 7) & ~FILE_A & P & H_moves)) or
+             ((E_P >> 7) & ~file_a & P & H_moves)) or
             (((E_P >> 8) & H_moves) != 0 and
-             ((E_P >> 7) & ~FILE_A & P & K_slider))) {
+             ((E_P >> 7) & ~file_a & P & K_slider))) {
           NEW_PIN |= (E_P >> 7);
-          // E_P_special = file_masks[loc_masks[(int)log2((E_P >> 7))][1]];
+          // E_P_special = files[directional_mask[(int)log2((E_P >> 7))][1]];
           //  E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
           //  E_P);
-          E_P_special = (file_masks[loc_masks[(int)log2((E_P >> 7))][1]] |
-                         diag_dn_r_masks[loc_masks[(int)log2((E_P >> 7))][2]] |
-                         diag_up_r_masks[loc_masks[(int)log2((E_P >> 7))][3]]) &
-                        ~get_mask((E_P >> 7), E_P);
+          E_P_special =
+              (directional_mask[(int)log2((E_P >> 7))][FILES] |
+               directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_DOWN_RIGHT] |
+               directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_UP_RIGHT]) &
+              ~get_mask((E_P >> 7), E_P);
         }
 
         PINNED |= NEW_PIN;
@@ -681,9 +612,9 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
           pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
         }
         if (kn_bit % 8 > 3) {
-          pos_moves &= ~FILE_AB;
+          pos_moves &= ~file_ab;
         } else {
-          pos_moves &= ~FILE_GH;
+          pos_moves &= ~file_gh;
         }
         pos_moves &= ~PIECES & checker_zone;
 
@@ -735,9 +666,9 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   }
   // todo: potential to make the FILEs more efficient
   if (k_bit % 8 > 3) {
-    pos_moves &= ~FILE_A;
+    pos_moves &= ~file_a;
   } else {
-    pos_moves &= ~FILE_H;
+    pos_moves &= ~file_h;
   }
   pos_moves &= ~PIECES & ~DZ;
 
@@ -764,16 +695,16 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
   std::bitset<64> bits;
 
   if (X == "B") {
-    P_FORWARD_1 = (P >> 8) & EMPTY & ~RANK_1 & MASK & checker_zone;
+    P_FORWARD_1 = (P >> 8) & EMPTY & ~rank_1 & MASK & checker_zone;
     P_FORWARD_2 =
-        (P >> 16) & EMPTY & (EMPTY >> 8) & RANK_5 & MASK & checker_zone;
+        (P >> 16) & EMPTY & (EMPTY >> 8) & rank_5 & MASK & checker_zone;
     P_ATTACK_L =
-        (P >> 9) & OPP_PIECES & ~RANK_1 & ~FILE_H & MASK & checker_zone;
+        (P >> 9) & OPP_PIECES & ~rank_1 & ~file_h & MASK & checker_zone;
     P_ATTACK_R =
-        (P >> 7) & OPP_PIECES & ~RANK_1 & ~FILE_A & MASK & checker_zone;
-    P_PROMO_1 = (P >> 8) & EMPTY & RANK_1 & MASK & checker_zone;
-    P_PROMO_L = (P >> 9) & OPP_PIECES & RANK_1 & ~FILE_H & MASK & checker_zone;
-    P_PROMO_R = (P >> 7) & OPP_PIECES & RANK_1 & ~FILE_A & MASK & checker_zone;
+        (P >> 7) & OPP_PIECES & ~rank_1 & ~file_a & MASK & checker_zone;
+    P_PROMO_1 = (P >> 8) & EMPTY & rank_1 & MASK & checker_zone;
+    P_PROMO_L = (P >> 9) & OPP_PIECES & rank_1 & ~file_h & MASK & checker_zone;
+    P_PROMO_R = (P >> 7) & OPP_PIECES & rank_1 & ~file_a & MASK & checker_zone;
 
     //  viz_bb(P_PROMO_L);
 
@@ -855,13 +786,13 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       // todo: specialize this for white
       if (checker_zone != FILLED and ((E_P << 8) & checker_zone) != 0) {
         checker_zone |=
-            (file_masks[loc_masks[(int)log2(checker_zone)][1]] & RANK_3);
+            (directional_mask[(int)log2(checker_zone)][FILES] & rank_3);
       }
       //  viz_bb(E_P << 8);
       //  viz_bb(checker_zone);
       // if((E_P & checker_zone) =! 0)
-      uint64_t P_EP_L = (P >> 9) & E_P & ~FILE_H & MASK & checker_zone;
-      uint64_t P_EP_R = (P >> 7) & E_P & ~FILE_A & MASK & checker_zone;
+      uint64_t P_EP_L = (P >> 9) & E_P & ~file_h & MASK & checker_zone;
+      uint64_t P_EP_R = (P >> 7) & E_P & ~file_a & MASK & checker_zone;
 
       if (P_EP_L > 0u) {
         // check for en passant left
@@ -888,16 +819,16 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
     }
   } else { // case for W
 
-    P_FORWARD_1 = (P << 8) & EMPTY & ~RANK_8 & MASK & checker_zone;
+    P_FORWARD_1 = (P << 8) & EMPTY & ~rank_8 & MASK & checker_zone;
     P_FORWARD_2 =
-        (P << 16) & EMPTY & (EMPTY << 8) & RANK_4 & MASK & checker_zone;
+        (P << 16) & EMPTY & (EMPTY << 8) & rank_4 & MASK & checker_zone;
     P_ATTACK_L =
-        (P << 7) & OPP_PIECES & ~RANK_8 & ~FILE_H & MASK & checker_zone;
+        (P << 7) & OPP_PIECES & ~rank_8 & ~file_h & MASK & checker_zone;
     P_ATTACK_R =
-        (P << 9) & OPP_PIECES & ~RANK_8 & ~FILE_A & MASK & checker_zone;
-    P_PROMO_1 = (P << 8) & EMPTY & RANK_8 & MASK & checker_zone;
-    P_PROMO_L = (P << 7) & OPP_PIECES & RANK_8 & ~FILE_H & MASK & checker_zone;
-    P_PROMO_R = (P << 9) & OPP_PIECES & RANK_8 & ~FILE_A & MASK & checker_zone;
+        (P << 9) & OPP_PIECES & ~rank_8 & ~file_a & MASK & checker_zone;
+    P_PROMO_1 = (P << 8) & EMPTY & rank_8 & MASK & checker_zone;
+    P_PROMO_L = (P << 7) & OPP_PIECES & rank_8 & ~file_h & MASK & checker_zone;
+    P_PROMO_R = (P << 9) & OPP_PIECES & rank_8 & ~file_a & MASK & checker_zone;
 
     if (P_FORWARD_1 > 0u) {
 
@@ -979,11 +910,11 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
     if (E_P != 0) {
       if (checker_zone != FILLED and ((E_P >> 8) & checker_zone) != 0) {
         checker_zone |=
-            (file_masks[loc_masks[(int)log2(checker_zone)][1]] & RANK_6);
+            (directional_mask[(int)log2(checker_zone)][FILES] & rank_6);
       }
 
-      uint64_t P_EP_L = (P << 7) & E_P & ~FILE_H & MASK & checker_zone;
-      uint64_t P_EP_R = (P << 9) & E_P & ~FILE_A & MASK & checker_zone;
+      uint64_t P_EP_L = (P << 7) & E_P & ~file_h & MASK & checker_zone;
+      uint64_t P_EP_R = (P << 9) & E_P & ~file_a & MASK & checker_zone;
 
       if (P_EP_L != 0u) {
         // check for en passant left
@@ -1112,11 +1043,11 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
   // pawn
   if (P != 0u) {
     if (X == "B") {
-      unsafe = (P << 9) & ~FILE_A;  // capture right
-      unsafe |= (P << 7) & ~FILE_H; // capture left
+      unsafe = (P << 9) & ~file_a;  // capture right
+      unsafe |= (P << 7) & ~file_h; // capture left
     } else {
-      unsafe = (P >> 7) & ~FILE_A;  // capture right
-      unsafe |= (P >> 9) & ~FILE_H; // capture left
+      unsafe = (P >> 7) & ~file_a;  // capture right
+      unsafe |= (P >> 9) & ~file_h; // capture left
     }
   }
 
@@ -1137,9 +1068,9 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
         pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
       }
       if (kn_bit % 8 > 3) {
-        pos_moves &= ~FILE_AB;
+        pos_moves &= ~file_ab;
       } else {
-        pos_moves &= ~FILE_GH;
+        pos_moves &= ~file_gh;
       }
       // viz_bb(pos_n_moves);
       unsafe |= pos_moves;
@@ -1180,9 +1111,9 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
   }
   // todo: potential to make the FILEs more efficient
   if (k_bit % 8 > 3) {
-    pos_moves &= ~FILE_A;
+    pos_moves &= ~file_a;
   } else {
-    pos_moves &= ~FILE_H;
+    pos_moves &= ~file_h;
   }
   unsafe |= pos_moves;
   // end
@@ -1275,9 +1206,9 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       K_moves = KNIGHT_MOVES >> (21 - k_bit);
     }
     if (k_bit % 8 > 3) {
-      K_moves &= ~FILE_AB;
+      K_moves &= ~file_ab;
     } else {
-      K_moves &= ~FILE_GH;
+      K_moves &= ~file_gh;
     }
     new_checker = K_moves & gamestate.white.knight;
     if (new_checker != 0u and num_checkers != 2) {
@@ -1286,7 +1217,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     }
 
     // check for pawn right attack (from pawns perspective)
-    K_moves = (gamestate.black.king >> 9) & ~FILE_H;
+    K_moves = (gamestate.black.king >> 9) & ~file_h;
     // viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.white.pawn;
     if (new_checker != 0u and num_checkers != 2) {
@@ -1295,7 +1226,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     }
 
     // check for pawn left attack (from pawns perspective)
-    K_moves = (gamestate.black.king >> 7) & ~FILE_A;
+    K_moves = (gamestate.black.king >> 7) & ~file_a;
     //  viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.white.pawn;
     if (new_checker != 0u and num_checkers != 2) {
@@ -1432,9 +1363,9 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     }
 
     if (k_bit % 8 > 3) {
-      K_moves &= ~FILE_AB;
+      K_moves &= ~file_ab;
     } else {
-      K_moves &= ~FILE_GH;
+      K_moves &= ~file_gh;
     }
 
     new_checker = K_moves & gamestate.black.knight;
@@ -1444,7 +1375,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     }
 
     // check for pawn right attack (from pawns perspective)
-    K_moves = (gamestate.white.king << 7) & ~FILE_H; // todo: verify
+    K_moves = (gamestate.white.king << 7) & ~file_h; // todo: verify
     // viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.black.pawn;
     if (new_checker != 0u and num_checkers != 2) {
@@ -1454,7 +1385,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     // viz_bb(checkers);
 
     // check for pawn left attack (from pawns perspective)
-    K_moves = (gamestate.white.king << 9) & ~FILE_A; // todo: verify
+    K_moves = (gamestate.white.king << 9) & ~file_a; // todo: verify
     //  viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.black.pawn;
     if (new_checker != 0u and num_checkers != 2) {

@@ -110,19 +110,19 @@ int main() {
   // cout<<"3: Hard"<<endl;
   // cin>>difficulty;
 
-  //   uint8_t depth = 3;
-  //   std::string fen =
-  //       "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
-  //    // fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  uint8_t depth = 3;
+  std::string fen =
+      "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+  // fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-  //   int result = legalMoveGeneratorTest(fen, depth);
-  //   if (result == 97862) {
-  //     std::cout << "YAY IT PASSED" << std::endl;
-  //   } else {
-  //     std::cout << "FAILED" << std::endl;
-  //   }
-  //   std::cout << result << std::endl;
+  int result = legalMoveGeneratorTest(fen, depth);
+  if (result == 97862) {
+    std::cout << "YAY IT PASSED" << std::endl;
+  } else {
+    std::cout << "FAILED" << std::endl;
+  }
+  std::cout << result << std::endl;
 
-  generate_board("a", 1);
+  // generate_board(player_name, difficulty);
   return 0;
 }
