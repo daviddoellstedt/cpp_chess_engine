@@ -17,16 +17,89 @@
 #include <vector>
 
 struct AI_return {
-  std::string move;
+  Move move;
   double value;
 };
 
-uint64_t generateWhiteOccupiedBitboard(const GameState& gamestate){
+enum SpecialMove : uint8_t {
+  NONE = 0,
+  CASTLE_KINGSIDE = 1,
+  CASTLE_QUEENSIDE = 2,
+  PROMOTION_QUEEN = 3,
+  PROMOTION_ROOK = 4,
+  PROMOTION_KNIGHT = 5,
+  PROMOTION_BISHOP = 6,
+  EN_PASSANT = 7,
+  PAWN_PUSH_2 = 8,
+};
+
+uint8_t moveToX1(Move move) { return move.data & X_INITIAL; }
+
+uint8_t moveToY1(Move move) { return (move.data & Y_INITIAL) >> 3; }
+
+uint8_t moveToX2(Move move) { return (move.data & X_FINAL) >> 6; }
+
+uint8_t moveToY2(Move move) { return (move.data & Y_FINAL) >> 9; }
+
+SpecialMove moveToSpecial(Move move) {
+  return (SpecialMove)((move.data & SPECIAL) >> 12);
+}
+
+std::string specialMoveToString(SpecialMove special_move) {
+  switch (special_move) {
+  case NONE:
+    return "";
+  case CASTLE_KINGSIDE:
+    return "Kingside Castle";
+  case CASTLE_QUEENSIDE:
+    return "Queenside Castle";
+  case PROMOTION_QUEEN:
+    return "Promotion (Queen)";
+  case PROMOTION_ROOK:
+    return "Promotion (Rook)";
+  case PROMOTION_KNIGHT:
+    return "Promotion (Knight)";
+  case PROMOTION_BISHOP:
+    return "Promotion (Bishop)";
+  case EN_PASSANT:
+    return "En Passant";
+  default:
+    // TODO add error handling here.
+    return "";
+    break;
+  }
+}
+
+std::string moveToString(Move move) {
+  std::string result = "";
+  result += std::to_string(moveToX1(move)) + std::to_string(moveToY1(move)) +
+            ">" + std::to_string(moveToX2(move)) +
+            std::to_string(moveToY2(move)) + " " +
+            specialMoveToString(moveToSpecial(move));
+  return result;
+}
+
+Move coordinatesToMove(std::pair<uint8_t, uint8_t> initial,
+                       std::pair<uint8_t, uint8_t> final) {
+  Move move;
+  move.data = initial.first;
+  move.data |= (initial.second << 3);
+  move.data |= (final.first << 6);
+  move.data |= (final.second << 9);
+  return move;
+}
+
+void updateSpecialMove(Move &move, SpecialMove special_move) {
+  move.data &= ~SPECIAL;
+  move.data |= (special_move << 12);
+}
+
+uint64_t generateWhiteOccupiedBitboard(const GameState &gamestate){
   return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight |
          gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
 }
 
-uint64_t generateBlackOccupiedBitboard(const GameState& gamestate){
+uint64_t generateBlackOccupiedBitboard(const GameState &gamestate){
   return gamestate.black.pawn | gamestate.black.rook | gamestate.black.knight |
          gamestate.black.bishop | gamestate.black.queen | gamestate.black.king;
 }
@@ -77,11 +150,13 @@ void print_board(const GameState gamestate) {
     }
   }
 
+  std::string dividing_line =
+      "|---|-----|-----|-----|-----|-----|-----|-----|-----|";
+
   std::string line;
   for (int i = 0; i <= 7; i++) {
-    std::cout << "|---|-----|-----|-----|-----|-----|-----|-----|-----|"
-              << std::endl;
-    line = "| " + std::to_string(i) + " |  ";
+    std::cout << dividing_line << std::endl;
+    line = "| " + std::to_string(8 - i) + " |  ";
     for (int j = 0; j < 8; j++) {
       line.push_back(grid[i][j]);
       if (j != 7) {
@@ -90,61 +165,11 @@ void print_board(const GameState gamestate) {
     }
     std::cout << line + "  |" << std::endl;
   }
-  std::cout << "|---|-----|-----|-----|-----|-----|-----|-----|-----|"
+  std::cout << dividing_line << std::endl;
+
+  std::cout << "|   |  a  |  b  |  c  |  d  |  e  |  f  |  g  |  h  |"
             << std::endl;
-  std::cout << "    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |"
-            << std::endl;
-
-  std::cout << "    |-----|-----|-----|-----|-----|-----|-----|-----|"
-            << std::endl;
-}
-
-/** Helper function used to convert a grid of pieces into the 12 unique
- * bitboards. This should only be executed once, at the start of the game.
- *
- * @param g: the char grid of pieces
- * @params 12 unique bitboards (by reference, so they can be modified)
- */
-// todo: get rid of this eventually. Should be populating the bitboards directly
-// from the FEN. Need to modify read FEN function also
-void grid_to_bbs(char g[8][8], uint64_t &BR, uint64_t &BN, uint64_t &BB,
-                 uint64_t &BQ, uint64_t &BK, uint64_t &BP, uint64_t &WR,
-                 uint64_t &WN, uint64_t &WB, uint64_t &WQ, uint64_t &WK,
-                 uint64_t &WP) {
-  int counter = -1;
-
-  for (int i = 7; i >= 0; i--) {
-    for (int j = 0; j < 8; j++) {
-      counter++;
-
-      if (g[i][j] == 'r') {
-        BR += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'n') {
-        BN += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'b') {
-        BB += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'q') {
-        BQ += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'k') {
-        BK += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'p') {
-        BP += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'R') {
-        WR += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'N') {
-        WN += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'B') {
-        WB += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'Q') {
-        WQ += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'K') {
-        WK += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == 'P') {
-        WP += (uint64_t)pow(2, counter);
-      } else if (g[i][j] == ' ') {
-      } // do nothing
-    }
-  }
+  std::cout << dividing_line << std::endl;
 }
 
 /** Function that can generate the possible moves a slider piece can make in the
@@ -435,12 +460,12 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
  * @param PINNED: bitboard of all pinned pieces for a color
  * @param checker_zone: bitboard of check areas for the current king (enemy
  * attacker piece(s) included).
- * @param wb_moves: list of all possible moves for the inpout player. output
- * will be appended to this variable.
+ * @param wb_moves: list of all possible moves for the input player. Output
+ * will be appended to this vector.
  */
 void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                     uint64_t PINNED, uint64_t checker_zone,
-                    std::vector<std::string> &wb_moves) {
+                    std::vector<Move> &wb_moves) {
 
   if (R != 0u) {
     if (checker_zone == 0) {
@@ -466,11 +491,14 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
       if (moves != 0) {
         //    viz_bb(h_v_moves(bb, sl_bit, OCCUPIED) & ~WHITE_PIECES);
         //   std::cout<<"----"<<std::endl;
-        std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
+
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
-            wb_moves.emplace_back(ind_i + ind_f);
+            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
         }
       }
@@ -491,7 +519,7 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  */
 void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
                       uint64_t OCCUPIED, uint64_t PINNED, uint64_t checker_zone,
-                      std::vector<std::string> &wb_moves) {
+                      std::vector<Move> &wb_moves) {
   if (B != 0u) {
     if (checker_zone == 0) {
       checker_zone = FILLED;
@@ -513,12 +541,14 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
                             ~PIECES & mask & checker_zone);
       // loop through moves and append to list, if there are any
       if (moves != 0) {
-        std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
         // todo: can maybe optimize by not searching the entire range
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
-            wb_moves.emplace_back(ind_i + ind_f);
+            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
         }
       }
@@ -539,7 +569,7 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
  */
 void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                      uint64_t PINNED, uint64_t checker_zone,
-                     std::vector<std::string> &wb_moves) {
+                     std::vector<Move> &wb_moves) {
   if (Q != 0u) {
     if (checker_zone == 0) {
       checker_zone = FILLED;
@@ -562,11 +592,13 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                             ~PIECES & mask & checker_zone);
       // loop through moves and append to list, if there are any
       if (moves != 0) {
-        std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
+        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
-            wb_moves.emplace_back(ind_i + ind_f);
+            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
         }
       }
@@ -585,8 +617,7 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * will be appended to this variable.
  */
 void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
-                      uint64_t checker_zone,
-                      std::vector<std::string> &wb_moves) {
+                      uint64_t checker_zone, std::vector<Move> &wb_moves) {
   if (N != 0u) {
     if (checker_zone == 0) {
       checker_zone = FILLED;
@@ -625,11 +656,13 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
         std::bitset<64> moves(pos_moves);
         // loop through moves and append to list, if there are any
         if (moves != 0) {
-          std::string ind_i = ind_x(kn_bit, 0) + ind_y(kn_bit, 0) + ">";
+          // std::string ind_i = ind_x(kn_bit, 0) + ind_y(kn_bit, 0) + ">";
+          std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
           for (int i = 0; i < 64; i++) {
             if (moves[i] == 1) {
-              std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
-              wb_moves.emplace_back(ind_i + ind_f);
+              // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
+              std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+              wb_moves.emplace_back(coordinatesToMove(initial, final));
             }
           }
         }
@@ -649,7 +682,7 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
  * will be appended to this variable.
  */
 void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
-                    std::vector<std::string> &wb_moves) {
+                    std::vector<Move> &wb_moves) {
   // todo: is it really efficient to redefine these everytime? maybe can
   // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
   // y5)
@@ -677,11 +710,13 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   std::bitset<64> moves(pos_moves);
   // loop through moves and append to list, if there are any
   if (moves != 0) {
-    std::string ind_i = ind_x(k_bit, 0) + ind_y(k_bit, 0) + ">";
+    // std::string ind_i = ind_x(k_bit, 0) + ind_y(k_bit, 0) + ">";
+    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
     for (int i = 0; i < 64; i++) {
       if (moves[i] == 1) {
-        std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
-        wb_moves.emplace_back(ind_i + ind_f);
+        // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+        wb_moves.emplace_back(coordinatesToMove(initial, final));
       }
     }
   }
@@ -689,7 +724,7 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
 
 void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
                       uint64_t E_P, uint64_t EMPTY, uint64_t OPP_PIECES,
-                      uint64_t checker_zone, std::vector<std::string> &moves) {
+                      uint64_t checker_zone, std::vector<Move> &moves) {
   uint64_t P_FORWARD_1, P_FORWARD_2, P_ATTACK_L, P_ATTACK_R, P_PROMO_1,
       P_PROMO_L, P_PROMO_R;
   std::bitset<64> bits;
@@ -713,7 +748,10 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_FORWARD_1; // check to see if you can move 1
       for (int i = 8; i < 48; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, 0));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
         }
       }
     }
@@ -722,7 +760,12 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_FORWARD_2; // check to see if you can move 2
       for (int i = 32; i < 40; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 2, 0) + ">2");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 2;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, PAWN_PUSH_2);
+          moves.emplace_back(move);
         }
       }
     }
@@ -731,7 +774,11 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_ATTACK_L; // check for attacks left
       for (int i = 8; i < 48; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, 1));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second += 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
         }
       }
     }
@@ -740,7 +787,11 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_ATTACK_R; // check for attacks right
       for (int i = 8; i < 48; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, -1));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second -= 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
         }
       }
     }
@@ -750,10 +801,27 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_1;
       for (int i = 0; i < 8; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PN");
         }
       }
     }
@@ -762,10 +830,28 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_L; // check for promotion left
       for (int i = 0; i < 8; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second += 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PN");
         }
       }
     }
@@ -774,10 +860,28 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_R; // check for promotion attack right
       for (int i = 0; i < 8; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second -= 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PN");
         }
       }
     }
@@ -802,7 +906,13 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         //   viz_bb(checker_zone);
         for (int i = 16; i < 24; i++) {
           if (bits[i] == 1) {
-            moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "EP");
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            std::pair<uint8_t, uint8_t> initial = final;
+            initial.first += 1;
+            initial.second += 1;
+            Move move = coordinatesToMove(initial, final);
+            updateSpecialMove(move, EN_PASSANT);
+            moves.emplace_back(move);
           }
         }
       }
@@ -812,7 +922,13 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         bits = P_EP_R;
         for (int i = 16; i < 24; i++) {
           if (bits[i] == 1) {
-            moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "EP");
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            std::pair<uint8_t, uint8_t> initial = final;
+            initial.first += 1;
+            initial.second -= 1;
+            Move move = coordinatesToMove(initial, final);
+            updateSpecialMove(move, EN_PASSANT);
+            moves.emplace_back(move);
           }
         }
       }
@@ -835,7 +951,10 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_FORWARD_1; // check to see if you can move 1
       for (int i = 16; i < 56; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, -1, 0));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
         }
       }
     }
@@ -845,7 +964,13 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       for (int i = 24; i < 32; i++) {
 
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, -2, 0) + ">2");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 2;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, PAWN_PUSH_2);
+          moves.emplace_back(move);
+          // moves.emplace_back(b_2_ind(i, -2, 0) + ">2");
         }
       }
     }
@@ -854,7 +979,12 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_ATTACK_L; // check for attacks left
       for (int i = 16; i < 56; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, -1, 1));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second += 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
+          // moves.emplace_back(b_2_ind(i, -1, 1));
         }
       }
     }
@@ -863,7 +993,12 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_ATTACK_R; // check for attacks right
       for (int i = 16; i < 56; i++) {
         if (bits[i] == 1) {
-          moves.emplace_back(b_2_ind(i, -1, -1));
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second -= 1;
+          moves.emplace_back(coordinatesToMove(initial, final));
+          // moves.emplace_back(b_2_ind(i, -1, -1));
         }
       }
     }
@@ -872,11 +1007,27 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_1; // check for promotion straight
       for (int i = 56; i < 64; i++) {
         if (bits[i] == 1) {
-          // todo: can i optimize by storing a ind string variable
-          moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PN");
         }
       }
     }
@@ -885,11 +1036,28 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_L; // check for promotion left
       for (int i = 56; i < 64; i++) {
         if (bits[i] == 1) {
-          // todo: can i optimize by storing a ind string variable
-          moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second += 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PN");
         }
       }
     }
@@ -898,11 +1066,28 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       bits = P_PROMO_R; // check for promotion attack right
       for (int i = 56; i < 64; i++) {
         if (bits[i] == 1) {
-          // todo: can i optimize by storing a ind string variable
-          moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PQ");
-          moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PR");
-          moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PB");
-          moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PN");
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second -= 1;
+          Move move = coordinatesToMove(initial, final);
+
+          updateSpecialMove(move, PROMOTION_QUEEN);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_ROOK);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_BISHOP);
+          moves.emplace_back(move);
+
+          updateSpecialMove(move, PROMOTION_KNIGHT);
+          moves.emplace_back(move);
+
+          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PQ");
+          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PR");
+          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PB");
+          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PN");
         }
       }
     }
@@ -922,7 +1107,15 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         for (int i = 40; i < 48; i++) {
           if (bits[i] == 1) {
 
-            moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "EP");
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            std::pair<uint8_t, uint8_t> initial = final;
+            initial.first -= 1;
+            initial.second += 1;
+            Move move = coordinatesToMove(initial, final);
+            updateSpecialMove(move, EN_PASSANT);
+            moves.emplace_back(move);
+
+            // moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "EP");
           }
         }
       }
@@ -932,7 +1125,15 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         bits = P_EP_R;
         for (int i = 40; i < 48; i++) {
           if (bits[i] == 1) {
-            moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "EP");
+            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+            std::pair<uint8_t, uint8_t> initial = final;
+            initial.first -= 1;
+            initial.second -= 1;
+            Move move = coordinatesToMove(initial, final);
+            updateSpecialMove(move, EN_PASSANT);
+            moves.emplace_back(move);
+
+            // moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "EP");
           }
         }
       }
@@ -942,7 +1143,7 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 void get_B_pawn_moves(uint64_t BP, uint64_t BK, uint64_t E_P, uint64_t EMPTY,
                       uint64_t WHITE_PIECES, uint64_t PINNED,
                       uint64_t checker_zone, uint64_t E_P_SPECIAL,
-                      std::vector<std::string> &b_moves) {
+                      std::vector<Move> &b_moves) {
 
   uint64_t mask;
   uint64_t pinned_pawns = (BP & PINNED);
@@ -976,7 +1177,7 @@ void get_B_pawn_moves(uint64_t BP, uint64_t BK, uint64_t E_P, uint64_t EMPTY,
 void get_W_pawn_moves(uint64_t WP, uint64_t WK, uint64_t E_P, uint64_t EMPTY,
                       uint64_t BLACK_PIECES, uint64_t PINNED,
                       uint64_t checker_zone, uint64_t E_P_SPECIAL,
-                      std::vector<std::string> &w_moves) {
+                      std::vector<Move> &w_moves) {
 
   uint64_t mask;
   uint64_t pinned_pawns = (WP & PINNED);
@@ -1007,18 +1208,25 @@ void get_W_pawn_moves(uint64_t WP, uint64_t WK, uint64_t E_P, uint64_t EMPTY,
 }
 
 void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                  std::vector<std::string> &wb_moves) {
+                  std::vector<Move> &wb_moves) {
   if (CK) {
     // todo: implement lookup table
     if (((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)) != 0u) {
       int k_bit =
           (int)log2(((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)));
-      wb_moves.emplace_back(b_2_ind(k_bit, 0, -2) + ">CK");
+
+      std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
+      std::pair<uint8_t, uint8_t> initial = final;
+      initial.second -= 2;
+      Move move = coordinatesToMove(initial, final);
+      updateSpecialMove(move, CASTLE_KINGSIDE);
+      wb_moves.emplace_back(move);
+      // wb_moves.emplace_back(b_2_ind(k_bit, 0, -2) + ">CK");
     }
   }
 }
 void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                  std::vector<std::string> &wb_moves) {
+                  std::vector<Move> &wb_moves) {
 
   if (QK) {
     //   viz_bb(DZ);
@@ -1029,7 +1237,13 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
         0u) {
       int k_bit = (int)log2((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) &
                              ~DZ & ~(DZ >> 1)));
-      wb_moves.emplace_back(b_2_ind(k_bit, 0, 2) + ">CQ");
+      std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
+      std::pair<uint8_t, uint8_t> initial = final;
+      initial.second += 2;
+      Move move = coordinatesToMove(initial, final);
+      updateSpecialMove(move, CASTLE_QUEENSIDE);
+      wb_moves.emplace_back(move);
+      // wb_moves.emplace_back(b_2_ind(k_bit, 0, 2) + ">CQ");
     }
   }
 }
@@ -1122,7 +1336,7 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
 }
 
 void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
-                 std::vector<std::string> &b_moves) {
+                 std::vector<Move> &b_moves) {
 
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
@@ -1276,7 +1490,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 }
 
 void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
-                 std::vector<std::string> &w_moves) {
+                 std::vector<Move> &w_moves) {
 
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
@@ -1430,7 +1644,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   //  return check;
 }
 
-void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
+void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
 
   uint64_t P =
       gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
@@ -1478,9 +1692,18 @@ void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
   //     WHITE_PIECES = (OR | ON | OB | OQ | OK | OP);
   //   }
 
-  int x1 = stoi(move.substr(0, 1)), y1 = stoi(move.substr(1, 1));
-  int x2 = stoi(move.substr(3, 1)), y2 = stoi(move.substr(4, 1));
+  uint8_t x1 = moveToX1(move);
+  uint8_t y1 = moveToY1(move);
+  uint8_t x2 = moveToX2(move);
+  uint8_t y2 = moveToY2(move);
+  // std::cout << x1 + 0 << " " << y1 + 0 <<" "<<x2 + 0 << " "<<y2 +
+  // 0<<std::endl;
+  SpecialMove special = moveToSpecial(move);
 
+  //   int x1 = stoi(move.substr(0, 1)), y1 = stoi(move.substr(1, 1));
+  //   int x2 = stoi(move.substr(3, 1)), y2 = stoi(move.substr(4, 1));
+
+  // TODO: switch to bit shifting.
   uint64_t initial = pow(2, ((x1 * 8) + (y1 % 8)));
   uint64_t final = pow(2, ((x2 * 8) + (y2 % 8)));
 
@@ -1564,7 +1787,10 @@ void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
 
   // need to move piece to the final position and also remove the initial
   // position
-  if (move.length() == 5) {
+
+  // No Special move
+  // TODO: make switch statement here.
+  if (special == NONE) {
     //   std::cout<<"hello"<<std::endl;
     // viz_bb(P);
     // todo: search for which piece is moving
@@ -1614,52 +1840,89 @@ void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
 
     E_P = 0u;
   } else {
-    if (move.substr(6, 1) == "C") { // castling
+    if (special == CASTLE_KINGSIDE) {
       if (white_move) {
-        if (move.substr(7, 1) == "K") { // kingside castle for white
-
-          K = 64u;
-          R -= 128u;
-          R += 32u;
-          WCK = false;
-          WCQ = false;
-        } else { // queenside castle for black
-          K = 4u;
-          R -= 1u;
-          R += 8u;
-          WCQ = false;
-          WCK = false;
-        }
+        // TODO: resolve all these magic numbers.
+        K = 64u;
+        R -= 128u;
+        R += 32u;
+        WCK = false;
+        WCQ = false;
       } else {
+        K = 4611686018427387904u;
+        R -= 9223372036854775808u;
+        R += 2305843009213693952u;
+        BCK = false;
+        BCQ = false;
+      }
+      E_P = 0u;
+    } else if (special == CASTLE_QUEENSIDE) {
+      if (white_move) {
+        K = 4u;
+        R -= 1u;
+        R += 8u;
+        WCQ = false;
+        WCK = false;
+      } else {
+        K = 288230376151711744u;
+        R -= 72057594037927936u;
+        R += 576460752303423488u;
+        BCQ = false;
+        BCK = false;
+      }
+      E_P = 0u;
+    }
+    // if (move.substr(6, 1) == "C") { // castling
+    //   if (white_move) {
+    //     if (move.substr(7, 1) == "K") { // kingside castle for white
 
-        if (move.substr(7, 1) == "K") { // kingside castle for black
-          K = 4611686018427387904u;
-          R -= 9223372036854775808u;
-          R += 2305843009213693952u;
-          BCK = false;
-          BCQ = false;
-        } else { // queenside castle for black
-          K = 288230376151711744u;
-          R -= 72057594037927936u;
-          R += 576460752303423488u;
-          BCQ = false;
-          BCK = false;
-        }
-      }
-      E_P = 0u;
-    } else if (move.substr(6, 1) == "P") { // promotion
+    //       K = 64u;
+    //       R -= 128u;
+    //       R += 32u;
+    //       WCK = false;
+    //       WCQ = false;
+    //     } else { // queenside castle for white
+    //       K = 4u;
+    //       R -= 1u;
+    //       R += 8u;
+    //       WCQ = false;
+    //       WCK = false;
+    //     }
+    //   } else {
+
+    //     if (move.substr(7, 1) == "K") { // kingside castle for black
+    //       K = 4611686018427387904u;
+    //       R -= 9223372036854775808u;
+    //       R += 2305843009213693952u;
+    //       BCK = false;
+    //       BCQ = false;
+    //     } else { // queenside castle for black
+    //       K = 288230376151711744u;
+    //       R -= 72057594037927936u;
+    //       R += 576460752303423488u;
+    //       BCQ = false;
+    //       BCK = false;
+    //     }
+    //   }
+    //   E_P = 0u;
+    // }
+    else if (special == PROMOTION_QUEEN) { // promotion
       P &= ~initial;
-      if (move.substr(7, 1) == "Q") {
-        Q |= final;
-      } else if (move.substr(7, 1) == "R") {
-        R |= final;
-      } else if (move.substr(7, 1) == "N") {
-        N |= final;
-      } else if (move.substr(7, 1) == "B") {
-        B |= final;
-      }
+      Q |= final;
       E_P = 0u;
-    } else if (move.substr(6, 1) == "E") { // en passant capture
+    } else if (special == PROMOTION_BISHOP) {
+      P &= ~initial;
+      B |= final;
+      E_P = 0u;
+    } else if (special == PROMOTION_KNIGHT) {
+      P &= ~initial;
+      N |= final;
+      E_P = 0u;
+    } else if (special == PROMOTION_ROOK) {
+      P &= ~initial;
+      R |= final;
+      E_P = 0u;
+    } else if (special == EN_PASSANT) { // en passant capture
 
       P |= final;
       P &= ~initial;
@@ -1698,19 +1961,19 @@ void apply_move(std::string move, GameState &gamestate, uint64_t &E_P) {
   gamestate.whites_turn = white_move;
 }
 
-void print_moves(bool white_move, std::vector<std::string> b_moves,
-                 std::vector<std::string> w_moves) {
+void print_moves(bool white_move, std::vector<Move> b_moves,
+                 std::vector<Move> w_moves) {
 
   if (white_move) {
     std::cout << "WHITE'S MOVE: " << std::endl;
     for (int i = 0; i < w_moves.size(); i++) {
-      std::cout << i + 1 << ": " + w_moves[i] << std::endl;
+      std::cout << i + 1 << ": " + moveToString(w_moves[i]) << std::endl;
     }
     //  std::cout << "total moves: " << w_moves.size() << std::endl;
   } else {
     std::cout << "BLACK'S MOVE: " << std::endl;
     for (int i = 0; i < b_moves.size(); i++) {
-      std::cout << i + 1 << ": " + b_moves[i] << std::endl;
+      std::cout << i + 1 << ": " + moveToString(b_moves[i]) << std::endl;
     }
   }
 }
@@ -1718,8 +1981,8 @@ void print_moves(bool white_move, std::vector<std::string> b_moves,
 bool aa = false;
 
 void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
-           std::vector<std::string> moves, uint64_t &E_P, bool CM, bool SM,
-           int depth, int orig_depth, std::string n) {
+           std::vector<Move> moves, uint64_t &E_P, bool CM, bool SM, int depth,
+           int orig_depth, std::string n) {
 
   bool check = false;
 
@@ -1755,24 +2018,25 @@ void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
         //          viz_bb( WPt);
         if (n == "total") {
           std::cout << round(((i * 100 / moves.size())))
-                    << "% complete... -> d1:" << moves[i]
+                    << "% complete... -> d1:" << moveToString(moves[i])
                     << "--------------------------------------------------"
                     << std::endl;
 
         } else if (n == "node") {
-          std::cout << i << ":" << moves[i] << " " << nodes << std::endl;
+          std::cout << i << ":" << moveToString(moves[i]) << " " << nodes
+                    << std::endl;
           nodes = 0;
         }
 
       } else if (depth == orig_depth - 1 and false) {
         if (n == "total") {
           std::cout << round(((i * 100 / moves.size())))
-                    << "% complete... -> d1:" << moves[i]
+                    << "% complete... -> d1:" << moveToString(moves[i])
                     << "--------------------------------------------------"
                     << std::endl;
         } else if (n == "node") {
-          std::cout << "     " << i << ":" << moves[i] << " " << nodes
-                    << std::endl;
+          std::cout << "     " << i << ":" << moveToString(moves[i]) << " "
+                    << nodes << std::endl;
           //   nodes = 0;
         }
       }
@@ -1814,25 +2078,32 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
   if (depth == 0) { // todo: add a conditon for game over
     // todo add evaluation function
     nodes2++;
-    AI_return leaf = {"string generico", eval(gamestate)};
+    // simply a placeholder to avoid error, TODO make more elegant.
+    Move leaf_move;
+    leaf_move.data = 0;
+    AI_return leaf = {leaf_move, eval(gamestate)};
     //    std::cout<<leaf.value<<std::endl;
     return leaf;
   }
 
   if (my_turn) {
-    std::vector<std::string> w_moves;
+    std::vector<Move> w_moves;
 
-    std::string max_move = " ";
+    Move max_move;
     double max_val = -10000000;
     AI_return a;
 
     get_W_moves(gamestate, E_P, CM, SM, w_moves);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
-      AI_return leaf = {"CM", -10000};
+      Move null_move;
+      null_move.data = 0;
+      AI_return leaf = {null_move, -10000};
       return leaf;
     }
     if (SM) { // std::cout << "STALEMATE." << std::endl;
-      AI_return leaf = {"SM", 0};
+      Move null_move;
+      null_move.data = 0;
+      AI_return leaf = {null_move, 0};
       return leaf;
     }
 
@@ -1866,20 +2137,24 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     return leaf_node;
 
   } else {
-    std::vector<std::string> b_moves;
+    std::vector<Move> b_moves;
 
-    std::string min_move = " ";
+    Move min_move;
     double min_val = 10000000;
     AI_return a;
 
     get_B_moves(gamestate, E_P, CM, SM, b_moves);
 
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
-      AI_return leaf = {"CM", 10000};
+      Move null_move;
+      null_move.data = 0;
+      AI_return leaf = {null_move, 10000};
       return leaf;
     }
     if (SM) { // std::cout << "STALEMATE." << std::endl;
-      AI_return leaf = {"SM", 0};
+      Move null_move;
+      null_move.data = 0;
+      AI_return leaf = {null_move, 0};
       return leaf;
     }
 
@@ -2100,14 +2375,6 @@ void generate_board(std::string name, int diff) {
   GameState gamestate;
   fenToGameState(FEN, gamestate);
 
-  //   read_FEN(grid, FEN, white_to_move, WCK, WCQ, BCK, BCQ);
-
-  //   grid_to_bbs(grid, BR, BN, BB, BQ, BK, BP, WR, WN, WB, WQ, WK, WP);
-
-  //   BLACK_PIECES = BR | BN | BB | BQ | BK | BP,
-  //   WHITE_PIECES = WR | WN | WB | WQ | WK | WP,
-  //   OCCUPIED = BLACK_PIECES | WHITE_PIECES;
-
   AI_return AI_choice;
 
   int depth;
@@ -2145,7 +2412,7 @@ void generate_board(std::string name, int diff) {
       AI_choice = minimax(gamestate, E_P, CM, SM, depth, true);
       auto end = std::chrono::high_resolution_clock::now();
 
-      std::cout << "Move chosen: " << AI_choice.move << std::endl;
+      std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
       std::cout << AI_choice.value << std::endl;
       std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
       //  std::cout<<"nodes: "<<nodes2<<std::endl;
@@ -2165,7 +2432,7 @@ void generate_board(std::string name, int diff) {
       std::cout << "BLACK'S MOVE: " << std::endl;
 
       // todo: create a player class for their choosing mechanism
-      std::vector<std::string> b_moves;
+      std::vector<Move> b_moves;
 
       // TODO: uncomment this and fix
       get_B_moves(gamestate, E_P, CM, SM, b_moves);
@@ -2178,7 +2445,8 @@ void generate_board(std::string name, int diff) {
 
       apply_move(b_moves[user_choice - 1], gamestate, E_P);
 
-      std::cout << "Move chosen: " << b_moves[user_choice - 1] << std::endl;
+      std::cout << "Move chosen: " << moveToString(b_moves[user_choice - 1])
+                << std::endl;
       std::cout << " " << std::endl;
     }
   }

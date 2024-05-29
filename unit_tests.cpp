@@ -16,7 +16,7 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     bool CM = false;
     bool SM = false;
     uint64_t E_P = 0;
-    std::vector<std::string> moves;
+    std::vector<Move> moves;
     std::string n = "total";
 
 

@@ -7,6 +7,14 @@
 
 #include <string>
 
+struct Move {
+  // Moves are stored as a 16-bit integer. Kept as lightweight as possible to
+  // allow deeper search. Bits: 0 - 2:   Initial x position 3 - 5:   Initial y
+  // position 6 - 8:   Final x position 9 - 11:  Final y position 12 - 16:
+  // Special move flags (see SpecialMove enum)
+  uint16_t data = 0;
+};
+
 typedef struct PlayerState {
   uint64_t rook = 0;
   uint64_t knight = 0;
@@ -36,8 +44,8 @@ typedef struct GameState {
 void generate_board(std::string name, int diff);
 
 void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
-           std::vector<std::string> moves, uint64_t &E_P, bool CM, bool SM,
-           int depth, int orig_depth, std::string n);
+           std::vector<Move> moves, uint64_t &E_P, bool CM, bool SM, int depth,
+           int orig_depth, std::string n);
 
 void fenToGameState(const std::string fen, GameState &gamestate);
 
