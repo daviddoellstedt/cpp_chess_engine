@@ -15,6 +15,13 @@ const uint64_t KING_MOVES = 0xE0A0E0;
 // Mask of entirely filled board.
 const uint64_t FILLED = ~0;
 
+// Masks for reading/writing to move.
+const uint16_t X_INITIAL = 0x7;
+const uint16_t Y_INITIAL = 0x38;
+const uint16_t X_FINAL = 0x1C0;
+const uint16_t Y_FINAL = 0xE00;
+const uint16_t SPECIAL = 0xF000;
+
 // Ranks.
 const uint64_t rank_1 = 0xFF;
 const uint64_t rank_2 = 0xFF00;
@@ -145,5 +152,18 @@ const uint64_t directional_mask[N_SQUARES][N_DIRECTIONS] = {
     {rank_8, file_f, diagonal_f8h6, diagonol_a3f8},
     {rank_8, file_g, diagonal_g8h7, diagonol_a2g8},
     {rank_8, file_h, diagonol_h1, diagonol_a1h8}};
+
+// Bit to coordiantes lookup table. This is a simple calculation, but lookup
+// table saves on runtime.
+const std::pair<uint8_t, uint8_t> bitToCoordinates[N_SQUARES] = {
+    {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7},
+    {1, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 4}, {1, 5}, {1, 6}, {1, 7},
+    {2, 0}, {2, 1}, {2, 2}, {2, 3}, {2, 4}, {2, 5}, {2, 6}, {2, 7},
+    {3, 0}, {3, 1}, {3, 2}, {3, 3}, {3, 4}, {3, 5}, {3, 6}, {3, 7},
+    {4, 0}, {4, 1}, {4, 2}, {4, 3}, {4, 4}, {4, 5}, {4, 6}, {4, 7},
+    {5, 0}, {5, 1}, {5, 2}, {5, 3}, {5, 4}, {5, 5}, {5, 6}, {5, 7},
+    {6, 0}, {6, 1}, {6, 2}, {6, 3}, {6, 4}, {6, 5}, {6, 6}, {6, 7},
+    {7, 0}, {7, 1}, {7, 2}, {7, 3}, {7, 4}, {7, 5}, {7, 6}, {7, 7},
+};
 
 #endif // DDS_CHESS_ENGINE_CONSTANTS_H
