@@ -1,10 +1,8 @@
-
 #include "bit_fns.h"
-#include <stdint.h>
 #include <iostream>
+#include <stdint.h>
+#include <string>
 #include <vector>
-
-
 
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     GameState gamestate;

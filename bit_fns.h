@@ -6,6 +6,7 @@
 #define DDS_CHESS_ENGINE_BIT_FNS_H
 
 #include <string>
+#include <vector>
 
 struct Move {
   // Moves are stored as a 16-bit integer. Kept as lightweight as possible to
