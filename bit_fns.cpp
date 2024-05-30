@@ -361,20 +361,13 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 
         H_moves = h_moves(h, (int)log2(h), OCCUPIED);
         NEW_PIN = K_slider & H_moves;
-        // todo: fix bug where the attacker moves are not detecting apinned pawn
-        // in the case of an en passant opportunity. Need to add a special check
-        // for E_P
 
         // todo add if logic for player turn
-
         if ((((E_P << 8) & K_slider) != 0 and
              ((E_P << 7) & ~file_h & P & H_moves)) or
             (((E_P << 8) & H_moves) != 0 and
              ((E_P << 7) & ~file_h & P & K_slider))) {
           NEW_PIN |= (E_P << 7);
-          // E_P_special = files[directional_mask[(int)log2((E_P << 7))][1]];
-          //  E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
-          //  E_P);
           E_P_special =
               (directional_mask[(int)log2((E_P << 7))][FILES] |
                directional_mask[(int)log2((E_P << 7))][DIAGONOLS_DOWN_RIGHT] |
@@ -402,9 +395,6 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
             (((E_P >> 8) & H_moves) != 0 and
              ((E_P >> 9) & ~file_h & P & K_slider))) {
           NEW_PIN |= (E_P >> 9);
-          // E_P_special = files[directional_mask[(int)log2((E_P >> 9))][1]];
-          // E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
-          // E_P);
           E_P_special =
               (directional_mask[(int)log2((E_P >> 9))][FILES] |
                directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_DOWN_RIGHT] |
@@ -417,9 +407,6 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
             (((E_P >> 8) & H_moves) != 0 and
              ((E_P >> 7) & ~file_a & P & K_slider))) {
           NEW_PIN |= (E_P >> 7);
-          // E_P_special = files[directional_mask[(int)log2((E_P >> 7))][1]];
-          //  E_P_special = get_mask((E_P << 7), E_P) | get_mask((E_P << 9),
-          //  E_P);
           E_P_special =
               (directional_mask[(int)log2((E_P >> 7))][FILES] |
                directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_DOWN_RIGHT] |
@@ -489,14 +476,10 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                             ~PIECES & mask & checker_zone);
       // loop through moves and append to list, if there are any
       if (moves != 0) {
-        //    viz_bb(h_v_moves(bb, sl_bit, OCCUPIED) & ~WHITE_PIECES);
-        //   std::cout<<"----"<<std::endl;
-        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
         std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
 
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
             std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
             wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
@@ -541,12 +524,10 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
                             ~PIECES & mask & checker_zone);
       // loop through moves and append to list, if there are any
       if (moves != 0) {
-        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
         std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
         // todo: can maybe optimize by not searching the entire range
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
             std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
             wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
@@ -592,11 +573,9 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                             ~PIECES & mask & checker_zone);
       // loop through moves and append to list, if there are any
       if (moves != 0) {
-        // std::string ind_i = ind_x(sl_bit, 0) + ind_y(sl_bit, 0) + ">";
         std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
         for (int i = 0; i < 64; i++) {
           if (moves[i] == 1) {
-            // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
             std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
             wb_moves.emplace_back(coordinatesToMove(initial, final));
           }
@@ -630,8 +609,8 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
     uint64_t pos_moves;
 
     for (auto bb : r_bbs) {
-      // get moves\
-            //todo: make this a lookup table for improved performance
+      // get moves
+      // todo: make this a lookup table for improved performance
       int kn_bit = (int)log2(bb);
 
       if ((bb & PINNED) == 0u) { // only check for moves if it's not pinned.
@@ -649,18 +628,14 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
         }
         pos_moves &= ~PIECES & checker_zone;
 
-        // viz_bb(pos_moves);
-
         // todo: find a more efficient way to loop through the board (by being
         // smart about it)
         std::bitset<64> moves(pos_moves);
         // loop through moves and append to list, if there are any
         if (moves != 0) {
-          // std::string ind_i = ind_x(kn_bit, 0) + ind_y(kn_bit, 0) + ">";
           std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
           for (int i = 0; i < 64; i++) {
             if (moves[i] == 1) {
-              // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
               std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
               wb_moves.emplace_back(coordinatesToMove(initial, final));
             }
@@ -710,11 +685,9 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   std::bitset<64> moves(pos_moves);
   // loop through moves and append to list, if there are any
   if (moves != 0) {
-    // std::string ind_i = ind_x(k_bit, 0) + ind_y(k_bit, 0) + ">";
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
     for (int i = 0; i < 64; i++) {
       if (moves[i] == 1) {
-        // std::string ind_f = ind_x(i, 0) + ind_y(i, 0);
         std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
         wb_moves.emplace_back(coordinatesToMove(initial, final));
       }
@@ -817,11 +790,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, 1, 0) + ">" + "PN");
         }
       }
     }
@@ -847,11 +815,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, 1, 1) + ">" + "PN");
         }
       }
     }
@@ -877,11 +840,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, 1, -1) + ">" + "PN");
         }
       }
     }
@@ -892,18 +850,12 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         checker_zone |=
             (directional_mask[(int)log2(checker_zone)][FILES] & rank_3);
       }
-      //  viz_bb(E_P << 8);
-      //  viz_bb(checker_zone);
-      // if((E_P & checker_zone) =! 0)
       uint64_t P_EP_L = (P >> 9) & E_P & ~file_h & MASK & checker_zone;
       uint64_t P_EP_R = (P >> 7) & E_P & ~file_a & MASK & checker_zone;
 
       if (P_EP_L > 0u) {
         // check for en passant left
         bits = P_EP_L;
-        //       viz_bb(E_P);
-        //     viz_bb(MASK);
-        //   viz_bb(checker_zone);
         for (int i = 16; i < 24; i++) {
           if (bits[i] == 1) {
             std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
@@ -970,7 +922,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
           Move move = coordinatesToMove(initial, final);
           updateSpecialMove(move, PAWN_PUSH_2);
           moves.emplace_back(move);
-          // moves.emplace_back(b_2_ind(i, -2, 0) + ">2");
         }
       }
     }
@@ -984,7 +935,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
           initial.first -= 1;
           initial.second += 1;
           moves.emplace_back(coordinatesToMove(initial, final));
-          // moves.emplace_back(b_2_ind(i, -1, 1));
         }
       }
     }
@@ -998,7 +948,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
           initial.first -= 1;
           initial.second -= 1;
           moves.emplace_back(coordinatesToMove(initial, final));
-          // moves.emplace_back(b_2_ind(i, -1, -1));
         }
       }
     }
@@ -1023,11 +972,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, -1, 0) + ">" + "PN");
         }
       }
     }
@@ -1053,11 +997,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "PN");
         }
       }
     }
@@ -1083,11 +1022,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
           updateSpecialMove(move, PROMOTION_KNIGHT);
           moves.emplace_back(move);
-
-          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PQ");
-          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PR");
-          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PB");
-          //   moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "PN");
         }
       }
     }
@@ -1106,7 +1040,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
         bits = P_EP_L;
         for (int i = 40; i < 48; i++) {
           if (bits[i] == 1) {
-
             std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
             std::pair<uint8_t, uint8_t> initial = final;
             initial.first -= 1;
@@ -1114,8 +1047,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
             Move move = coordinatesToMove(initial, final);
             updateSpecialMove(move, EN_PASSANT);
             moves.emplace_back(move);
-
-            // moves.emplace_back(b_2_ind(i, -1, 1) + ">" + "EP");
           }
         }
       }
@@ -1132,8 +1063,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
             Move move = coordinatesToMove(initial, final);
             updateSpecialMove(move, EN_PASSANT);
             moves.emplace_back(move);
-
-            // moves.emplace_back(b_2_ind(i, -1, -1) + ">" + "EP");
           }
         }
       }
@@ -1151,18 +1080,11 @@ void get_B_pawn_moves(uint64_t BP, uint64_t BK, uint64_t E_P, uint64_t EMPTY,
     checker_zone = FILLED;
   }
   if (pinned_pawns > 0u) { // we have at least 1 pawn pinned
-    //   viz_bb((BP & PINNED));
     BP &= ~PINNED;
     std::vector<uint64_t> pin_bbs; // individual bitboards for each piece
     ind_bbs(pinned_pawns, pin_bbs);
     for (auto bb : pin_bbs) {
-      // std::cout<<bb<<std::endl;
       mask = (get_mask(bb, BK) | E_P_SPECIAL);
-      //  viz_bb(bb);
-      // viz_bb(mask);
-      //  viz_bb(E_P_SPECIAL);
-      //   viz_bb(E_P);
-      // std::cout<<"pinned"<<std::endl;
       get_X_pawn_moves("B", mask, bb, BK, E_P, EMPTY, WHITE_PIECES,
                        checker_zone, b_moves);
     }
@@ -1192,9 +1114,6 @@ void get_W_pawn_moves(uint64_t WP, uint64_t WK, uint64_t E_P, uint64_t EMPTY,
     ind_bbs(pinned_pawns, pin_bbs);
     for (auto bb : pin_bbs) {
       mask = get_mask(bb, WK) | E_P_SPECIAL;
-
-      //    if(bb & )
-
       get_X_pawn_moves("W", mask, bb, WK, E_P, EMPTY, BLACK_PIECES,
                        checker_zone, w_moves);
     }
@@ -1221,7 +1140,6 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, CASTLE_KINGSIDE);
       wb_moves.emplace_back(move);
-      // wb_moves.emplace_back(b_2_ind(k_bit, 0, -2) + ">CK");
     }
   }
 }
@@ -1243,7 +1161,6 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, CASTLE_QUEENSIDE);
       wb_moves.emplace_back(move);
-      // wb_moves.emplace_back(b_2_ind(k_bit, 0, 2) + ">CQ");
     }
   }
 }
@@ -1330,7 +1247,6 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
     pos_moves &= ~file_h;
   }
   unsafe |= pos_moves;
-  // end
 
   return unsafe;
 }
@@ -1432,7 +1348,6 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 
     // check for pawn right attack (from pawns perspective)
     K_moves = (gamestate.black.king >> 9) & ~file_h;
-    // viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.white.pawn;
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
@@ -1441,14 +1356,11 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 
     // check for pawn left attack (from pawns perspective)
     K_moves = (gamestate.black.king >> 7) & ~file_a;
-    //  viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.white.pawn;
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       num_checkers++;
     }
-    //  viz_bb(checkers);
-    // viz_bb(checker_zone);
 
   } else { // only search for castles if you aren't in check
     get_K_castle(gamestate.black.can_king_side_castle, gamestate.black.king,
@@ -1458,8 +1370,6 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   }
 
   checker_zone |= checkers;
-  // viz_bb(checker_zone);
-  // std::cout<<num_checkers<<std::endl;
 
   // todo: pass check zones into the files
 
@@ -1504,7 +1414,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
                               gamestate.black.knight, gamestate.black.bishop,
                               gamestate.black.queen, gamestate.black.king,
                               gamestate.white.king, OCCUPIED);
-  // viz_bb(DZ);
+
   // DZ is the danger zone. If the king is inside of it, its in check.
   int num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
@@ -1590,24 +1500,19 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 
     // check for pawn right attack (from pawns perspective)
     K_moves = (gamestate.white.king << 7) & ~file_h; // todo: verify
-    // viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.black.pawn;
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       num_checkers++;
     }
-    // viz_bb(checkers);
 
     // check for pawn left attack (from pawns perspective)
     K_moves = (gamestate.white.king << 9) & ~file_a; // todo: verify
-    //  viz_bb(K_moves & WP);
     new_checker = K_moves & gamestate.black.pawn;
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       num_checkers++;
     }
-    //  viz_bb(checkers);
-    // viz_bb(checker_zone);
 
   } else { // only search for castles if you aren't in check
     get_K_castle(gamestate.white.can_king_side_castle, gamestate.white.king,
@@ -1640,8 +1545,6 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   } else if ((gamestate.black.king | gamestate.white.king) == OCCUPIED) {
     SM = true;
   }
-
-  //  return check;
 }
 
 void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
@@ -1682,26 +1585,11 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
 
-  // uint64_t WHITE_PIECES, BLACK_PIECES;
-
-  //   if (white_move) {
-  //     WHITE_PIECES = (R | N | B | Q | K | P);
-  //     BLACK_PIECES = (OR | ON | OB | OQ | OK | OP);
-  //   } else {
-  //     BLACK_PIECES = (R | N | B | Q | K | P);
-  //     WHITE_PIECES = (OR | ON | OB | OQ | OK | OP);
-  //   }
-
   uint8_t x1 = moveToX1(move);
   uint8_t y1 = moveToY1(move);
   uint8_t x2 = moveToX2(move);
   uint8_t y2 = moveToY2(move);
-  // std::cout << x1 + 0 << " " << y1 + 0 <<" "<<x2 + 0 << " "<<y2 +
-  // 0<<std::endl;
   SpecialMove special = moveToSpecial(move);
-
-  //   int x1 = stoi(move.substr(0, 1)), y1 = stoi(move.substr(1, 1));
-  //   int x2 = stoi(move.substr(3, 1)), y2 = stoi(move.substr(4, 1));
 
   // TODO: switch to bit shifting.
   uint64_t initial = pow(2, ((x1 * 8) + (y1 % 8)));
@@ -1737,8 +1625,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
           BCK = false;
         } else if ((OR & 72057594037927936u & final) == 72057594037927936u) {
           BCQ = false;
-          //      std::cout<<"hi"<<std::endl;
-          //
         }
       } else {
         if ((OR & 128u & final) == 128u) {
@@ -1756,13 +1642,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
     } else if ((OB & final) != 0) {
       OB &= ~final;
       //   cap_counter++;
-      //            std::cout << "opponent bishops" << std::endl;
-      //            viz_bb(OB & final);
-      //            std::cout << "init" << std::endl;
-      //            viz_bb(initial);
-      //            std::cout << "final" << std::endl;
-      //
-      //            viz_bb(final);
     } else if ((OQ & final) != 0) {
       OQ &= ~final;
       //   cap_counter++;
@@ -1779,9 +1658,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
       OP &= ~(final << 8);
     }
     // cap_counter++;
-
-    // std::cout<<"HEY"<<std::endl;
-    // viz_bb(final);
   }
   // -----this concludes removing enemy pieces from board-----
 
@@ -1791,8 +1667,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
   // No Special move
   // TODO: make switch statement here.
   if (special == NONE) {
-    //   std::cout<<"hello"<<std::endl;
-    // viz_bb(P);
     // todo: search for which piece is moving
     if ((Q & initial) != 0) {
       Q |= final;
@@ -1812,8 +1686,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
       } else if (BCQ and !white_move and
                  (R & 72057594037927936u & initial) == 72057594037927936u) {
         BCQ = false;
-
-        // std::cout<<"HEY"<<std::endl;
       }
       R |= final;
       R &= ~initial;
@@ -1821,8 +1693,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
       N |= final;
       N &= ~initial;
     } else if ((P & initial) != 0) {
-      //   std::cout<<"hello2"<<std::endl;
-
       P |= final;
       P &= ~initial;
     } else if ((K & initial) != 0) {
@@ -1834,7 +1704,6 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
         BCK = false;
         BCQ = false;
       }
-      //  std::cout<<WCK<<std::endl;
       K = final;
     }
 
@@ -1871,42 +1740,7 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
         BCK = false;
       }
       E_P = 0u;
-    }
-    // if (move.substr(6, 1) == "C") { // castling
-    //   if (white_move) {
-    //     if (move.substr(7, 1) == "K") { // kingside castle for white
-
-    //       K = 64u;
-    //       R -= 128u;
-    //       R += 32u;
-    //       WCK = false;
-    //       WCQ = false;
-    //     } else { // queenside castle for white
-    //       K = 4u;
-    //       R -= 1u;
-    //       R += 8u;
-    //       WCQ = false;
-    //       WCK = false;
-    //     }
-    //   } else {
-
-    //     if (move.substr(7, 1) == "K") { // kingside castle for black
-    //       K = 4611686018427387904u;
-    //       R -= 9223372036854775808u;
-    //       R += 2305843009213693952u;
-    //       BCK = false;
-    //       BCQ = false;
-    //     } else { // queenside castle for black
-    //       K = 288230376151711744u;
-    //       R -= 72057594037927936u;
-    //       R += 576460752303423488u;
-    //       BCQ = false;
-    //       BCK = false;
-    //     }
-    //   }
-    //   E_P = 0u;
-    // }
-    else if (special == PROMOTION_QUEEN) { // promotion
+    } else if (special == PROMOTION_QUEEN) { // promotion
       P &= ~initial;
       Q |= final;
       E_P = 0u;
@@ -2298,7 +2132,6 @@ void read_FEN(char g[8][8], std::string FEN, bool &white_move, bool &WCK,
     if (row > 7) {
 
       // board has been read in
-      //   std::cout<<to_string(FEN[i])<<std::endl;
       if (FEN[i] == 'w') {
         white_move = true;
       }
@@ -2323,21 +2156,17 @@ void read_FEN(char g[8][8], std::string FEN, bool &white_move, bool &WCK,
     } else {
 
       if (isdigit(FEN[i])) {
-        // std::cout<<FEN[i]<<std::endl;
         for (int j = 0; j < (int)(FEN[i]) - 48; j++) {
           g[row][col] = ' ';
-          //  std::cout<<row<<","<<col<<std::endl;
           col = (col + 1) % 8;
           if (col == 0) {
             row += 1;
           }
-          // std::cout<<g[row][col]<<std::endl;
         }
 
       } else if (FEN[i] == '/') {
       } else {
         g[row][col] = FEN[i];
-        // std::cout<<row<<","<<col<<std::endl;
         col = (col + 1) % 8;
         if (col == 0) {
           row += 1;
@@ -2368,9 +2197,7 @@ void generate_board(std::string name, int diff) {
   bool BCK = false, BCQ = false, WCK = false, WCQ = false, CM = false,
        SM = false, white_to_move;
   // todo: add E_P functionality to read FEN
-  uint64_t BR = 0u, BN = 0u, BB = 0u, BQ = 0u, BK = 0u, BP = 0u, WR = 0u,
-           WN = 0u, WB = 0u, WQ = 0u, WK = 0u, WP = 0u, BLACK_PIECES,
-           WHITE_PIECES, OCCUPIED, E_P = 0u; // pow(2,20);;
+  uint64_t E_P = 0u;
 
   GameState gamestate;
   fenToGameState(FEN, gamestate);
@@ -2415,7 +2242,6 @@ void generate_board(std::string name, int diff) {
       std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
       std::cout << AI_choice.value << std::endl;
       std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
-      //  std::cout<<"nodes: "<<nodes2<<std::endl;
 
       apply_move(AI_choice.move, gamestate, E_P);
 
@@ -2426,7 +2252,6 @@ void generate_board(std::string name, int diff) {
                 << nodes2 / ((double)(end - start).count() / 1000000000)
                 << std::endl;
       std::cout << " " << std::endl;
-      // break;
     } else {
       print_board(gamestate);
       std::cout << "BLACK'S MOVE: " << std::endl;
