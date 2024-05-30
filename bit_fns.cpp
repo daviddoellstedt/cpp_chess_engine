@@ -380,12 +380,11 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P << 8) & H_moves) != 0 and
                ((E_P << 7) & ~file_h & P & K_slider))) {
             NEW_PIN |= (E_P << 7);
+
             E_P_special = (directional_mask[e_p_bit + 7][FILES] |
                            directional_mask[e_p_bit + 7][DIAGONOLS_DOWN_RIGHT] |
                            directional_mask[e_p_bit + 7][DIAGONOLS_UP_RIGHT]) &
                           ~get_mask((E_P << 7), E_P);
-
-            //  viz_bb(E_P_special);
           }
 
           if ((((E_P << 8) & K_slider) != 0 and
@@ -393,6 +392,7 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P << 8) & H_moves) != 0 and
                ((E_P << 9) & ~file_a & P & K_slider))) {
             NEW_PIN |= (E_P << 9);
+
             E_P_special = (directional_mask[e_p_bit + 9][FILES] |
                            directional_mask[e_p_bit + 9][DIAGONOLS_DOWN_RIGHT] |
                            directional_mask[e_p_bit + 9][DIAGONOLS_UP_RIGHT]) &
@@ -405,9 +405,9 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P >> 8) & H_moves) != 0 and
                ((E_P >> 9) & ~file_h & P & K_slider))) {
             NEW_PIN |= (E_P >> 9);
-            E_P_special = (directional_mask[e_p_bit + 9][FILES] |
-                           directional_mask[e_p_bit + 9][DIAGONOLS_DOWN_RIGHT] |
-                           directional_mask[e_p_bit + 9][DIAGONOLS_UP_RIGHT]) &
+            E_P_special = (directional_mask[e_p_bit - 9][FILES] |
+                           directional_mask[e_p_bit - 9][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit - 9][DIAGONOLS_UP_RIGHT]) &
                           ~get_mask((E_P >> 9), E_P);
           }
 
@@ -416,9 +416,10 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P >> 8) & H_moves) != 0 and
                ((E_P >> 7) & ~file_a & P & K_slider))) {
             NEW_PIN |= (E_P >> 7);
-            E_P_special = (directional_mask[e_p_bit + 7][FILES] |
-                           directional_mask[e_p_bit + 7][DIAGONOLS_DOWN_RIGHT] |
-                           directional_mask[e_p_bit + 7][DIAGONOLS_UP_RIGHT]) &
+
+            E_P_special = (directional_mask[e_p_bit - 7][FILES] |
+                           directional_mask[e_p_bit - 7][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit - 7][DIAGONOLS_UP_RIGHT]) &
                           ~get_mask((E_P >> 7), E_P);
           }
 
