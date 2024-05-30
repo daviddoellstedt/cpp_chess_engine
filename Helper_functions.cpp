@@ -14,23 +14,6 @@ void viz_bb(uint64_t bb){
     std::cout<<"------------------------"<<std::endl;
 }
 
-void generate_bit(){
-    char grid[8][8] = {
-            //    r    n    b    q    k    b    n    r
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '} ,
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '} ,
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '} ,
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '} ,
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-            {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '}};
-    unsigned int counter = -1;uint64_t bitboard = 0u;
-    for(int i = 7; i >= 0; i--) {for(int j = 0; j <= 7; j++) {counter++;
-            if(grid[i][j] == 'x' or grid[i][j] == 'X') {bitboard += (uint64_t)pow(2u, counter);}}}
-    std::cout<<bitboard<<"u;"<<std::endl;
-}
-
 // todo: potential to make more efficient
 // function that reverses the bits
 uint64_t rev(uint64_t n)

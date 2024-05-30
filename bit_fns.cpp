@@ -94,6 +94,19 @@ void updateSpecialMove(Move &move, SpecialMove special_move) {
   move.data |= (special_move << 12);
 }
 
+uint8_t singularBitboardToBit(uint64_t bitboard) {
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (bitboard & 1) {
+      return bit;
+      break;
+    }
+    bitboard >>= 1;
+  }
+
+  // TODO add error check here.
+  return 0xFF;
+}
+
 uint64_t generateWhiteOccupiedBitboard(const GameState &gamestate){
   return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight |
          gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
@@ -304,10 +317,12 @@ uint64_t diag_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
  * @return bitboard mask of rank/file/diagonal connection between the two pieces
  */
 uint64_t get_mask(uint64_t p1, uint64_t p2) {
-  int k_bit = (int)log2(p2), p_bit = (int)log2(p1);
+  uint8_t k_bit = singularBitboardToBit(p2), p_bit = singularBitboardToBit(p1);
 
-  int k_x = ((k_bit - k_bit % 8) / 8), p_x = ((p_bit - p_bit % 8) / 8);
-  int k_y = (k_bit % 8), p_y = (p_bit % 8);
+  uint8_t k_x = k_bit / 8;
+  uint8_t p_x = p_bit / 8;
+  uint8_t k_y = k_bit % 8;
+  uint8_t p_y = p_bit % 8;
 
   if (k_x - p_x == 0) { // return horizontal mask
     return directional_mask[k_bit][RANKS];
@@ -338,8 +353,6 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
                            uint64_t &E_P_special) {
 
   uint64_t PINNED = 0u, NEW_PIN, K_slider, H_moves;
-  std::vector<uint64_t> h_v_slider_bbs,
-      diag_slider_bbs; // individual bitboards for each piece
 
   // for the 4 directions (4 iterations)
   //  1. generate sliding moves from the kings position (include "capture" of
@@ -347,9 +360,9 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   //  2. generate sliding moves from opponents pieces
   //  3. take the AND of 1 and 2. This is a location of a pinned piece, if any.
   //  OR this result with pinned piece bb
-  int k_bit = (int)log2(K);
+  uint8_t k_bit = singularBitboardToBit(K);
 
-  for (int i = 0; i < 4; i++) {
+  for (uint8_t i = 0; i < 4; i++) {
     if (i == 0) { // horizontal check
       K_slider = h_moves(K, k_bit, OCCUPIED);
 
@@ -359,6 +372,7 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
           uint64_t h = (uint64_t)1 << bit;
           H_moves = h_moves(h, bit, OCCUPIED);
           NEW_PIN = K_slider & H_moves;
+          uint8_t e_p_bit = singularBitboardToBit(E_P);
 
           // todo add if logic for player turn
           if ((((E_P << 8) & K_slider) != 0 and
@@ -366,11 +380,10 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P << 8) & H_moves) != 0 and
                ((E_P << 7) & ~file_h & P & K_slider))) {
             NEW_PIN |= (E_P << 7);
-            E_P_special =
-                (directional_mask[(int)log2((E_P << 7))][FILES] |
-                 directional_mask[(int)log2((E_P << 7))][DIAGONOLS_DOWN_RIGHT] |
-                 directional_mask[(int)log2((E_P << 7))][DIAGONOLS_UP_RIGHT]) &
-                ~get_mask((E_P << 7), E_P);
+            E_P_special = (directional_mask[e_p_bit + 7][FILES] |
+                           directional_mask[e_p_bit + 7][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit + 7][DIAGONOLS_UP_RIGHT]) &
+                          ~get_mask((E_P << 7), E_P);
 
             //  viz_bb(E_P_special);
           }
@@ -380,11 +393,10 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P << 8) & H_moves) != 0 and
                ((E_P << 9) & ~file_a & P & K_slider))) {
             NEW_PIN |= (E_P << 9);
-            E_P_special =
-                (directional_mask[(int)log2((E_P << 9))][FILES] |
-                 directional_mask[(int)log2((E_P << 9))][DIAGONOLS_DOWN_RIGHT] |
-                 directional_mask[(int)log2((E_P << 9))][DIAGONOLS_UP_RIGHT]) &
-                ~get_mask((E_P << 9), E_P);
+            E_P_special = (directional_mask[e_p_bit + 9][FILES] |
+                           directional_mask[e_p_bit + 9][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit + 9][DIAGONOLS_UP_RIGHT]) &
+                          ~get_mask((E_P << 9), E_P);
           }
 
           // for white
@@ -393,11 +405,10 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P >> 8) & H_moves) != 0 and
                ((E_P >> 9) & ~file_h & P & K_slider))) {
             NEW_PIN |= (E_P >> 9);
-            E_P_special =
-                (directional_mask[(int)log2((E_P >> 9))][FILES] |
-                 directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_DOWN_RIGHT] |
-                 directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_UP_RIGHT]) &
-                ~get_mask((E_P >> 9), E_P);
+            E_P_special = (directional_mask[e_p_bit + 9][FILES] |
+                           directional_mask[e_p_bit + 9][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit + 9][DIAGONOLS_UP_RIGHT]) &
+                          ~get_mask((E_P >> 9), E_P);
           }
 
           if ((((E_P >> 8) & K_slider) != 0 and
@@ -405,11 +416,10 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
               (((E_P >> 8) & H_moves) != 0 and
                ((E_P >> 7) & ~file_a & P & K_slider))) {
             NEW_PIN |= (E_P >> 7);
-            E_P_special =
-                (directional_mask[(int)log2((E_P >> 7))][FILES] |
-                 directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_DOWN_RIGHT] |
-                 directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_UP_RIGHT]) &
-                ~get_mask((E_P >> 7), E_P);
+            E_P_special = (directional_mask[e_p_bit + 7][FILES] |
+                           directional_mask[e_p_bit + 7][DIAGONOLS_DOWN_RIGHT] |
+                           directional_mask[e_p_bit + 7][DIAGONOLS_UP_RIGHT]) &
+                          ~get_mask((E_P >> 7), E_P);
           }
 
           PINNED |= NEW_PIN;
@@ -501,17 +511,19 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
         mask = get_mask(bb, K);
       }
       // todo: make this a lookup table for improved performance
-      std::bitset<64> moves(h_v_moves(bb, sl_bit, OCCUPIED, false, 0u) &
-                            ~PIECES & mask & checker_zone);
-      // loop through moves and append to list, if there are any
-      if (moves != 0) {
-        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
+      uint64_t moves = h_v_moves(bb, sl_bit, OCCUPIED, false, 0u) & ~PIECES &
+                       mask & checker_zone;
 
-        for (int i = 0; i < 64; i++) {
-          if (moves[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            wb_moves.emplace_back(coordinatesToMove(initial, final));
-          }
+      // loop through moves and append to list, if there are any
+      std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (moves & 1) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          wb_moves.emplace_back(coordinatesToMove(initial, final));
+        }
+        moves >>= 1;
+        if (!moves) {
+          break;
         }
       }
     }
@@ -553,17 +565,19 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
         mask = get_mask(bb, K);
       }
       // todo: make this a lookup table for improved performance
-      std::bitset<64> moves(diag_moves(bb, sl_bit, OCCUPIED, false, 0u) &
-                            ~PIECES & mask & checker_zone);
+      uint64_t moves = diag_moves(bb, sl_bit, OCCUPIED, false, 0u) & ~PIECES &
+                       mask & checker_zone;
       // loop through moves and append to list, if there are any
-      if (moves != 0) {
-        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
-        // todo: can maybe optimize by not searching the entire range
-        for (int i = 0; i < 64; i++) {
-          if (moves[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            wb_moves.emplace_back(coordinatesToMove(initial, final));
-          }
+      std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
+      // todo: can maybe optimize by not searching the entire range
+      for (uint64_t bit = 0; bit < N_SQUARES; bit++) {
+        if (moves & 1) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          wb_moves.emplace_back(coordinatesToMove(initial, final));
+        }
+        moves >>= 1;
+        if (!moves) {
+          break;
         }
       }
     }
@@ -602,18 +616,20 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
       if ((bb & PINNED) > 0u) {
         mask = get_mask(bb, K);
       }
-      // todo: make this a lookup table for improved performance
-      std::bitset<64> moves((h_v_moves(bb, sl_bit, OCCUPIED, false, 0u) |
-                             diag_moves(bb, sl_bit, OCCUPIED, false, 0u)) &
-                            ~PIECES & mask & checker_zone);
+
+      uint64_t moves = (h_v_moves(bb, sl_bit, OCCUPIED, false, 0u) |
+                        diag_moves(bb, sl_bit, OCCUPIED, false, 0u)) &
+                       ~PIECES & mask & checker_zone;
       // loop through moves and append to list, if there are any
-      if (moves != 0) {
-        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
-        for (int i = 0; i < 64; i++) {
-          if (moves[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            wb_moves.emplace_back(coordinatesToMove(initial, final));
-          }
+      std::pair<uint8_t, uint8_t> initial = bitToCoordinates[sl_bit];
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (moves & 1) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          wb_moves.emplace_back(coordinatesToMove(initial, final));
+        }
+        moves >>= 1;
+        if (!moves) {
+          break;
         }
       }
     }
@@ -667,19 +683,19 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
         }
         pos_moves &= ~PIECES & checker_zone;
 
-        // todo: find a more efficient way to loop through the board (by being
-        // smart about it)
-        std::bitset<64> moves(pos_moves);
         // loop through moves and append to list, if there are any
-        if (moves != 0) {
+
           std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
-          for (int i = 0; i < 64; i++) {
-            if (moves[i] == 1) {
-              std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+          for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+            if (pos_moves & 1) {
+              std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
               wb_moves.emplace_back(coordinatesToMove(initial, final));
             }
+            pos_moves >>= 1;
+            if (!pos_moves) {
+              break;
+            }
           }
-        }
       }
     }
     N >>= 1;
@@ -700,20 +716,11 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   // todo: is it really efficient to redefine these everytime? maybe can
   // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
   // y5)
-  uint64_t pos_moves;
 
   // get moves
-  // todo: make this a lookup table for improved performance
-  uint8_t k_bit = 0;
+  uint8_t k_bit = singularBitboardToBit(K);
 
-  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    if (K & 1) {
-      k_bit = bit;
-      break;
-    }
-    K >>= 1;
-  }
-
+  uint64_t pos_moves;
   if (k_bit > 14) {
     pos_moves = KING_MOVES << (k_bit - 14);
   } else {
@@ -727,17 +734,17 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   }
   pos_moves &= ~PIECES & ~DZ;
 
-  // todo: find a more efficient way to loop through the board (by being smart
-  // about it)
-  std::bitset<64> moves(pos_moves);
   // loop through moves and append to list, if there are any
-  if (moves != 0) {
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
-    for (int i = 0; i < 64; i++) {
-      if (moves[i] == 1) {
-        std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-        wb_moves.emplace_back(coordinatesToMove(initial, final));
-      }
+  std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
+
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (pos_moves & 1) {
+      std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+      wb_moves.emplace_back(coordinatesToMove(initial, final));
+    }
+    pos_moves >>= 1;
+    if (!pos_moves) {
+      break;
     }
   }
 }
@@ -747,7 +754,6 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
                       uint64_t checker_zone, std::vector<Move> &moves) {
   uint64_t P_FORWARD_1, P_FORWARD_2, P_ATTACK_L, P_ATTACK_R, P_PROMO_1,
       P_PROMO_L, P_PROMO_R;
-  std::bitset<64> bits;
 
   if (X == "B") {
     P_FORWARD_1 = (P >> 8) & EMPTY & ~rank_1 & MASK & checker_zone;
@@ -763,131 +769,144 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
 
     //  viz_bb(P_PROMO_L);
 
+    // TODO: replace all magic numbers
     // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
-    if (P_FORWARD_1 > 0u) {
-      bits = P_FORWARD_1; // check to see if you can move 1
-      for (int i = 8; i < 48; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    for (uint8_t bit = 8; bit < 48; bit++) {
+      if (P_FORWARD_1 & (1 << 8)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_FORWARD_1 >>= 1;
+      if (!P_FORWARD_1) {
+        break;
       }
     }
 
-    if (P_FORWARD_2 > 0u) {
-      bits = P_FORWARD_2; // check to see if you can move 2
-      for (int i = 32; i < 40; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 2;
-          Move move = coordinatesToMove(initial, final);
-          updateSpecialMove(move, PAWN_PUSH_2);
-          moves.emplace_back(move);
-        }
+    // check to see if you can move 2
+    for (uint8_t bit = 8; bit < 48; bit++) {
+      if (P_FORWARD_2 & (1 << 8)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 2;
+        Move move = coordinatesToMove(initial, final);
+        updateSpecialMove(move, PAWN_PUSH_2);
+        moves.emplace_back(move);
+      }
+      P_FORWARD_2 >>= 1;
+      if (!P_FORWARD_2) {
+        break;
       }
     }
 
-    if (P_ATTACK_L > 0u) {
-      bits = P_ATTACK_L; // check for attacks left
-      for (int i = 8; i < 48; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          initial.second += 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    // check for attacks left
+    for (uint8_t bit = 8; bit < 48; bit++) {
+      if (P_ATTACK_L & (1 << 8)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        initial.second += 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_ATTACK_L >>= 1;
+      if (!P_ATTACK_L) {
+        break;
       }
     }
 
-    if (P_ATTACK_R > 0u) {
-      bits = P_ATTACK_R; // check for attacks right
-      for (int i = 8; i < 48; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          initial.second -= 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    // check for attacks right
+    for (uint8_t bit = 8; bit < 48; bit++) {
+      if (P_ATTACK_R & (1 << 8)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        initial.second -= 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_ATTACK_R >>= 1;
+      if (!P_ATTACK_R) {
+        break;
       }
     }
 
     // check for promotion straight
-    if (P_PROMO_1 > 0u) {
-      bits = P_PROMO_1;
-      for (int i = 0; i < 8; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          Move move = coordinatesToMove(initial, final);
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      if (P_PROMO_1 & 1) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_1 >>= 1;
+      if (!P_PROMO_1) {
+        break;
       }
     }
 
-    if (P_PROMO_L > 0u) {
-      bits = P_PROMO_L; // check for promotion left
-      for (int i = 0; i < 8; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          initial.second += 1;
-          Move move = coordinatesToMove(initial, final);
+    // check for promotion left
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      if (P_PROMO_L & 1) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        initial.second += 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_L >>= 1;
+      if (!P_PROMO_L) {
+        break;
       }
     }
 
-    if (P_PROMO_R > 0u) {
-      bits = P_PROMO_R; // check for promotion attack right
-      for (int i = 0; i < 8; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first += 1;
-          initial.second -= 1;
-          Move move = coordinatesToMove(initial, final);
+    // check for promotion attack right
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      if (P_PROMO_R & 1) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first += 1;
+        initial.second -= 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_R >>= 1;
+      if (!P_PROMO_R) {
+        break;
       }
     }
 
@@ -895,40 +914,43 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
       // todo: specialize this for white
       if (checker_zone != FILLED and ((E_P << 8) & checker_zone) != 0) {
         checker_zone |=
-            (directional_mask[(int)log2(checker_zone)][FILES] & rank_3);
+            (directional_mask[singularBitboardToBit(checker_zone)][FILES] &
+             rank_3);
       }
       uint64_t P_EP_L = (P >> 9) & E_P & ~file_h & MASK & checker_zone;
       uint64_t P_EP_R = (P >> 7) & E_P & ~file_a & MASK & checker_zone;
 
-      if (P_EP_L > 0u) {
         // check for en passant left
-        bits = P_EP_L;
-        for (int i = 16; i < 24; i++) {
-          if (bits[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            std::pair<uint8_t, uint8_t> initial = final;
-            initial.first += 1;
-            initial.second += 1;
-            Move move = coordinatesToMove(initial, final);
-            updateSpecialMove(move, EN_PASSANT);
-            moves.emplace_back(move);
-          }
+      for (uint8_t bit = 16; bit < 24; bit++) {
+        if (P_EP_L & (1 << 16)) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second += 1;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, EN_PASSANT);
+          moves.emplace_back(move);
+        }
+        P_EP_L >>= 1;
+        if (!P_EP_L) {
+          break;
         }
       }
 
-      if (P_EP_R > 0u) {
         // check for en passant right
-        bits = P_EP_R;
-        for (int i = 16; i < 24; i++) {
-          if (bits[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            std::pair<uint8_t, uint8_t> initial = final;
-            initial.first += 1;
-            initial.second -= 1;
-            Move move = coordinatesToMove(initial, final);
-            updateSpecialMove(move, EN_PASSANT);
-            moves.emplace_back(move);
-          }
+      for (uint8_t bit = 16; bit < 24; bit++) {
+        if (P_EP_R & (1 << 16)) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first += 1;
+          initial.second -= 1;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, EN_PASSANT);
+          moves.emplace_back(move);
+        }
+        P_EP_R >>= 1;
+        if (!P_EP_R) {
+          break;
         }
       }
     }
@@ -945,177 +967,193 @@ void get_X_pawn_moves(std::string X, uint64_t MASK, uint64_t P, uint64_t K,
     P_PROMO_L = (P << 7) & OPP_PIECES & rank_8 & ~file_h & MASK & checker_zone;
     P_PROMO_R = (P << 9) & OPP_PIECES & rank_8 & ~file_a & MASK & checker_zone;
 
-    if (P_FORWARD_1 > 0u) {
-
-      bits = P_FORWARD_1; // check to see if you can move 1
-      for (int i = 16; i < 56; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    // check to see if you can move 1
+    for (uint8_t bit = 16; bit < 56; bit++) {
+      if (P_FORWARD_1 & (1 << 16)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_FORWARD_1 >>= 1;
+      if (!P_FORWARD_1) {
+        break;
       }
     }
 
-    if (P_FORWARD_2 > 0u) {
-      bits = P_FORWARD_2; // check to see if you can move 2
-      for (int i = 24; i < 32; i++) {
-
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 2;
-          Move move = coordinatesToMove(initial, final);
-          updateSpecialMove(move, PAWN_PUSH_2);
-          moves.emplace_back(move);
-        }
+    // check to see if you can move 2
+    for (int i = 24; i < 32; i++) {
+      if (P_FORWARD_2 & (1 << 24)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 2;
+        Move move = coordinatesToMove(initial, final);
+        updateSpecialMove(move, PAWN_PUSH_2);
+        moves.emplace_back(move);
+      }
+      P_FORWARD_2 >>= 1;
+      if (!P_FORWARD_2) {
+        break;
       }
     }
 
-    if (P_ATTACK_L > 0u) {
-      bits = P_ATTACK_L; // check for attacks left
-      for (int i = 16; i < 56; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          initial.second += 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    // check for attacks left
+    for (uint8_t bit = 16; bit < 56; bit++) {
+      if (P_ATTACK_L & (1 << 16)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        initial.second += 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_ATTACK_L >>= 1;
+      if (!P_ATTACK_L) {
+        break;
       }
     }
 
-    if (P_ATTACK_R > 0u) {
-      bits = P_ATTACK_R; // check for attacks right
-      for (int i = 16; i < 56; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          initial.second -= 1;
-          moves.emplace_back(coordinatesToMove(initial, final));
-        }
+    // check for attacks right
+    for (uint8_t bit = 16; bit < 56; bit++) {
+      if (P_ATTACK_R & (1 << 16)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        initial.second -= 1;
+        moves.emplace_back(coordinatesToMove(initial, final));
+      }
+      P_ATTACK_R >>= 1;
+      if (!P_ATTACK_R) {
+        break;
       }
     }
 
-    if (P_PROMO_1 > 0u) {
-      bits = P_PROMO_1; // check for promotion straight
-      for (int i = 56; i < 64; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          Move move = coordinatesToMove(initial, final);
+    // check for promotion straight
+    for (uint8_t bit = 56; bit < 64; bit++) {
+      if (P_PROMO_1 == ((uint64_t)1 << 56)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_1 >>= 1;
+      if (!P_PROMO_1) {
+        break;
       }
     }
 
-    if (P_PROMO_L > 0u) {
-      bits = P_PROMO_L; // check for promotion left
-      for (int i = 56; i < 64; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          initial.second += 1;
-          Move move = coordinatesToMove(initial, final);
+    // check for promotion left
+    for (uint8_t bit = 56; bit < 64; bit++) {
+      if (P_PROMO_L & ((uint64_t)1 << 56)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        initial.second += 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_L >>= 1;
+      if (!P_PROMO_L) {
+        break;
       }
     }
 
-    if (P_PROMO_R > 0u) {
-      bits = P_PROMO_R; // check for promotion attack right
-      for (int i = 56; i < 64; i++) {
-        if (bits[i] == 1) {
-          std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-          std::pair<uint8_t, uint8_t> initial = final;
-          initial.first -= 1;
-          initial.second -= 1;
-          Move move = coordinatesToMove(initial, final);
+    // check for promotion attack right
+    for (uint8_t bit = 56; bit < 64; bit++) {
+      if (P_PROMO_R & ((uint64_t)1 << 56)) {
+        std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+        std::pair<uint8_t, uint8_t> initial = final;
+        initial.first -= 1;
+        initial.second -= 1;
+        Move move = coordinatesToMove(initial, final);
 
-          updateSpecialMove(move, PROMOTION_QUEEN);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_QUEEN);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_ROOK);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_ROOK);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_BISHOP);
-          moves.emplace_back(move);
+        updateSpecialMove(move, PROMOTION_BISHOP);
+        moves.emplace_back(move);
 
-          updateSpecialMove(move, PROMOTION_KNIGHT);
-          moves.emplace_back(move);
-        }
+        updateSpecialMove(move, PROMOTION_KNIGHT);
+        moves.emplace_back(move);
+      }
+      P_PROMO_R >>= 1;
+      if (!P_PROMO_R) {
+        break;
       }
     }
 
     if (E_P != 0) {
       if (checker_zone != FILLED and ((E_P >> 8) & checker_zone) != 0) {
         checker_zone |=
-            (directional_mask[(int)log2(checker_zone)][FILES] & rank_6);
+            (directional_mask[singularBitboardToBit(checker_zone)][FILES] &
+             rank_6);
       }
 
       uint64_t P_EP_L = (P << 7) & E_P & ~file_h & MASK & checker_zone;
       uint64_t P_EP_R = (P << 9) & E_P & ~file_a & MASK & checker_zone;
 
-      if (P_EP_L != 0u) {
         // check for en passant left
-        bits = P_EP_L;
-        for (int i = 40; i < 48; i++) {
-          if (bits[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            std::pair<uint8_t, uint8_t> initial = final;
-            initial.first -= 1;
-            initial.second += 1;
-            Move move = coordinatesToMove(initial, final);
-            updateSpecialMove(move, EN_PASSANT);
-            moves.emplace_back(move);
-          }
+      for (uint8_t bit = 40; bit < 48; bit++) {
+        if (P_EP_L & ((uint64_t)1 << 40)) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second += 1;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, EN_PASSANT);
+          moves.emplace_back(move);
+        }
+        P_EP_L >>= 1;
+        if (!P_EP_L) {
+          break;
         }
       }
 
-      if (P_EP_R != 0u) {
         // check for en passant right
-        bits = P_EP_R;
-        for (int i = 40; i < 48; i++) {
-          if (bits[i] == 1) {
-            std::pair<uint8_t, uint8_t> final = bitToCoordinates[i];
-            std::pair<uint8_t, uint8_t> initial = final;
-            initial.first -= 1;
-            initial.second -= 1;
-            Move move = coordinatesToMove(initial, final);
-            updateSpecialMove(move, EN_PASSANT);
-            moves.emplace_back(move);
-          }
+      for (uint8_t bit = 40; bit < 48; bit++) {
+        if (P_EP_R & ((uint64_t)1 << 40)) {
+          std::pair<uint8_t, uint8_t> final = bitToCoordinates[bit];
+          std::pair<uint8_t, uint8_t> initial = final;
+          initial.first -= 1;
+          initial.second -= 1;
+          Move move = coordinatesToMove(initial, final);
+          updateSpecialMove(move, EN_PASSANT);
+          moves.emplace_back(move);
+        }
+        P_EP_R >>= 1;
+        if (!P_EP_R) {
+          break;
         }
       }
     }
   }
 }
+
 void get_B_pawn_moves(uint64_t BP, uint64_t BK, uint64_t E_P, uint64_t EMPTY,
                       uint64_t WHITE_PIECES, uint64_t PINNED,
                       uint64_t checker_zone, uint64_t E_P_SPECIAL,
@@ -1185,11 +1223,13 @@ void get_W_pawn_moves(uint64_t WP, uint64_t WK, uint64_t E_P, uint64_t EMPTY,
 
 void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
                   std::vector<Move> &wb_moves) {
-  if (CK) {
+  if (!CK) {
+    return;
+  }
     // todo: implement lookup table
     if (((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)) != 0u) {
-      uint8_t k_bit =
-          (int)log2(((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)));
+      uint8_t k_bit = singularBitboardToBit((K << 2) & EMPTY & (EMPTY << 1) &
+                                            ~DZ & ~(DZ << 1));
 
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
       std::pair<uint8_t, uint8_t> initial = final;
@@ -1199,23 +1239,23 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
       wb_moves.emplace_back(move);
     }
   }
-}
+
 void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
                   std::vector<Move> &wb_moves) {
-
-  if (QK) {
+  if (!QK) {
+    return;
+  }
     // todo: implement lookup table
     if ((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) & ~DZ & ~(DZ >> 1)) !=
         0u) {
-      uint8_t k_bit = (int)log2((((K >> 2) & EMPTY) & (EMPTY >> 1) &
-                                 (EMPTY << 1) & ~DZ & ~(DZ >> 1)));
+      uint8_t k_bit = singularBitboardToBit(((K >> 2) & EMPTY) & (EMPTY >> 1) &
+                                            (EMPTY << 1) & ~DZ & ~(DZ >> 1));
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.second += 2;
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, CASTLE_QUEENSIDE);
       wb_moves.emplace_back(move);
-    }
   }
 }
 
@@ -1226,7 +1266,7 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
   uint64_t unsafe = 0u, D = B | Q, HV = R | Q;
 
   // pawn
-  if (P != 0u) {
+  if (P) {
     if (X == "B") {
       unsafe = (P << 9) & ~file_a;  // capture right
       unsafe |= (P << 7) & ~file_h; // capture left
@@ -1238,75 +1278,62 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
 
   // knight
   uint64_t pos_moves;
-  if (N) {
-    // todo: is it really efficient to redefine these everytime? maybe can
-    // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
-    // y5)
-    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-      if (N & 1) {
+  // todo: is it really efficient to redefine these everytime? maybe can
+  // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
+  // y5)
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (N & 1) {
 
-        uint64_t bb = (uint64_t)1 << bit;
-        // todo: make this a lookup table for improved performance
-        uint8_t kn_bit = bit;
-        if (kn_bit > 21) {
-          pos_moves = KNIGHT_MOVES << (kn_bit - 21);
-        } else {
-          pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
-        }
-        if (kn_bit % 8 > 3) {
-          pos_moves &= ~file_ab;
-        } else {
-          pos_moves &= ~file_gh;
-        }
-        // viz_bb(pos_n_moves);
-        unsafe |= pos_moves;
+      uint64_t bb = (uint64_t)1 << bit;
+      // todo: make this a lookup table for improved performance
+      uint8_t kn_bit = bit;
+      if (kn_bit > 21) {
+        pos_moves = KNIGHT_MOVES << (kn_bit - 21);
+      } else {
+        pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
       }
-      N >>= 1;
-      if (!N) {
-        break;
+      if (kn_bit % 8 > 3) {
+        pos_moves &= ~file_ab;
+      } else {
+        pos_moves &= ~file_gh;
       }
+      // viz_bb(pos_n_moves);
+      unsafe |= pos_moves;
+    }
+    N >>= 1;
+    if (!N) {
+      break;
     }
   }
 
   // diag pieces (Bishop, Queen)
-  if (D) {
-    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-      if (D & 1) {
-        uint64_t bb = (uint64_t)1 << bit;
-        uint8_t sl_bit = bit;
-        unsafe |= diag_moves(bb, sl_bit, OCCUPIED, true, EK);
-      }
-      D >>= 1;
-      if (!D) {
-        break;
-      }
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (D & 1) {
+      uint64_t bb = (uint64_t)1 << bit;
+      uint8_t sl_bit = bit;
+      unsafe |= diag_moves(bb, sl_bit, OCCUPIED, true, EK);
+    }
+    D >>= 1;
+    if (!D) {
+      break;
     }
   }
 
   // hv pieces (Rook, Queen)
-  if (HV) {
-    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-      if (HV & 1) {
-        uint8_t sl_bit = bit;
-        uint64_t bb = (uint64_t)1 << bit;
-        unsafe |= h_v_moves(bb, sl_bit, OCCUPIED, true, EK);
-      }
-      HV >>= 1;
-      if (!HV) {
-        break;
-      }
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (HV & 1) {
+      uint8_t sl_bit = bit;
+      uint64_t bb = (uint64_t)1 << bit;
+      unsafe |= h_v_moves(bb, sl_bit, OCCUPIED, true, EK);
+    }
+    HV >>= 1;
+    if (!HV) {
+      break;
     }
   }
 
   // king
-  uint8_t k_bit = 0;
-  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    if (K & 1) {
-      k_bit = bit;
-      break;
-    }
-    K >>= 1;
-  }
+  uint8_t k_bit = singularBitboardToBit(K);
 
   if (k_bit > 14) {
     pos_moves = KING_MOVES << (k_bit - 14);
@@ -1339,7 +1366,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   uint64_t E_P_SPECIAL = 0u;
 
   // DZ is the danger zone. If the king is inside of it, its in check.
-  int num_checkers = 0;
+  uint8_t num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
       gamestate.white.bishop, gamestate.white.rook, OCCUPIED, E_P,
@@ -1359,7 +1386,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     // todo: generate checkers_bb, update_num_checkers. create method.
     uint64_t HV = gamestate.white.rook | gamestate.white.queen;
 
-    int k_bit = (int)log2(gamestate.black.king);
+    uint64_t k_bit = singularBitboardToBit(gamestate.black.king);
     uint64_t K_moves;
 
     // check horizontal pieces
@@ -1368,7 +1395,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u) {
       checkers |= new_checker;
       checker_zone |=
-          h_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          h_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1378,7 +1406,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          v_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          v_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1389,7 +1418,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          ddr_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          ddr_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1399,7 +1429,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          dur_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          dur_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1509,7 +1540,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   if (check) { // currently in check
     // todo: generate checkers_bb, update_num_checkers. create method.
     uint64_t HV = gamestate.black.rook | gamestate.black.queen;
-    int k_bit = (int)log2(gamestate.white.king);
+    int k_bit = singularBitboardToBit(gamestate.white.king);
     uint64_t K_moves;
 
     // check horizontal pieces
@@ -1518,7 +1549,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u) {
       checkers |= new_checker;
       checker_zone |=
-          h_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          h_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1528,7 +1560,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          v_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          v_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1539,7 +1572,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          ddr_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          ddr_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 
@@ -1549,7 +1583,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     if (new_checker != 0u and num_checkers != 2) {
       checkers |= new_checker;
       checker_zone |=
-          dur_moves(new_checker, (int)log2(new_checker), OCCUPIED) & K_moves;
+          dur_moves(new_checker, singularBitboardToBit(new_checker), OCCUPIED) &
+          K_moves;
       num_checkers++;
     }
 

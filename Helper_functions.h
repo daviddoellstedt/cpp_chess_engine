@@ -5,13 +5,9 @@
 #ifndef DDS_CHESS_ENGINE_HELPER_FUNCTIONS_H
 #define DDS_CHESS_ENGINE_HELPER_FUNCTIONS_H
 
-#include <vector>
+#include <stdint.h>
 
-
-
-void ind_bbs(unsigned long long bb, std::vector<unsigned long long>& bbs);
-void viz_bb(unsigned long long bb);
-void generate_bit();
-unsigned long long rev(unsigned long long n);
+void viz_bb(uint64_t bb);
+unsigned long long rev(uint64_t n);
 
 #endif //DDS_CHESS_ENGINE_HELPER_FUNCTIONS_H
