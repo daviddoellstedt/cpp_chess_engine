@@ -340,10 +340,6 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   uint64_t PINNED = 0u, NEW_PIN, K_slider, H_moves;
   std::vector<uint64_t> h_v_slider_bbs,
       diag_slider_bbs; // individual bitboards for each piece
-  ind_bbs(EQ | ER,
-          h_v_slider_bbs); // generate list of indivudal Queens and rooks
-  ind_bbs(EQ | EB,
-          diag_slider_bbs); // generate list of indivudal Bishops and Queens
 
   // for the 4 directions (4 iterations)
   //  1. generate sliding moves from the kings position (include "capture" of
@@ -357,82 +353,115 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
     if (i == 0) { // horizontal check
       K_slider = h_moves(K, k_bit, OCCUPIED);
 
-      for (auto h : h_v_slider_bbs) {
+      uint64_t EHV = EQ | ER;
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (EHV & 1) {
+          uint64_t h = (uint64_t)1 << bit;
+          H_moves = h_moves(h, bit, OCCUPIED);
+          NEW_PIN = K_slider & H_moves;
 
-        H_moves = h_moves(h, (int)log2(h), OCCUPIED);
-        NEW_PIN = K_slider & H_moves;
+          // todo add if logic for player turn
+          if ((((E_P << 8) & K_slider) != 0 and
+               ((E_P << 7) & ~file_h & P & H_moves)) or
+              (((E_P << 8) & H_moves) != 0 and
+               ((E_P << 7) & ~file_h & P & K_slider))) {
+            NEW_PIN |= (E_P << 7);
+            E_P_special =
+                (directional_mask[(int)log2((E_P << 7))][FILES] |
+                 directional_mask[(int)log2((E_P << 7))][DIAGONOLS_DOWN_RIGHT] |
+                 directional_mask[(int)log2((E_P << 7))][DIAGONOLS_UP_RIGHT]) &
+                ~get_mask((E_P << 7), E_P);
 
-        // todo add if logic for player turn
-        if ((((E_P << 8) & K_slider) != 0 and
-             ((E_P << 7) & ~file_h & P & H_moves)) or
-            (((E_P << 8) & H_moves) != 0 and
-             ((E_P << 7) & ~file_h & P & K_slider))) {
-          NEW_PIN |= (E_P << 7);
-          E_P_special =
-              (directional_mask[(int)log2((E_P << 7))][FILES] |
-               directional_mask[(int)log2((E_P << 7))][DIAGONOLS_DOWN_RIGHT] |
-               directional_mask[(int)log2((E_P << 7))][DIAGONOLS_UP_RIGHT]) &
-              ~get_mask((E_P << 7), E_P);
+            //  viz_bb(E_P_special);
+          }
 
-          //  viz_bb(E_P_special);
+          if ((((E_P << 8) & K_slider) != 0 and
+               ((E_P << 9) & ~file_a & P & H_moves)) or
+              (((E_P << 8) & H_moves) != 0 and
+               ((E_P << 9) & ~file_a & P & K_slider))) {
+            NEW_PIN |= (E_P << 9);
+            E_P_special =
+                (directional_mask[(int)log2((E_P << 9))][FILES] |
+                 directional_mask[(int)log2((E_P << 9))][DIAGONOLS_DOWN_RIGHT] |
+                 directional_mask[(int)log2((E_P << 9))][DIAGONOLS_UP_RIGHT]) &
+                ~get_mask((E_P << 9), E_P);
+          }
+
+          // for white
+          if ((((E_P >> 8) & K_slider) != 0 and
+               ((E_P >> 9) & ~file_h & P & H_moves)) or
+              (((E_P >> 8) & H_moves) != 0 and
+               ((E_P >> 9) & ~file_h & P & K_slider))) {
+            NEW_PIN |= (E_P >> 9);
+            E_P_special =
+                (directional_mask[(int)log2((E_P >> 9))][FILES] |
+                 directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_DOWN_RIGHT] |
+                 directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_UP_RIGHT]) &
+                ~get_mask((E_P >> 9), E_P);
+          }
+
+          if ((((E_P >> 8) & K_slider) != 0 and
+               ((E_P >> 7) & ~file_a & P & H_moves)) or
+              (((E_P >> 8) & H_moves) != 0 and
+               ((E_P >> 7) & ~file_a & P & K_slider))) {
+            NEW_PIN |= (E_P >> 7);
+            E_P_special =
+                (directional_mask[(int)log2((E_P >> 7))][FILES] |
+                 directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_DOWN_RIGHT] |
+                 directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_UP_RIGHT]) &
+                ~get_mask((E_P >> 7), E_P);
+          }
+
+          PINNED |= NEW_PIN;
         }
-
-        if ((((E_P << 8) & K_slider) != 0 and
-             ((E_P << 9) & ~file_a & P & H_moves)) or
-            (((E_P << 8) & H_moves) != 0 and
-             ((E_P << 9) & ~file_a & P & K_slider))) {
-          NEW_PIN |= (E_P << 9);
-          E_P_special =
-              (directional_mask[(int)log2((E_P << 9))][FILES] |
-               directional_mask[(int)log2((E_P << 9))][DIAGONOLS_DOWN_RIGHT] |
-               directional_mask[(int)log2((E_P << 9))][DIAGONOLS_UP_RIGHT]) &
-              ~get_mask((E_P << 9), E_P);
+        EHV >>= 1;
+        if (!EHV) {
+          break;
         }
-
-        // for white
-        if ((((E_P >> 8) & K_slider) != 0 and
-             ((E_P >> 9) & ~file_h & P & H_moves)) or
-            (((E_P >> 8) & H_moves) != 0 and
-             ((E_P >> 9) & ~file_h & P & K_slider))) {
-          NEW_PIN |= (E_P >> 9);
-          E_P_special =
-              (directional_mask[(int)log2((E_P >> 9))][FILES] |
-               directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_DOWN_RIGHT] |
-               directional_mask[(int)log2((E_P >> 9))][DIAGONOLS_UP_RIGHT]) &
-              ~get_mask((E_P >> 9), E_P);
-        }
-
-        if ((((E_P >> 8) & K_slider) != 0 and
-             ((E_P >> 7) & ~file_a & P & H_moves)) or
-            (((E_P >> 8) & H_moves) != 0 and
-             ((E_P >> 7) & ~file_a & P & K_slider))) {
-          NEW_PIN |= (E_P >> 7);
-          E_P_special =
-              (directional_mask[(int)log2((E_P >> 7))][FILES] |
-               directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_DOWN_RIGHT] |
-               directional_mask[(int)log2((E_P >> 7))][DIAGONOLS_UP_RIGHT]) &
-              ~get_mask((E_P >> 7), E_P);
-        }
-
-        PINNED |= NEW_PIN;
       }
+
     } else if (i == 1) { // vertical check
+      uint64_t EHV = EQ | ER;
       K_slider = v_moves(K, k_bit, OCCUPIED);
-      for (auto v : h_v_slider_bbs) {
-        NEW_PIN = K_slider & v_moves(v, (int)log2(v), OCCUPIED);
-        PINNED |= NEW_PIN;
+
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (EHV & 1) {
+          uint64_t v = (uint64_t)1 << bit;
+          NEW_PIN = K_slider & v_moves(v, bit, OCCUPIED);
+          PINNED |= NEW_PIN;
+        }
+        EHV >>= 1;
+        if (!EHV) {
+          break;
+        }
       }
     } else if (i == 2) { // ddr check
+      uint64_t ED = EQ | EB;
       K_slider = ddr_moves(K, k_bit, OCCUPIED);
-      for (auto ddr : diag_slider_bbs) {
-        NEW_PIN = K_slider & ddr_moves(ddr, (int)log2(ddr), OCCUPIED);
-        PINNED |= NEW_PIN;
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (ED & 1) {
+          uint64_t ddr = (uint64_t)1 << bit;
+          NEW_PIN = K_slider & ddr_moves(ddr, bit, OCCUPIED);
+          PINNED |= NEW_PIN;
+        }
+        ED >>= 1;
+        if (!ED) {
+          break;
+        }
       }
     } else { // dur check
+      uint64_t ED = EQ | EB;
       K_slider = dur_moves(K, k_bit, OCCUPIED);
-      for (auto dur : diag_slider_bbs) {
-        NEW_PIN = K_slider & dur_moves(dur, (int)log2(dur), OCCUPIED);
-        PINNED |= NEW_PIN;
+      for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+        if (ED & 1) {
+          uint64_t dur = (uint64_t)1 << bit;
+          NEW_PIN = K_slider & dur_moves(dur, bit, OCCUPIED);
+          PINNED |= NEW_PIN;
+        }
+        ED >>= 1;
+        if (!ED) {
+          break;
+        }
       }
     }
   }
@@ -453,21 +482,21 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                     uint64_t PINNED, uint64_t checker_zone,
                     std::vector<Move> &wb_moves) {
+  if (checker_zone == 0) {
+    checker_zone = FILLED;
+  }
 
-  if (R != 0u) {
-    if (checker_zone == 0) {
-      checker_zone = FILLED;
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (!R) {
+      return;
     }
-    std::vector<uint64_t> r_bbs; // individual bitboards for each piece
-    ind_bbs(R, r_bbs);           // generate list of indivudal bitboards
-    uint64_t mask;
 
-    for (auto bb : r_bbs) {
-
+    if (R & 1) {
+      uint64_t bb = (uint64_t)1 << bit;
       // get moves
-      int sl_bit = (int)log2(bb);
+      uint8_t sl_bit = bit;
 
-      mask = FILLED;
+      uint64_t mask = FILLED;
       if ((bb & PINNED) > 0u) {
         mask = get_mask(bb, K);
       }
@@ -486,6 +515,7 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
         }
       }
     }
+    R >>= 1;
   }
 }
 
@@ -503,19 +533,22 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
 void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
                       uint64_t OCCUPIED, uint64_t PINNED, uint64_t checker_zone,
                       std::vector<Move> &wb_moves) {
-  if (B != 0u) {
-    if (checker_zone == 0) {
-      checker_zone = FILLED;
+
+  if (checker_zone == 0) {
+    checker_zone = FILLED;
+  }
+
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (!B) {
+      return;
     }
-    std::vector<uint64_t> bishop_bbs; // individual bitboards for each piece
-    ind_bbs(B, bishop_bbs);           // generate list of indivudal bitboards
-    uint64_t mask;
 
-    for (auto bb : bishop_bbs) {
+    if (B & 1) {
+      uint64_t bb = (uint64_t)1 << bit;
       // get moves
-      int sl_bit = (int)log2(bb);
+      uint8_t sl_bit = bit;
 
-      mask = FILLED;
+      uint64_t mask = FILLED;
       if ((bb & PINNED) > 0u) {
         mask = get_mask(bb, K);
       }
@@ -534,6 +567,7 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
         }
       }
     }
+    B >>= 1;
   }
 }
 
@@ -551,19 +585,20 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
 void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
                      uint64_t PINNED, uint64_t checker_zone,
                      std::vector<Move> &wb_moves) {
-  if (Q != 0u) {
-    if (checker_zone == 0) {
-      checker_zone = FILLED;
+  if (checker_zone == 0) {
+    checker_zone = FILLED;
+  }
+
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (!Q) {
+      return;
     }
-    std::vector<uint64_t> q_bbs; // individual bitboards for each piece
-    ind_bbs(Q, q_bbs);           // generate list of indivudal bitboards
-    uint64_t mask;
 
-    for (auto bb : q_bbs) {
-      // get moves
-      int sl_bit = (int)log2(bb);
+    if (Q & 1) {
+      uint8_t sl_bit = bit;
+      uint64_t bb = (uint64_t)1 << bit;
 
-      mask = FILLED;
+      uint64_t mask = FILLED;
       if ((bb & PINNED) > 0u) {
         mask = get_mask(bb, K);
       }
@@ -582,6 +617,7 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
         }
       }
     }
+    Q >>= 1;
   }
 }
 
@@ -597,25 +633,28 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  */
 void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
                       uint64_t checker_zone, std::vector<Move> &wb_moves) {
-  if (N != 0u) {
-    if (checker_zone == 0) {
-      checker_zone = FILLED;
-    }
-    std::vector<uint64_t> r_bbs; // individual bitboards for each piece
-    ind_bbs(N, r_bbs);           // generate list of indivudal bitboards
-    // todo: is it really efficient to redefine these everytime? maybe can
-    // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
-    // y5)
-    uint64_t pos_moves;
+  if (checker_zone == 0) {
+    checker_zone = FILLED;
+  }
 
-    for (auto bb : r_bbs) {
-      // get moves
-      // todo: make this a lookup table for improved performance
-      int kn_bit = (int)log2(bb);
+  // todo: is it really efficient to redefine these everytime? maybe can
+  // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
+  // y5) Regarding the pos_moves.
+
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    // get moves
+    // todo: make this a lookup table for improved performance
+    if (!N) {
+      return;
+    }
+
+    if (N & 1) {
+      uint8_t kn_bit = bit;
+      uint64_t bb = (uint64_t)1 << bit;
+      uint64_t pos_moves = 0;
 
       if ((bb & PINNED) == 0u) { // only check for moves if it's not pinned.
                                  // pinned knights cannot move.
-
         if (kn_bit > 21) {
           pos_moves = KNIGHT_MOVES << (kn_bit - 21);
         } else {
@@ -641,9 +680,9 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
             }
           }
         }
-        pos_moves = 0u;
       }
     }
+    N >>= 1;
   }
 }
 
@@ -665,7 +704,15 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
 
   // get moves
   // todo: make this a lookup table for improved performance
-  int k_bit = (int)log2(K);
+  uint8_t k_bit = 0;
+
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (K & 1) {
+      k_bit = bit;
+      break;
+    }
+    K >>= 1;
+  }
 
   if (k_bit > 14) {
     pos_moves = KING_MOVES << (k_bit - 14);
@@ -1079,18 +1126,23 @@ void get_B_pawn_moves(uint64_t BP, uint64_t BK, uint64_t E_P, uint64_t EMPTY,
   if (checker_zone == 0) {
     checker_zone = FILLED;
   }
-  if (pinned_pawns > 0u) { // we have at least 1 pawn pinned
+  if (pinned_pawns) { // we have at least 1 pawn pinned
     BP &= ~PINNED;
-    std::vector<uint64_t> pin_bbs; // individual bitboards for each piece
-    ind_bbs(pinned_pawns, pin_bbs);
-    for (auto bb : pin_bbs) {
-      mask = (get_mask(bb, BK) | E_P_SPECIAL);
-      get_X_pawn_moves("B", mask, bb, BK, E_P, EMPTY, WHITE_PIECES,
-                       checker_zone, b_moves);
+    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+      if (pinned_pawns & 1) {
+        uint64_t bb = (uint64_t)1 << bit;
+        mask = (get_mask(bb, BK) | E_P_SPECIAL);
+        get_X_pawn_moves("B", mask, bb, BK, E_P, EMPTY, WHITE_PIECES,
+                         checker_zone, b_moves);
+      }
+      pinned_pawns >>= 1;
+      if (!pinned_pawns) {
+        break;
+      }
     }
   }
 
-  if (BP > 0u) { // we have at least 1 non-pinned pawn
+  if (BP) { // we have at least 1 non-pinned pawn
     mask = FILLED;
     get_X_pawn_moves("B", mask, BP, BK, E_P, EMPTY, WHITE_PIECES, checker_zone,
                      b_moves);
@@ -1107,19 +1159,24 @@ void get_W_pawn_moves(uint64_t WP, uint64_t WK, uint64_t E_P, uint64_t EMPTY,
     checker_zone = FILLED;
   }
 
-  if (pinned_pawns > 0u) { // we have at least 1 pawn pinned
+  if (pinned_pawns) { // we have at least 1 pawn pinned
     WP &= ~PINNED;
 
-    std::vector<uint64_t> pin_bbs; // individual bitboards for each piece
-    ind_bbs(pinned_pawns, pin_bbs);
-    for (auto bb : pin_bbs) {
-      mask = get_mask(bb, WK) | E_P_SPECIAL;
-      get_X_pawn_moves("W", mask, bb, WK, E_P, EMPTY, BLACK_PIECES,
-                       checker_zone, w_moves);
+    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+      if (pinned_pawns & 1) {
+        uint64_t bb = (uint64_t)1 << bit;
+        mask = get_mask(bb, WK) | E_P_SPECIAL;
+        get_X_pawn_moves("W", mask, bb, WK, E_P, EMPTY, BLACK_PIECES,
+                         checker_zone, w_moves);
+      }
+      pinned_pawns >>= 1;
+      if (!pinned_pawns) {
+        break;
+      }
     }
   }
 
-  if (WP > 0u) { // we have at least 1 non-pinned pawn
+  if (WP) { // we have at least 1 non-pinned pawn
     mask = FILLED;
     get_X_pawn_moves("W", mask, WP, WK, E_P, EMPTY, BLACK_PIECES, checker_zone,
                      w_moves);
@@ -1131,7 +1188,7 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
   if (CK) {
     // todo: implement lookup table
     if (((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)) != 0u) {
-      int k_bit =
+      uint8_t k_bit =
           (int)log2(((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)));
 
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
@@ -1147,14 +1204,11 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
                   std::vector<Move> &wb_moves) {
 
   if (QK) {
-    //   viz_bb(DZ);
-    // viz_bb(((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) & ~DZ & ~(DZ >>
-    // 1));
     // todo: implement lookup table
     if ((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) & ~DZ & ~(DZ >> 1)) !=
         0u) {
-      int k_bit = (int)log2((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) &
-                             ~DZ & ~(DZ >> 1)));
+      uint8_t k_bit = (int)log2((((K >> 2) & EMPTY) & (EMPTY >> 1) &
+                                 (EMPTY << 1) & ~DZ & ~(DZ >> 1)));
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.second += 2;
@@ -1184,57 +1238,76 @@ uint64_t unsafe_for_XK(std::string X, uint64_t P, uint64_t R, uint64_t N,
 
   // knight
   uint64_t pos_moves;
-  if (N != 0u) {
-    std::vector<uint64_t> r_bbs; // individual bitboards for each piece
-    ind_bbs(N, r_bbs);           // generate list of indivudal bitboards
+  if (N) {
     // todo: is it really efficient to redefine these everytime? maybe can
     // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
     // y5)
-    for (auto bb : r_bbs) {
-      // todo: make this a lookup table for improved performance
-      int kn_bit = (int)log2(bb);
-      if (kn_bit > 21) {
-        pos_moves = KNIGHT_MOVES << (kn_bit - 21);
-      } else {
-        pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
+    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+      if (N & 1) {
+
+        uint64_t bb = (uint64_t)1 << bit;
+        // todo: make this a lookup table for improved performance
+        uint8_t kn_bit = bit;
+        if (kn_bit > 21) {
+          pos_moves = KNIGHT_MOVES << (kn_bit - 21);
+        } else {
+          pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
+        }
+        if (kn_bit % 8 > 3) {
+          pos_moves &= ~file_ab;
+        } else {
+          pos_moves &= ~file_gh;
+        }
+        // viz_bb(pos_n_moves);
+        unsafe |= pos_moves;
       }
-      if (kn_bit % 8 > 3) {
-        pos_moves &= ~file_ab;
-      } else {
-        pos_moves &= ~file_gh;
+      N >>= 1;
+      if (!N) {
+        break;
       }
-      // viz_bb(pos_n_moves);
-      unsafe |= pos_moves;
     }
   }
 
   // diag pieces (Bishop, Queen)
-  if (D != 0u) {
-    std::vector<uint64_t> r_bbs; // individual bitboards for each piece
-    ind_bbs(D, r_bbs);           // generate list of indivudal bitboards
-    for (auto bb : r_bbs) {
-      // todo: make a lookup table to avoid the log calc
-      int sl_bit = (int)log2(bb);
-      unsafe |= diag_moves(bb, sl_bit, OCCUPIED, true, EK);
+  if (D) {
+    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+      if (D & 1) {
+        uint64_t bb = (uint64_t)1 << bit;
+        uint8_t sl_bit = bit;
+        unsafe |= diag_moves(bb, sl_bit, OCCUPIED, true, EK);
+      }
+      D >>= 1;
+      if (!D) {
+        break;
+      }
     }
   }
 
   // hv pieces (Rook, Queen)
-  if (HV != 0u) {
-    // todo: should i keep redeclaring this variable? Orsimply wipe the last
-    // instance?
-    std::vector<uint64_t> r_bbs; // individual bitboards for each piece
-    ind_bbs(HV, r_bbs);          // generate list of indivudal bitboards
-    for (auto bb : r_bbs) {
-      // todo: make a lookup table to avoid the log calc
-      int sl_bit = (int)log2(bb);
-      unsafe |= h_v_moves(bb, sl_bit, OCCUPIED, true, EK);
+  if (HV) {
+    for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+      if (HV & 1) {
+        uint8_t sl_bit = bit;
+        uint64_t bb = (uint64_t)1 << bit;
+        unsafe |= h_v_moves(bb, sl_bit, OCCUPIED, true, EK);
+      }
+      HV >>= 1;
+      if (!HV) {
+        break;
+      }
     }
   }
 
   // king
-  // todo: make this a lookup table for improved performance
-  int k_bit = (int)log2(K);
+  uint8_t k_bit = 0;
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    if (K & 1) {
+      k_bit = bit;
+      break;
+    }
+    K >>= 1;
+  }
+
   if (k_bit > 14) {
     pos_moves = KING_MOVES << (k_bit - 14);
   } else {
@@ -1285,6 +1358,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   if (check) { // currently in check
     // todo: generate checkers_bb, update_num_checkers. create method.
     uint64_t HV = gamestate.white.rook | gamestate.white.queen;
+
     int k_bit = (int)log2(gamestate.black.king);
     uint64_t K_moves;
 

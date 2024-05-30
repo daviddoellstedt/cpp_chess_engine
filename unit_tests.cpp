@@ -19,12 +19,19 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     std::vector<Move> moves;
     std::string n = "total";
 
-
-
+    auto start = std::chrono::high_resolution_clock::now();
 
     perft(nodes, cap_counter, gamestate, moves, E_P, CM, SM, depth, depth, n);
 
-    
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "depth: " << depth << ". time elapsed: "
+              << (double)(end - start).count() / 1000000000
+              << " s. nodes searched: " << nodes << "." << std::endl;
+    std::cout << "NPS: " << nodes / ((double)(end - start).count() / 1000000000)
+              << std::endl;
+    std::cout << " " << std::endl;
+
     return nodes;
 
 
