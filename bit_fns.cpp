@@ -53,6 +53,7 @@ SpecialMove moveToSpecial(Move move) {
 std::string specialMoveToString(SpecialMove special_move) {
   switch (special_move) {
   case NONE:
+  case PAWN_PUSH_2:
     return "";
   case CASTLE_KINGSIDE:
     return "Kingside Castle";
@@ -315,7 +316,8 @@ uint64_t diag_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
  * @return bitboard mask of rank/file/diagonal connection between the two pieces
  */
 uint64_t get_mask(uint64_t p1, uint64_t p2) {
-  uint8_t k_bit = findSetBit(p2), p_bit = findSetBit(p1);
+  uint8_t k_bit = findSetBit(p2);
+  uint8_t p_bit = findSetBit(p1);
 
   for (uint8_t dir = 0; dir < N_DIRECTIONS; dir++) {
     if (directional_mask[k_bit][dir] == directional_mask[p_bit][dir]) {
@@ -458,18 +460,14 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
   while (R) {
 
     uint64_t bb = findLowestSetBitValue(R);
-    // get moves
     uint8_t bit = findSetBit(bb);
 
-    uint64_t mask = FILLED;
-    if ((bb & PINNED) > 0u) {
-      mask = get_mask(bb, K);
-    }
-    // todo: make this a lookup table for improved performance
+    uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
+  
     uint64_t moves =
         h_v_moves(bb, bit, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
 
-    // loop through moves and append to list, if there are any
+    // Loop through moves and append to list.
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (moves) {
       uint64_t final_bb = findLowestSetBitValue(moves);
@@ -496,7 +494,6 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
 void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
                       uint64_t OCCUPIED, uint64_t PINNED, uint64_t checker_zone,
                       std::vector<Move> &wb_moves) {
-
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -504,18 +501,11 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
   while (B) {
     uint64_t bb = findLowestSetBitValue(B);
     uint8_t bit = findSetBit(bb);
-
-    uint64_t mask = FILLED;
-    if ((bb & PINNED) > 0u) {
-      mask = get_mask(bb, K);
-    }
-    // todo: make this a lookup table for improved performance
+    uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
     uint64_t moves = diag_moves(bb, bit, OCCUPIED, false, 0u) & ~PIECES & mask &
                      checker_zone;
-    // loop through moves and append to list, if there are any
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-    // todo: can maybe optimize by not searching the entire range
 
+    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (moves) {
       uint64_t bb_final = findLowestSetBitValue(moves);
       std::pair<uint8_t, uint8_t> final =
@@ -548,18 +538,12 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
   while (Q) {
     uint64_t bb = findLowestSetBitValue(Q);
     uint8_t bit = findSetBit(bb);
-
-    uint64_t mask = FILLED;
-    if ((bb & PINNED) > 0u) {
-      mask = get_mask(bb, K);
-    }
-
+        uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
     uint64_t moves = (h_v_moves(bb, bit, OCCUPIED, false, 0u) |
                       diag_moves(bb, bit, OCCUPIED, false, 0u)) &
                      ~PIECES & mask & checker_zone;
-    // loop through moves and append to list, if there are any
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
 
+    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (moves) {
       uint64_t bb_final = findLowestSetBitValue(moves);
       std::pair<uint8_t, uint8_t> final =
@@ -610,10 +594,7 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
       }
       pos_moves &= ~PIECES & checker_zone;
 
-      // loop through moves and append to list, if there are any
-
       std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
-
       while (pos_moves) {
         uint64_t bb_final = findLowestSetBitValue(pos_moves);
         std::pair<uint8_t, uint8_t> final =
@@ -637,9 +618,6 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
  */
 void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
                     std::vector<Move> &wb_moves) {
-  // todo: is it really efficient to redefine these everytime? maybe can
-  // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
-  // y5)
 
   // get moves
   uint8_t k_bit = findSetBit(K);
@@ -658,9 +636,7 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   }
   pos_moves &= ~PIECES & ~DZ;
 
-  // loop through moves and append to list, if there are any
   std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
-
   while (pos_moves) {
     uint64_t bb_final = findLowestSetBitValue(pos_moves);
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb_final)];
@@ -1004,16 +980,14 @@ void get_B_pawn_moves(bool white_to_move, uint64_t BP, uint64_t BK,
                       uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
                       uint64_t PINNED, uint64_t checker_zone,
                       uint64_t E_P_SPECIAL, std::vector<Move> &b_moves) {
-
-  uint64_t mask;
-  uint64_t pinned_pawns = (BP & PINNED);
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
+  uint64_t pinned_pawns = BP & PINNED;
   while (pinned_pawns) {
     uint64_t bb = findLowestSetBitValue(pinned_pawns);
-    mask = (get_mask(bb, BK) | E_P_SPECIAL);
+    uint64_t mask = get_mask(bb, BK) | E_P_SPECIAL;
     get_X_pawn_moves(white_to_move, mask, bb, BK, E_P, EMPTY, WHITE_PIECES,
                      checker_zone, b_moves);
     clearLowestSetBit(pinned_pawns);
@@ -1022,25 +996,23 @@ void get_B_pawn_moves(bool white_to_move, uint64_t BP, uint64_t BK,
   BP &= ~PINNED;
 
   if (BP) { // we have at least 1 non-pinned pawn
-    mask = FILLED;
-    get_X_pawn_moves(white_to_move, mask, BP, BK, E_P, EMPTY, WHITE_PIECES,
+    get_X_pawn_moves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
                      checker_zone, b_moves);
   }
 }
+
 void get_W_pawn_moves(bool white_to_move, uint64_t WP, uint64_t WK,
                       uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
                       uint64_t PINNED, uint64_t checker_zone,
                       uint64_t E_P_SPECIAL, std::vector<Move> &w_moves) {
-
-  uint64_t mask;
-  uint64_t pinned_pawns = (WP & PINNED);
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
+  uint64_t pinned_pawns = WP & PINNED;
   while (pinned_pawns) {
     uint64_t bb = findLowestSetBitValue(pinned_pawns);
-    mask = get_mask(bb, WK) | E_P_SPECIAL;
+    uint64_t mask = get_mask(bb, WK) | E_P_SPECIAL;
     get_X_pawn_moves(white_to_move, mask, bb, WK, E_P, EMPTY, BLACK_PIECES,
                      checker_zone, w_moves);
     clearLowestSetBit(pinned_pawns);
@@ -1049,8 +1021,7 @@ void get_W_pawn_moves(bool white_to_move, uint64_t WP, uint64_t WK,
   WP &= ~PINNED;
 
   if (WP) { // we have at least 1 non-pinned pawn
-    mask = FILLED;
-    get_X_pawn_moves(white_to_move, mask, WP, WK, E_P, EMPTY, BLACK_PIECES,
+    get_X_pawn_moves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
                      checker_zone, w_moves);
   }
 }
@@ -1079,7 +1050,7 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
   if (!QK) {
     return;
   }
-    // todo: implement lookup table
+
     if ((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) & ~DZ & ~(DZ >> 1)) !=
         0u) {
       uint8_t k_bit = findSetBit(((K >> 2) & EMPTY) & (EMPTY >> 1) &
@@ -1097,7 +1068,9 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
                        uint64_t B, uint64_t Q, uint64_t K, uint64_t EK,
                        uint64_t OCCUPIED) {
 
-  uint64_t unsafe = 0u, D = B | Q, HV = R | Q;
+  uint64_t unsafe = 0;
+  uint64_t D = B | Q;
+  uint64_t HV = R | Q;
 
   // pawn
   if (P) {
@@ -1110,10 +1083,7 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
     }
   }
 
-  // knight
-  // todo: is it really efficient to redefine these everytime? maybe can
-  // optimize where this is defined assuming knight is at bit 21 or F3 or (x3,
-  // y5)
+  // Knight
   uint64_t pos_moves = 0;
 
   while (N) {
@@ -1133,7 +1103,7 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
     clearLowestSetBit(N);
   }
 
-  // diag pieces (Bishop, Queen)
+  // Diag pieces (Bishop, Queen).
   while (D) {
     uint64_t bb = findLowestSetBitValue(D);
     uint8_t bit = findSetBit(bb);
@@ -1141,14 +1111,14 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
     clearLowestSetBit(D);
   }
 
-  // hv pieces (Rook, Queen)
+  // HV pieces (Rook, Queen).
   while (HV) {
     uint64_t bb = findLowestSetBitValue(HV);
     unsafe |= h_v_moves(bb, findSetBit(bb), OCCUPIED, true, EK);
     clearLowestSetBit(HV);
   }
 
-  // king
+  // King.
   uint8_t k_bit = findSetBit(K);
 
   if (k_bit > 14) {
@@ -1156,7 +1126,6 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
   } else {
     pos_moves = KING_MOVES >> (14 - k_bit);
   }
-  // todo: potential to make the FILEs more efficient
   if (k_bit % 8 > 3) {
     pos_moves &= ~file_a;
   } else {
@@ -1181,7 +1150,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   b_moves.clear();
   uint64_t E_P_SPECIAL = 0u;
 
-  // DZ is the danger zone. If the king is inside of it, its in check.
+  // DZ is the danger zone. If the king is inside of it, it is in check.
   uint8_t num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
@@ -1189,23 +1158,25 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       gamestate.whites_turn); // todo: need to put this to work. dont generate
                               // pinned moves if in check, skip that piece
   bool check = DZ & gamestate.black.king;
-  // ------------------
-  uint64_t checkers = 0, new_checker,
-           checker_zone =
-               0; // checker zone is the area that the piece is attacking
+
+  uint64_t checkers = 0;
+  uint64_t new_checker = 0;
+
+  // checker zone is the area that the piece is attacking
                   // through (applies only to sliders). We have the potential to
                   // block the check by moving  apiece in the line of fire
                   // (pinning your own piece)
+ uint64_t checker_zone = 0;
 
-  // ------------------
-  if (check) { // currently in check
-    // todo: generate checkers_bb, update_num_checkers. create method.
+
+  if (check) { 
+
     uint64_t HV = gamestate.white.rook | gamestate.white.queen;
 
     uint64_t k_bit = findSetBit(gamestate.black.king);
     uint64_t K_moves;
 
-    // check horizontal pieces
+    // Check horizontal pieces.
     K_moves = h_moves(gamestate.black.king, k_bit, OCCUPIED);
     new_checker = K_moves & HV;
     if (new_checker) {
@@ -1215,7 +1186,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       num_checkers++;
     }
 
-    // check vertical pieces
+    // Check vertical pieces.
     K_moves = v_moves(gamestate.black.king, k_bit, OCCUPIED);
     new_checker = K_moves & HV;
     if (new_checker && num_checkers != 2) {
@@ -1226,7 +1197,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
     }
 
     uint64_t D = gamestate.white.bishop | gamestate.white.queen;
-    // check down and to the right pieces
+
+    // Check down and to the right pieces.
     K_moves = ddr_moves(gamestate.black.king, k_bit, OCCUPIED);
     new_checker = K_moves & D;
     if (new_checker && num_checkers != 2) {
@@ -1236,7 +1208,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       num_checkers++;
     }
 
-    // check up and to the right pieces
+    // Check up and to the right pieces.
     K_moves = dur_moves(gamestate.black.king, k_bit, OCCUPIED);
     new_checker = K_moves & D;
     if (new_checker && num_checkers != 2) {
@@ -1246,7 +1218,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       num_checkers++;
     }
 
-    // check for knight attacks
+    // Check for knight attacks.
     if (k_bit > 21) {
       K_moves = KNIGHT_MOVES << (k_bit - 21);
     } else {
@@ -1263,7 +1235,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       num_checkers++;
     }
 
-    // check for pawn right attack (from pawns perspective)
+    // Check for pawn right attack (from pawns perspective).
     K_moves = (gamestate.black.king >> 9) & ~file_h;
     new_checker = K_moves & gamestate.white.pawn;
     if (new_checker && num_checkers != 2) {
@@ -1313,8 +1285,6 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   } else if ((gamestate.black.king | gamestate.white.king) == OCCUPIED) {
     SM = true;
   }
-
-  // return check;
 }
 
 void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
@@ -1341,13 +1311,15 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       gamestate.whites_turn); // todo: need to put this to work. dont generate
                               // pinned moves if in check, skip that piece
   bool check = DZ & gamestate.white.king;
-  // ------------------
-  uint64_t checkers = 0, new_checker,
-           checker_zone =
-               0; // checker zone is the area that the piece is attacking
+
+  uint64_t checkers = 0;
+  uint64_t new_checker = 0;
+
+  // checker zone is the area that the piece is attacking
                   // through (applies only to sliders). We have the potential to
                   // block the check by moving  apiece in the line of fire
                   // (pinning your own piece)
+ uint64_t checker_zone = 0;
 
   // ------------------
   if (check) { // currently in check
@@ -1397,7 +1369,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
       num_checkers++;
     }
 
-    // check for knight attacks
+    // Check for knight attacks.
     if (k_bit > 21) {
       K_moves = KNIGHT_MOVES << (k_bit - 21);
     } else {
@@ -1509,10 +1481,9 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
   uint8_t x2 = moveToX2(move);
   uint8_t y2 = moveToY2(move);
   SpecialMove special = moveToSpecial(move);
-
-  // TODO: switch to bit shifting.
-  uint64_t initial = pow(2, ((x1 * 8) + (y1 % 8)));
-  uint64_t final = pow(2, ((x2 * 8) + (y2 % 8)));
+  
+  uint64_t initial = (uint64_t)1 << ((x1 * 8) + (y1 % 8));
+  uint64_t final = (uint64_t)1 << ((x2 * 8) + (y2 % 8));
 
   uint64_t capture;
 
@@ -1693,21 +1664,11 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
   gamestate.whites_turn = white_move;
 }
 
-void print_moves(bool white_move, std::vector<Move> b_moves,
-                 std::vector<Move> w_moves) {
-
-  if (white_move) {
-    std::cout << "WHITE'S MOVE: " << std::endl;
-    for (int i = 0; i < w_moves.size(); i++) {
-      std::cout << i + 1 << ": " + moveToString(w_moves[i]) << std::endl;
+void print_moves(bool white_to_move, std::vector<Move> moves) {
+    std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
+    for (int i = 0; i < moves.size(); i++) {
+      std::cout << i + 1 << ": " + moveToString(moves[i]) << std::endl;
     }
-    //  std::cout << "total moves: " << w_moves.size() << std::endl;
-  } else {
-    std::cout << "BLACK'S MOVE: " << std::endl;
-    for (int i = 0; i < b_moves.size(); i++) {
-      std::cout << i + 1 << ": " + moveToString(b_moves[i]) << std::endl;
-    }
-  }
 }
 
 void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
@@ -2079,7 +2040,7 @@ void generate_board(std::string name, int diff) {
       get_B_moves(gamestate, E_P, CM, SM, b_moves);
 
       std::cout << "Please select your move: " << std::endl;
-      print_moves(white_to_move, b_moves, b_moves);
+      print_moves(white_to_move, b_moves);
 
       int user_choice;
       std::cin >> user_choice;
