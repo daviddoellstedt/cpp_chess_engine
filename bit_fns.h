@@ -40,6 +40,8 @@ typedef struct GameState {
 
   // If true -> white's turn, false -> black's turn.
   bool whites_turn = true;
+
+  uint64_t en_passant;
 } GameState;
 
 void generate_board(std::string name, int diff);

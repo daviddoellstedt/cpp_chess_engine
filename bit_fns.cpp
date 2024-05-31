@@ -2036,7 +2036,7 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
       if (fen[i] >= 'a' && fen[i] <= 'h') {
         uint8_t col = fen[i] - 'a';
         uint8_t row = fen[i + 1] - '0' - 1;
-        // gamestate.en_passant = 1ull << (row * 8 + col);
+        gamestate.en_passant = 1ull << (row * 8 + col);
         // std::cout<< (row * 8 + col) << std::endl;
       }
     }
