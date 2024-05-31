@@ -164,10 +164,10 @@ void print_board(const GameState gamestate) {
       "|---|-----|-----|-----|-----|-----|-----|-----|-----|";
 
   std::string line;
-  for (int i = 0; i <= 7; i++) {
+  for (uint8_t i = 0; i <= 7; i++) {
     std::cout << dividing_line << std::endl;
     line = "| " + std::to_string(8 - i) + " |  ";
-    for (int j = 0; j < 8; j++) {
+    for (uint8_t j = 0; j < 8; j++) {
       line.push_back(grid[i][j]);
       if (j != 7) {
         line += "  |  ";
@@ -190,7 +190,7 @@ void print_board(const GameState gamestate) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return horiz_moves: bitboard of horizontal moves
  */
-uint64_t h_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
+uint64_t h_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
   uint64_t horiz_moves =
       (((OCCUPIED)-2 * piece) ^ rev(rev(OCCUPIED) - 2 * rev(piece))) &
       directional_mask[sl_bit][RANKS];
@@ -205,7 +205,7 @@ uint64_t h_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return vert_moves: bitboard of vertical moves
  */
-uint64_t v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
+uint64_t v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
   uint64_t vert_moves =
       (((OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * piece) ^
        rev(rev(OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * rev(piece))) &
@@ -225,7 +225,7 @@ uint64_t v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of horizontal and vertical moves
  */
-uint64_t h_v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
+uint64_t h_v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
                    bool unsafe_calc, uint64_t K) {
 
   // this line is used in the case where we need to generate zones for the king
@@ -248,7 +248,7 @@ uint64_t h_v_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return ddr_moves: bitboard of (down, right) and (up, left) moves
  */
-uint64_t ddr_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
+uint64_t ddr_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
   uint64_t ddr_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_DOWN_RIGHT]) -
         2 * piece) ^
@@ -266,7 +266,7 @@ uint64_t ddr_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return dur_moves: bitboard of (up, right) and (down, left) moves
  */
-uint64_t dur_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
+uint64_t dur_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
   uint64_t dur_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) - 2 * piece) ^
        rev(rev(OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) -
@@ -287,7 +287,7 @@ uint64_t dur_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of all diagonal moves
  */
-uint64_t diag_moves(uint64_t piece, int sl_bit, uint64_t OCCUPIED,
+uint64_t diag_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
                     bool unsafe_calc, uint64_t K) {
 
   // this line is used in the case where we need to generate zones for the king
@@ -1300,7 +1300,7 @@ void get_W_moves(const GameState &gamestate, bool &CM, bool &SM,
       gamestate.black.king, gamestate.white.king, OCCUPIED);
 
   // DZ is the danger zone. If the king is inside of it, its in check.
-  int num_checkers = 0;
+  uint8_t num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.white.king, gamestate.white.pawn, gamestate.black.queen,
       gamestate.black.bishop, gamestate.black.rook, OCCUPIED,
@@ -1322,7 +1322,7 @@ void get_W_moves(const GameState &gamestate, bool &CM, bool &SM,
   if (check) { // currently in check
     // todo: generate checkers_bb, update_num_checkers. create method.
     uint64_t HV = gamestate.black.rook | gamestate.black.queen;
-    int k_bit = findSetBit(gamestate.white.king);
+    uint8_t k_bit = findSetBit(gamestate.white.king);
     uint64_t K_moves;
 
     // check horizontal pieces
@@ -1663,7 +1663,7 @@ void apply_move(Move move, GameState &gamestate) {
 
 void print_moves(bool white_to_move, std::vector<Move> moves) {
     std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
-    for (int i = 0; i < moves.size(); i++) {
+    for (uint8_t i = 0; i < moves.size(); i++) {
       std::cout << i + 1 << ": " + moveToString(moves[i]) << std::endl;
     }
 }
@@ -1681,12 +1681,11 @@ void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
 
   if (depth > 0) {
 
-    for (int i = 0; i < moves.size(); i++) {
-      int cap_count_temp = 0;
+    for (uint8_t i = 0; i < moves.size(); i++) {
+      uint8_t cap_count_temp = 0;
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
       apply_move(moves[i], gamestate_temp);
 
@@ -1717,7 +1716,7 @@ void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
   }
 }
 
-int nodes2 = 0;
+uint32_t nodes2 = 0;
 
 double eval(const GameState gamestate) {
 
@@ -1742,7 +1741,7 @@ double eval(const GameState gamestate) {
   return counter;
 }
 
-AI_return minimax(GameState &gamestate, bool CM, bool SM, int depth,
+AI_return minimax(GameState &gamestate, bool CM, bool SM, uint8_t depth,
                   bool my_turn, double alpha = -100000000,
                   double beta = 100000000) {
 
@@ -1780,12 +1779,11 @@ AI_return minimax(GameState &gamestate, bool CM, bool SM, int depth,
       return leaf;
     }
 
-    for (int i = 0; i < w_moves.size(); i++) {
+    for (uint8_t i = 0; i < w_moves.size(); i++) {
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
 
-      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
 
       apply_move(w_moves[i], gamestate_temp);
@@ -1830,11 +1828,10 @@ AI_return minimax(GameState &gamestate, bool CM, bool SM, int depth,
       return leaf;
     }
 
-    for (int j = 0; j < b_moves.size(); j++) {
+    for (uint8_t j = 0; j < b_moves.size(); j++) {
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
 
       apply_move(b_moves[j], gamestate_temp);
@@ -2042,7 +2039,7 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
   }
 }
 
-void generate_board(std::string name, int diff) {
+void generate_board(std::string name, uint8_t diff) {
   std::cout << "GAME START" << std::endl;
 
   std::string FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -2050,15 +2047,13 @@ void generate_board(std::string name, int diff) {
   // FEN= "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2";
   bool BCK = false, BCQ = false, WCK = false, WCQ = false, CM = false,
        SM = false, white_to_move;
-  // todo: add E_P functionality to read FEN
-  // uint64_t E_P = 0u;
 
   GameState gamestate;
   fenToGameState(FEN, gamestate);
 
   AI_return AI_choice;
 
-  int depth;
+  uint8_t depth;
   if (diff == 1) {
     depth = 4;
   } else if (diff == 2) {
@@ -2119,7 +2114,7 @@ void generate_board(std::string name, int diff) {
       std::cout << "Please select your move: " << std::endl;
       print_moves(white_to_move, b_moves);
 
-      int user_choice;
+      uint8_t user_choice;
       std::cin >> user_choice;
 
       apply_move(b_moves[user_choice - 1], gamestate);
