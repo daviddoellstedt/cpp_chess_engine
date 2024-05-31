@@ -41,14 +41,13 @@ typedef struct GameState {
   // If true -> white's turn, false -> black's turn.
   bool whites_turn = true;
 
-  uint64_t en_passant;
+  uint64_t en_passant = 0;
 } GameState;
 
 void generate_board(std::string name, int diff);
 
 void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
-           uint64_t &E_P, bool CM, bool SM, int depth, int orig_depth,
-           bool total);
+           bool CM, bool SM, uint8_t depth, uint8_t orig_depth, bool total);
 
 void fenToGameState(const std::string fen, GameState &gamestate);
 

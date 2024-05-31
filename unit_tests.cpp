@@ -13,13 +13,12 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
 
     bool CM = false;
     bool SM = false;
-    uint64_t E_P = 0;
     std::vector<Move> moves;
     bool total = true;
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    perft(nodes, gamestate, moves, E_P, CM, SM, depth, depth, total);
+    perft(nodes, gamestate, moves, CM, SM, depth, depth, total);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -58,10 +57,9 @@ void testAllPerft(void) {
     fenToGameState(fen, gamestate);
     bool CM = false;
     bool SM = false;
-    uint64_t E_P = 0;
     std::vector<Move> moves;
 
-    perft(nodes, gamestate, moves, E_P, CM, SM, depth, depth, "total");
+    perft(nodes, gamestate, moves, CM, SM, depth, depth, "total");
 
     total_nodes += nodes;
 

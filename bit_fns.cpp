@@ -1131,7 +1131,7 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
   return unsafe;
 }
 
-void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
+void get_B_moves(GameState &gamestate, bool &CM, bool &SM,
                  std::vector<Move> &b_moves) {
 
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
@@ -1149,7 +1149,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   uint8_t num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
-      gamestate.white.bishop, gamestate.white.rook, OCCUPIED, E_P, E_P_SPECIAL,
+      gamestate.white.bishop, gamestate.white.rook, OCCUPIED,
+      gamestate.en_passant, E_P_SPECIAL,
       gamestate.whites_turn); // todo: need to put this to work. dont generate
                               // pinned moves if in check, skip that piece
   bool check = DZ & gamestate.black.king;
@@ -1260,8 +1261,8 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   if (num_checkers < 2) {
 
     get_B_pawn_moves(gamestate.whites_turn, gamestate.black.pawn,
-                     gamestate.black.king, E_P, ~OCCUPIED, WHITE_PIECES, PINNED,
-                     checker_zone, E_P_SPECIAL, b_moves);
+                     gamestate.black.king, gamestate.en_passant, ~OCCUPIED,
+                     WHITE_PIECES, PINNED, checker_zone, E_P_SPECIAL, b_moves);
     get_rook_moves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
                    OCCUPIED, PINNED, checker_zone, b_moves);
     get_bishop_moves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
@@ -1282,7 +1283,7 @@ void get_B_moves(GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   }
 }
 
-void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
+void get_W_moves(const GameState &gamestate, bool &CM, bool &SM,
                  std::vector<Move> &w_moves) {
 
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
@@ -1302,7 +1303,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   int num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.white.king, gamestate.white.pawn, gamestate.black.queen,
-      gamestate.black.bishop, gamestate.black.rook, OCCUPIED, E_P, E_P_SPECIAL,
+      gamestate.black.bishop, gamestate.black.rook, OCCUPIED,
+      gamestate.en_passant, E_P_SPECIAL,
       gamestate.whites_turn); // todo: need to put this to work. dont generate
                               // pinned moves if in check, skip that piece
   bool check = DZ & gamestate.white.king;
@@ -1411,8 +1413,8 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
 
   if (num_checkers < 2) {
     get_W_pawn_moves(gamestate.whites_turn, gamestate.white.pawn,
-                     gamestate.white.king, E_P, ~OCCUPIED, BLACK_PIECES, PINNED,
-                     checker_zone, E_P_SPECIAL, w_moves);
+                     gamestate.white.king, gamestate.en_passant, ~OCCUPIED,
+                     BLACK_PIECES, PINNED, checker_zone, E_P_SPECIAL, w_moves);
     get_rook_moves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
                    OCCUPIED, PINNED, checker_zone, w_moves);
     get_bishop_moves(gamestate.white.bishop, gamestate.white.king, WHITE_PIECES,
@@ -1433,7 +1435,7 @@ void get_W_moves(const GameState &gamestate, uint64_t E_P, bool &CM, bool &SM,
   }
 }
 
-void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
+void apply_move(Move move, GameState &gamestate) {
 
   uint64_t P =
       gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
@@ -1517,7 +1519,7 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
       OQ &= ~final;
     }
 
-  } else if (E_P == final &&
+  } else if (gamestate.en_passant == final &&
              (initial & P)) { // this means there was an en passant capture
     if (white_move) {
       OP &= ~(final >> 8);
@@ -1571,7 +1573,7 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
       K = final;
     }
 
-    E_P = 0u;
+    gamestate.en_passant = 0u;
   } else {
     if (special == CASTLE_KINGSIDE) {
       if (white_move) {
@@ -1588,7 +1590,7 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
         BCK = false;
         BCQ = false;
       }
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == CASTLE_QUEENSIDE) {
       if (white_move) {
         K = 4u;
@@ -1603,36 +1605,36 @@ void apply_move(Move move, GameState &gamestate, uint64_t &E_P) {
         BCQ = false;
         BCK = false;
       }
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == PROMOTION_QUEEN) { // promotion
       P &= ~initial;
       Q |= final;
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == PROMOTION_BISHOP) {
       P &= ~initial;
       B |= final;
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == PROMOTION_KNIGHT) {
       P &= ~initial;
       N |= final;
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == PROMOTION_ROOK) {
       P &= ~initial;
       R |= final;
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else if (special == EN_PASSANT) { // en passant capture
 
       P |= final;
       P &= ~initial;
-      E_P = 0u;
+      gamestate.en_passant = 0u;
     } else { // pawn push 2
 
       P |= final;
       P &= ~initial;
       if (white_move) {
-        E_P = (final >> 8);
+        gamestate.en_passant = (final >> 8);
       } else {
-        E_P = (final << 8);
+        gamestate.en_passant = (final << 8);
       }
     }
   }
@@ -1667,15 +1669,14 @@ void print_moves(bool white_to_move, std::vector<Move> moves) {
 }
 
 void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
-           uint64_t &E_P, bool CM, bool SM, int depth, int orig_depth,
-           bool total) {
+           bool CM, bool SM, uint8_t depth, uint8_t orig_depth, bool total) {
 
   bool check = false;
 
   if (gamestate.whites_turn) {
-    get_W_moves(gamestate, E_P, CM, SM, moves);
+    get_W_moves(gamestate, CM, SM, moves);
   } else {
-    get_B_moves(gamestate, E_P, CM, SM, moves);
+    get_B_moves(gamestate, CM, SM, moves);
   }
 
   if (depth > 0) {
@@ -1685,9 +1686,9 @@ void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      uint64_t E_Pt = E_P;
+      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
-      apply_move(moves[i], gamestate_temp, E_Pt);
+      apply_move(moves[i], gamestate_temp);
 
       //  std::cout<<"depth: "<< depth<<std::endl;
       //  std::cout<<"nodes: "<< nodes<<std::endl;
@@ -1696,8 +1697,8 @@ void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
         nodes++;
       }
       //  else if (CMt or)
-      perft(nodes, gamestate_temp, moves, E_Pt, CMt, SMt, depth - 1, orig_depth,
-            total);
+      perft(nodes, gamestate_temp, moves, CMt, SMt, uint8_t(depth - 1),
+            orig_depth, total);
 
       if (depth == orig_depth && false) {
         if (total) {
@@ -1741,8 +1742,8 @@ double eval(const GameState gamestate) {
   return counter;
 }
 
-AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
-                  int depth, bool my_turn, double alpha = -100000000,
+AI_return minimax(GameState &gamestate, bool CM, bool SM, int depth,
+                  bool my_turn, double alpha = -100000000,
                   double beta = 100000000) {
 
   // std::cout<<"alpha: "<<alpha<<". beta: "<<beta<<"."<<std::endl;
@@ -1765,7 +1766,7 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     double max_val = -10000000;
     AI_return a;
 
-    get_W_moves(gamestate, E_P, CM, SM, w_moves);
+    get_W_moves(gamestate, CM, SM, w_moves);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
       Move null_move;
       null_move.data = 0;
@@ -1784,13 +1785,12 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
 
-      uint64_t E_Pt = E_P;
+      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
 
-      apply_move(w_moves[i], gamestate_temp, E_Pt);
+      apply_move(w_moves[i], gamestate_temp);
 
-      a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
-                  beta);
+      a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
 
       if (a.value > max_val) {
         max_val = a.value;
@@ -1815,7 +1815,7 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
     double min_val = 10000000;
     AI_return a;
 
-    get_B_moves(gamestate, E_P, CM, SM, b_moves);
+    get_B_moves(gamestate, CM, SM, b_moves);
 
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
       Move null_move;
@@ -1834,13 +1834,12 @@ AI_return minimax(GameState &gamestate, uint64_t E_P, bool CM, bool SM,
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      uint64_t E_Pt = E_P;
+      // uint64_t E_Pt = E_P;
       bool CMt = false, SMt = false;
 
-      apply_move(b_moves[j], gamestate_temp, E_Pt);
+      apply_move(b_moves[j], gamestate_temp);
 
-      a = minimax(gamestate_temp, E_Pt, CMt, SMt, depth - 1, !my_turn, alpha,
-                  beta);
+      a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
 
       if (a.value < min_val) {
         min_val = a.value;
@@ -2052,7 +2051,7 @@ void generate_board(std::string name, int diff) {
   bool BCK = false, BCQ = false, WCK = false, WCQ = false, CM = false,
        SM = false, white_to_move;
   // todo: add E_P functionality to read FEN
-  uint64_t E_P = 0u;
+  // uint64_t E_P = 0u;
 
   GameState gamestate;
   fenToGameState(FEN, gamestate);
@@ -2091,14 +2090,14 @@ void generate_board(std::string name, int diff) {
       auto start = std::chrono::high_resolution_clock::now();
       // std::cout<<"WHITES MOVE (SHOULD BE 1): "<<white_to_move<<std::endl;
 
-      AI_choice = minimax(gamestate, E_P, CM, SM, depth, true);
+      AI_choice = minimax(gamestate, gamestate.en_passant, CM, SM, depth, true);
       auto end = std::chrono::high_resolution_clock::now();
 
       std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
       std::cout << AI_choice.value << std::endl;
       std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
 
-      apply_move(AI_choice.move, gamestate, E_P);
+      apply_move(AI_choice.move, gamestate);
 
       std::cout << "depth: " << depth << ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
@@ -2115,7 +2114,7 @@ void generate_board(std::string name, int diff) {
       std::vector<Move> b_moves;
 
       // TODO: uncomment this and fix
-      get_B_moves(gamestate, E_P, CM, SM, b_moves);
+      get_B_moves(gamestate, CM, SM, b_moves);
 
       std::cout << "Please select your move: " << std::endl;
       print_moves(white_to_move, b_moves);
@@ -2123,7 +2122,7 @@ void generate_board(std::string name, int diff) {
       int user_choice;
       std::cin >> user_choice;
 
-      apply_move(b_moves[user_choice - 1], gamestate, E_P);
+      apply_move(b_moves[user_choice - 1], gamestate);
 
       std::cout << "Move chosen: " << moveToString(b_moves[user_choice - 1])
                 << std::endl;
