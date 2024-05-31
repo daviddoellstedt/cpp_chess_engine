@@ -468,7 +468,7 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
       uint64_t final_bb = findLowestSetBitValue(moves);
       uint8_t final_bit = findSetBit(final_bb);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[final_bit];
-      wb_moves.emplace_back(coordinatesToMove(initial, final));
+      wb_moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(moves);
     }
     clearLowestSetBit(R);
@@ -505,7 +505,7 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
       uint64_t bb_final = findLowestSetBitValue(moves);
       std::pair<uint8_t, uint8_t> final =
           bitToCoordinates[findSetBit(bb_final)];
-      wb_moves.emplace_back(coordinatesToMove(initial, final));
+      wb_moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(moves);
     }
     clearLowestSetBit(B);
@@ -543,7 +543,7 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
       uint64_t bb_final = findLowestSetBitValue(moves);
       std::pair<uint8_t, uint8_t> final =
           bitToCoordinates[findSetBit(bb_final)];
-      wb_moves.emplace_back(coordinatesToMove(initial, final));
+      wb_moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(moves);
     }
     clearLowestSetBit(Q);
@@ -594,7 +594,7 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
         uint64_t bb_final = findLowestSetBitValue(pos_moves);
         std::pair<uint8_t, uint8_t> final =
             bitToCoordinates[findSetBit(bb_final)];
-        wb_moves.emplace_back(coordinatesToMove(initial, final));
+        wb_moves.push_back(coordinatesToMove(initial, final));
         clearLowestSetBit(pos_moves);
       }
     }
@@ -635,7 +635,7 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ,
   while (pos_moves) {
     uint64_t bb_final = findLowestSetBitValue(pos_moves);
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb_final)];
-    wb_moves.emplace_back(coordinatesToMove(initial, final));
+    wb_moves.push_back(coordinatesToMove(initial, final));
     clearLowestSetBit(pos_moves);
   }
 }
@@ -665,7 +665,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first += 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_FORWARD_1);
     }
 
@@ -677,7 +677,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       initial.first += 2;
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, PAWN_PUSH_2);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_FORWARD_2);
     }
 
@@ -688,7 +688,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first += 1;
       initial.second += 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_ATTACK_L);
     }
 
@@ -699,7 +699,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first += 1;
       initial.second -= 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_ATTACK_R);
     }
 
@@ -712,16 +712,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_1);
     }
 
@@ -736,16 +736,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_L);
     }
 
@@ -760,16 +760,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_R);
     }
 
@@ -791,7 +791,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
         initial.second += 1;
         Move move = coordinatesToMove(initial, final);
         updateSpecialMove(move, EN_PASSANT);
-        moves.emplace_back(move);
+        moves.push_back(move);
         clearLowestSetBit(P_EP_L);
       }
 
@@ -804,7 +804,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
         initial.second -= 1;
         Move move = coordinatesToMove(initial, final);
         updateSpecialMove(move, EN_PASSANT);
-        moves.emplace_back(move);
+        moves.push_back(move);
         clearLowestSetBit(P_EP_R);
       }
     }
@@ -827,7 +827,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first -= 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_FORWARD_1);
     }
 
@@ -839,7 +839,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       initial.first -= 2;
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, PAWN_PUSH_2);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_FORWARD_2);
     }
 
@@ -850,7 +850,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first -= 1;
       initial.second += 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_ATTACK_L);
     }
 
@@ -861,7 +861,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       std::pair<uint8_t, uint8_t> initial = final;
       initial.first -= 1;
       initial.second -= 1;
-      moves.emplace_back(coordinatesToMove(initial, final));
+      moves.push_back(coordinatesToMove(initial, final));
       clearLowestSetBit(P_ATTACK_R);
     }
 
@@ -874,16 +874,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_1);
     }
 
@@ -897,16 +897,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_L);
     }
 
@@ -920,16 +920,16 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
       Move move = coordinatesToMove(initial, final);
 
       updateSpecialMove(move, PROMOTION_QUEEN);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_ROOK);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_BISHOP);
-      moves.emplace_back(move);
+      moves.push_back(move);
 
       updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves.emplace_back(move);
+      moves.push_back(move);
       clearLowestSetBit(P_PROMO_R);
     }
 
@@ -951,7 +951,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
         initial.second += 1;
         Move move = coordinatesToMove(initial, final);
         updateSpecialMove(move, EN_PASSANT);
-        moves.emplace_back(move);
+        moves.push_back(move);
         clearLowestSetBit(P_EP_L);
       }
 
@@ -964,7 +964,7 @@ void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
         initial.second -= 1;
         Move move = coordinatesToMove(initial, final);
         updateSpecialMove(move, EN_PASSANT);
-        moves.emplace_back(move);
+        moves.push_back(move);
         clearLowestSetBit(P_EP_R);
       }
     }
@@ -1036,7 +1036,7 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
     initial.second -= 2;
     Move move = coordinatesToMove(initial, final);
     updateSpecialMove(move, CASTLE_KINGSIDE);
-    wb_moves.emplace_back(move);
+    wb_moves.push_back(move);
   }
   }
 
@@ -1055,7 +1055,7 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
       initial.second += 2;
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, CASTLE_QUEENSIDE);
-      wb_moves.emplace_back(move);
+      wb_moves.push_back(move);
   }
 }
 

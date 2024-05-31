@@ -7,7 +7,6 @@
 
 #include <stdint.h>
 
-void viz_bb(uint64_t bb);
-unsigned long long rev(uint64_t n);
+uint64_t rev(uint64_t n);
 
 #endif //DDS_CHESS_ENGINE_HELPER_FUNCTIONS_H
