@@ -44,9 +44,9 @@ typedef struct GameState {
 
 void generate_board(std::string name, int diff);
 
-void perft(uint32_t &nodes, uint32_t &cap_counter, GameState &gamestate,
-           std::vector<Move> moves, uint64_t &E_P, bool CM, bool SM, int depth,
-           int orig_depth, std::string n);
+void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
+           uint64_t &E_P, bool CM, bool SM, int depth, int orig_depth,
+           bool total);
 
 void fenToGameState(const std::string fen, GameState &gamestate);
 

@@ -7,4 +7,6 @@
 
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth);
 
+void testAllPerft(void);
+
 #endif //DDS_CHESS_ENGINE_UNIT_TESTS_H
