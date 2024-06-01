@@ -11,14 +11,14 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     print_board(gamestate);
     uint32_t nodes = 0;
 
-    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    uint8_t n_moves = 0;
+    // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+    // uint8_t n_moves = 0;
 
     bool total = true;
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    perft(nodes, gamestate, moves, n_moves, depth, depth, total);
+    perft(nodes, gamestate, depth, depth, total);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -55,10 +55,10 @@ void testAllPerft(void) {
     uint32_t nodes = 0;
     GameState gamestate;
     fenToGameState(fen, gamestate);
-    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    uint8_t n_moves = 0;
+    // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+    // uint8_t n_moves = 0;
 
-    perft(nodes, gamestate, moves, n_moves, depth, depth, "total");
+    perft(nodes, gamestate, depth, depth, "total");
 
     total_nodes += nodes;
 

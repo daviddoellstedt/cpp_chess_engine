@@ -134,7 +134,7 @@ int main() {
   //   }
   //   std::cout << result << std::endl;
 
-   // generate_board("ba", 3);
+  // generate_board("ba", 3);
 
   testAllPerft();
 

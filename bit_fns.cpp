@@ -198,10 +198,10 @@ void print_board(const GameState gamestate) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return horiz_moves: bitboard of horizontal moves
  */
-uint64_t h_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
+uint64_t h_moves(uint64_t piece, uint64_t OCCUPIED) {
   uint64_t horiz_moves =
       (((OCCUPIED)-2 * piece) ^ rev(rev(OCCUPIED) - 2 * rev(piece))) &
-      directional_mask[sl_bit][RANKS];
+      directional_mask[findSetBit(piece)][RANKS];
   return horiz_moves;
 }
 
@@ -213,7 +213,8 @@ uint64_t h_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return vert_moves: bitboard of vertical moves
  */
-uint64_t v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
+uint64_t v_moves(uint64_t piece, uint64_t OCCUPIED) {
+  uint8_t sl_bit = findSetBit(piece);
   uint64_t vert_moves =
       (((OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * piece) ^
        rev(rev(OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * rev(piece))) &
@@ -233,8 +234,8 @@ uint64_t v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of horizontal and vertical moves
  */
-uint64_t h_v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
-                   bool unsafe_calc, uint64_t K) {
+uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
+                   uint64_t K = 0) {
 
   // this line is used in the case where we need to generate zones for the king
   // that are unsafe. If the king is in the attack zone of a horizontal/vertical
@@ -245,7 +246,7 @@ uint64_t h_v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
     OCCUPIED &= ~K;
   }
 
-  return h_moves(piece, sl_bit, OCCUPIED) | v_moves(piece, sl_bit, OCCUPIED);
+  return h_moves(piece, OCCUPIED) | v_moves(piece, OCCUPIED);
 }
 
 /** Function that can generate the possible moves a slider piece can make in the
@@ -256,7 +257,8 @@ uint64_t h_v_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return ddr_moves: bitboard of (down, right) and (up, left) moves
  */
-uint64_t ddr_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
+uint64_t ddr_moves(uint64_t piece, uint64_t OCCUPIED) {
+  uint8_t sl_bit = findSetBit(piece);
   uint64_t ddr_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_DOWN_RIGHT]) -
         2 * piece) ^
@@ -274,7 +276,8 @@ uint64_t ddr_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return dur_moves: bitboard of (up, right) and (down, left) moves
  */
-uint64_t dur_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
+uint64_t dur_moves(uint64_t piece, uint64_t OCCUPIED) {
+  uint8_t sl_bit = findSetBit(piece);
   uint64_t dur_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) - 2 * piece) ^
        rev(rev(OCCUPIED & directional_mask[sl_bit][DIAGONOLS_UP_RIGHT]) -
@@ -295,8 +298,8 @@ uint64_t dur_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of all diagonal moves
  */
-uint64_t diag_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
-                    bool unsafe_calc, uint64_t K) {
+uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
+                    uint64_t K = 0) {
 
   // this line is used in the case where we need to generate zones for the king
   // that are unsafe. If the king is in the attack zone of a diagonal slider, we
@@ -306,8 +309,7 @@ uint64_t diag_moves(uint64_t piece, uint8_t sl_bit, uint64_t OCCUPIED,
   if (unsafe_calc) {
     OCCUPIED &= ~K;
   }
-  return ddr_moves(piece, sl_bit, OCCUPIED) |
-         dur_moves(piece, sl_bit, OCCUPIED);
+  return ddr_moves(piece, OCCUPIED) | dur_moves(piece, OCCUPIED);
 }
 
 /** Function that returns a bitboard mask of the straight line between two
@@ -348,11 +350,11 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   uint8_t k_bit = findSetBit(K);
 
   // Horizontal check.
-  K_slider = h_moves(K, k_bit, OCCUPIED);
+  K_slider = h_moves(K, OCCUPIED);
   uint64_t EHV = EQ | ER;
   while (EHV) {
     uint64_t bb = findLowestSetBitValue(EHV);
-    uint64_t H_moves = h_moves(bb, findSetBit(bb), OCCUPIED);
+    uint64_t H_moves = h_moves(bb, OCCUPIED);
 
     // Check for special en passant pins.
     uint64_t ep_pawn = white_to_move ? E_P >> 8 : E_P << 8;
@@ -375,28 +377,28 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 
   // Vertical check.
   EHV = EQ | ER;
-  K_slider = v_moves(K, k_bit, OCCUPIED);
+  K_slider = v_moves(K, OCCUPIED);
   while (EHV) {
     uint64_t bb = findLowestSetBitValue(EHV);
-    PINNED |= K_slider & v_moves(bb, findSetBit(bb), OCCUPIED);
+    PINNED |= K_slider & v_moves(bb, OCCUPIED);
     clearLowestSetBit(EHV);
   }
 
   // Down right diagonol check.
   uint64_t ED = EQ | EB;
-  K_slider = ddr_moves(K, k_bit, OCCUPIED);
+  K_slider = ddr_moves(K, OCCUPIED);
   while (ED) {
     uint64_t bb = findLowestSetBitValue(ED);
-    PINNED |= K_slider & ddr_moves(bb, findSetBit(bb), OCCUPIED);
+    PINNED |= K_slider & ddr_moves(bb, OCCUPIED);
     clearLowestSetBit(ED);
   }
 
   // Upper right diagonol check.
   ED = EQ | EB;
-  K_slider = dur_moves(K, k_bit, OCCUPIED);
+  K_slider = dur_moves(K, OCCUPIED);
   while (ED) {
     uint64_t bb = findLowestSetBitValue(ED);
-    PINNED |= K_slider & dur_moves(bb, findSetBit(bb), OCCUPIED);
+    PINNED |= K_slider & dur_moves(bb, OCCUPIED);
     clearLowestSetBit(ED);
   }
   return PINNED;
@@ -426,9 +428,9 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
     uint8_t bit = findSetBit(bb);
 
     uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-  
+
     uint64_t moves =
-        h_v_moves(bb, bit, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
+        h_v_moves(bb, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
 
     // Loop through moves and append to list.
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
@@ -465,8 +467,7 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
     uint64_t bb = findLowestSetBitValue(B);
     uint8_t bit = findSetBit(bb);
     uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-    uint64_t moves = diag_moves(bb, bit, OCCUPIED, false, 0u) & ~PIECES & mask &
-                     checker_zone;
+    uint64_t moves = diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (moves) {
@@ -503,19 +504,18 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
     uint64_t bb = findLowestSetBitValue(Q);
     uint8_t bit = findSetBit(bb);
         uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-    uint64_t moves = (h_v_moves(bb, bit, OCCUPIED, false, 0u) |
-                      diag_moves(bb, bit, OCCUPIED, false, 0u)) &
-                     ~PIECES & mask & checker_zone;
+        uint64_t moves = (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) &
+                         ~PIECES & mask & checker_zone;
 
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-    while (moves) {
-      uint64_t bb_final = findLowestSetBitValue(moves);
-      std::pair<uint8_t, uint8_t> final =
-          bitToCoordinates[findSetBit(bb_final)];
-      wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
+        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
+        while (moves) {
+          uint64_t bb_final = findLowestSetBitValue(moves);
+          std::pair<uint8_t, uint8_t> final =
+              bitToCoordinates[findSetBit(bb_final)];
+          wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
 
-      clearLowestSetBit(moves);
-    }
+          clearLowestSetBit(moves);
+        }
     clearLowestSetBit(Q);
   }
 }
@@ -1002,7 +1002,7 @@ void get_W_pawn_moves(bool white_to_move, uint64_t WP, uint64_t WK,
 }
 
 void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                  Move *wb_moves, uint8_t &n_wb_moves) {
+                  Move *wb_moves, uint8_t &n_moves) {
   if (!CK) {
     return;
   }
@@ -1016,7 +1016,7 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
     initial.second -= 2;
     Move move = coordinatesToMove(initial, final);
     updateSpecialMove(move, CASTLE_KINGSIDE);
-    wb_moves[n_wb_moves++] = move;
+    wb_moves[n_moves++] = move;
   }
 }
 
@@ -1040,8 +1040,7 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
 }
 
 uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
-                       uint64_t B, uint64_t Q, uint64_t K, uint64_t EK,
-                       uint64_t OCCUPIED) {
+                       uint64_t B, uint64_t Q, uint64_t EK, uint64_t OCCUPIED) {
 
   uint64_t unsafe = 0;
   uint64_t D = B | Q;
@@ -1082,345 +1081,298 @@ uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
   while (D) {
     uint64_t bb = findLowestSetBitValue(D);
     uint8_t bit = findSetBit(bb);
-    unsafe |= diag_moves(bb, bit, OCCUPIED, true, EK);
+    unsafe |= diag_moves(bb, OCCUPIED, true, EK);
     clearLowestSetBit(D);
   }
 
   // HV pieces (Rook, Queen).
   while (HV) {
     uint64_t bb = findLowestSetBitValue(HV);
-    unsafe |= h_v_moves(bb, findSetBit(bb), OCCUPIED, true, EK);
+    unsafe |= h_v_moves(bb, OCCUPIED, true, EK);
     clearLowestSetBit(HV);
   }
-
-  // King.
-  uint8_t k_bit = findSetBit(K);
-
-  if (k_bit > 14) {
-    pos_moves = KING_MOVES << (k_bit - 14);
-  } else {
-    pos_moves = KING_MOVES >> (14 - k_bit);
-  }
-  if (k_bit % 8 > 3) {
-    pos_moves &= ~file_a;
-  } else {
-    pos_moves &= ~file_h;
-  }
-  unsafe |= pos_moves;
 
   return unsafe;
 }
 
-void get_B_moves(GameState &gamestate, bool &CM, bool &SM, Move *b_moves,
-                 uint8_t &n_b_moves) {
-  n_b_moves = 0;
+// uint8_t getPawnChecker(uint64_t K, uint64_t EP, uint64_t &checker_zone) {
 
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
-  uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
+//   // Check for pawn right attack (from pawns perspective).
+//   uint64_t K_exposure = (K >> 9) & ~file_h;
+//   uint64_t new_checker = K_exposure & EP;
+//   if (new_checker) {
+//     checker_zone |= new_checker;
+//     return 1;
+//   }
 
-  uint64_t DZ = unsafe_for_XK(
-      gamestate.whites_turn, gamestate.white.pawn, gamestate.white.rook,
-      gamestate.white.knight, gamestate.white.bishop, gamestate.white.queen,
-      gamestate.white.king, gamestate.black.king, OCCUPIED);
-  // b_moves.clear();
+//   // check for pawn left attack (from pawns perspective)
+//   K_exposure = (K >> 7) & ~file_a;
+//   new_checker = K_exposure & EP;
+//   if (new_checker) {
+//     checker_zone |= new_checker;
+//     return 1;
+//   }
 
-  // DZ is the danger zone. If the king is inside of it, it is in check.
-  uint8_t num_checkers = 0;
-  uint64_t PINNED = get_pinned_pieces(
-      gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
-      gamestate.white.bishop, gamestate.white.rook, OCCUPIED,
-      gamestate.en_passant,
-      gamestate.whites_turn); // todo: need to put this to work. dont generate
-                              // pinned moves if in check, skip that piece
-  bool check = DZ & gamestate.black.king;
+//   return 0;
+// }
 
-  uint64_t checkers = 0;
-  uint64_t new_checker = 0;
+uint64_t getPawnAttackZone(bool white_to_move, uint64_t P) {
+  return white_to_move ? ((P >> 7) & ~file_a) | ((P >> 9) & ~file_h)
+                       : ((P << 9) & ~file_a) | ((P << 7) & ~file_h);
+}
 
-  // checker zone is the area that the piece is attacking
-                  // through (applies only to sliders). We have the potential to
-                  // block the check by moving  apiece in the line of fire
-                  // (pinning your own piece)
- uint64_t checker_zone = 0;
+uint64_t getRookQueenAttackZone(uint64_t K, uint64_t ER, uint64_t EQ,
+                                uint64_t OCCUPIED) {
+  uint64_t EHV = ER | EQ;
+  uint64_t DZ = 0;
+  while (EHV) {
+    uint64_t hv_piece = findLowestSetBitValue(EHV);
+    DZ |= h_v_moves(hv_piece, OCCUPIED, true, K);
+    clearLowestSetBit(EHV);
+  }
+  return DZ;
+}
 
+uint64_t getBishopQueenAttackZone(uint64_t K, uint64_t EB, uint64_t EQ,
+                                  uint64_t OCCUPIED) {
+  uint64_t ED = EB | EQ;
+  uint64_t DZ = 0;
+  while (ED) {
+    uint64_t diag_piece = findLowestSetBitValue(ED);
+    DZ |= diag_moves(diag_piece, OCCUPIED, true, K);
+    clearLowestSetBit(ED);
+  }
+  return DZ;
+}
 
-  if (check) { 
+uint64_t getKnightAttackZone(uint64_t N) {
+  uint64_t DZ = 0;
+  while (N) {
+    uint8_t kn_bit = findSetBit(findLowestSetBitValue(N));
+    uint64_t pos_moves = kn_bit > 21 ? KNIGHT_MOVES << (kn_bit - 21)
+                                     : KNIGHT_MOVES >> (21 - kn_bit);
+    pos_moves &= kn_bit % 8 > 3 ? ~file_ab : ~file_gh;
+    DZ |= pos_moves;
+    clearLowestSetBit(N);
+  }
+  return DZ;
+}
 
-    uint64_t HV = gamestate.white.rook | gamestate.white.queen;
+uint64_t getKingAttackZone(uint64_t K) {
+  uint8_t k_bit = findSetBit(K);
+  uint64_t pos_moves =
+      k_bit > 14 ? KING_MOVES << (k_bit - 14) : KING_MOVES >> (14 - k_bit);
+  pos_moves &= k_bit % 8 > 3 ? ~file_a : ~file_h;
+  return pos_moves;
+}
 
-    uint64_t k_bit = findSetBit(gamestate.black.king);
-    uint64_t K_moves;
+// Check horizontal/vertical pieces. Note: only one horizontal/vertical slider
+// can be checking a king at a time.
+uint8_t getHorizontalAndVerticalChecker(uint64_t K, uint64_t ER, uint64_t EQ,
+                                        uint64_t OCCUPIED,
+                                        uint64_t &checker_zone) {
+  uint64_t EHV = ER | EQ;
+  uint64_t K_exposure = h_v_moves(K, OCCUPIED);
+  uint64_t new_checker = K_exposure & EHV;
+  if (new_checker) {
+    checker_zone |= new_checker;
+    checker_zone |= h_v_moves(new_checker, OCCUPIED) & K_exposure;
+    return 1;
+  }
+  return 0;
+}
 
-    // Check horizontal pieces.
-    K_moves = h_moves(gamestate.black.king, k_bit, OCCUPIED);
-    new_checker = K_moves & HV;
-    if (new_checker) {
-      checkers |= new_checker;
-      checker_zone |=
-          h_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
+// Check horizontal/vertical pieces. Note: only one diagonol slider
+// can be checking a king at a time.
+uint8_t getDiagonolChecker(uint64_t K, uint64_t EB, uint64_t EQ,
+                           uint64_t OCCUPIED, uint64_t &checker_zone) {
+  uint64_t ED = EB | EQ;
+  uint64_t K_exposure = diag_moves(K, OCCUPIED);
+  uint64_t new_checker = K_exposure & ED;
+  if (new_checker) {
+    checker_zone |= new_checker;
+    checker_zone |= diag_moves(new_checker, OCCUPIED) & K_exposure;
+    return 1;
+  }
+  return 0;
+}
 
-    // Check vertical pieces.
-    K_moves = v_moves(gamestate.black.king, k_bit, OCCUPIED);
-    new_checker = K_moves & HV;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          v_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
+// Check knight pieces.
+uint8_t getKnightChecker(uint64_t K, uint64_t EN, uint64_t OCCUPIED,
+                         uint64_t &checker_zone) {
+  // Check for knight attacks.
+  uint64_t K_exposure = 0;
+  uint64_t k_bit = findSetBit(K);
+  if (k_bit > 21) {
+    K_exposure = KNIGHT_MOVES << (k_bit - 21);
+  } else {
+    K_exposure = KNIGHT_MOVES >> (21 - k_bit);
+  }
+  K_exposure &= k_bit % 8 > 3 ? ~file_ab : ~file_gh;
 
-    uint64_t D = gamestate.white.bishop | gamestate.white.queen;
+  uint64_t new_checker = K_exposure & EN;
+  if (new_checker) {
+    checker_zone |= new_checker;
+    return 1;
+  }
+  return 0;
+}
 
-    // Check down and to the right pieces.
-    K_moves = ddr_moves(gamestate.black.king, k_bit, OCCUPIED);
-    new_checker = K_moves & D;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          ddr_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
+// TODO: update for both colors.
+uint8_t getPawnChecker(bool white_to_move, uint64_t K, uint64_t EP,
+                       uint64_t &checker_zone) {
 
-    // Check up and to the right pieces.
-    K_moves = dur_moves(gamestate.black.king, k_bit, OCCUPIED);
-    new_checker = K_moves & D;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          dur_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
-
-    // Check for knight attacks.
-    if (k_bit > 21) {
-      K_moves = KNIGHT_MOVES << (k_bit - 21);
-    } else {
-      K_moves = KNIGHT_MOVES >> (21 - k_bit);
-    }
-    if (k_bit % 8 > 3) {
-      K_moves &= ~file_ab;
-    } else {
-      K_moves &= ~file_gh;
-    }
-    new_checker = K_moves & gamestate.white.knight;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
-    }
-
+  if (white_to_move) {
     // Check for pawn right attack (from pawns perspective).
-    K_moves = (gamestate.black.king >> 9) & ~file_h;
-    new_checker = K_moves & gamestate.white.pawn;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
+    uint64_t K_exposure = (K << 7) & ~file_h;
+    uint64_t new_checker = K_exposure & EP;
+    if (new_checker) {
+      checker_zone |= new_checker;
+      return 1;
     }
 
     // check for pawn left attack (from pawns perspective)
-    K_moves = (gamestate.black.king >> 7) & ~file_a;
-    new_checker = K_moves & gamestate.white.pawn;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
+    K_exposure = (K << 9) & ~file_a;
+    new_checker = K_exposure & EP;
+    if (new_checker) {
+      checker_zone |= new_checker;
+      return 1;
     }
 
-  } else { // only search for castles if you aren't in check
-    get_K_castle(gamestate.black.can_king_side_castle, gamestate.black.king,
-                 ~OCCUPIED, DZ, b_moves, n_b_moves);
-    get_Q_castle(gamestate.black.can_queen_side_castle, gamestate.black.king,
-                 ~OCCUPIED, DZ, b_moves, n_b_moves);
+  } else {
+    // Check for pawn right attack (from pawns perspective).
+    uint64_t K_exposure = (K >> 9) & ~file_h;
+    uint64_t new_checker = K_exposure & EP;
+    if (new_checker) {
+      checker_zone |= new_checker;
+      return 1;
+    }
+
+    // check for pawn left attack (from pawns perspective)
+    K_exposure = (K >> 7) & ~file_a;
+    new_checker = K_exposure & EP;
+    if (new_checker) {
+      checker_zone |= new_checker;
+      return 1;
+    }
   }
 
-  checker_zone |= checkers;
-
-  // todo: pass check zones into the files
-
-  if (num_checkers < 2) {
-
-    get_B_pawn_moves(gamestate.whites_turn, gamestate.black.pawn,
-                     gamestate.black.king, gamestate.en_passant, ~OCCUPIED,
-                     WHITE_PIECES, PINNED, checker_zone, b_moves, n_b_moves);
-    get_rook_moves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
-                   OCCUPIED, PINNED, checker_zone, b_moves, n_b_moves);
-    get_bishop_moves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
-                     OCCUPIED, PINNED, checker_zone, b_moves, n_b_moves);
-    get_queen_moves(gamestate.black.queen, gamestate.black.king, BLACK_PIECES,
-                    OCCUPIED, PINNED, checker_zone, b_moves, n_b_moves);
-    get_knight_moves(gamestate.black.knight, gamestate.black.king, BLACK_PIECES,
-                     PINNED, checker_zone, b_moves, n_b_moves);
-  }
-  get_king_moves(gamestate.black.king, BLACK_PIECES, DZ, b_moves, n_b_moves);
-
-  if (!n_b_moves && check) {
-    CM = true;
-  } else if (!n_b_moves && !check) {
-    SM = true;
-  } else if ((gamestate.black.king | gamestate.white.king) == OCCUPIED) {
-    SM = true;
-  }
+  return 0;
 }
 
-uint8_t getMoves(const GameState &gamestate, Move *moves) {
-  uint8_t n_moves = 0;
+bool isInCheck(bool white_to_move, uint64_t K, PlayerState enemy_player_state,
+               uint64_t OCCUPIED, uint64_t &DZ, uint64_t &checker_zone,
+               uint8_t &n_checkers) {
+  DZ |= getPawnAttackZone(white_to_move, enemy_player_state.pawn);
+  DZ |= getRookQueenAttackZone(K, enemy_player_state.rook,
+                               enemy_player_state.queen, OCCUPIED);
+  DZ |= getBishopQueenAttackZone(K, enemy_player_state.bishop,
+                                 enemy_player_state.queen, OCCUPIED);
+  DZ |= getKnightAttackZone(enemy_player_state.knight);
+  DZ |= getKingAttackZone(enemy_player_state.king);
+  bool check = K & DZ;
+  if (check) {
+    n_checkers +=
+        getPawnChecker(white_to_move, K, enemy_player_state.pawn, checker_zone);
+    n_checkers += getHorizontalAndVerticalChecker(K, enemy_player_state.rook,
+                                                  enemy_player_state.queen,
+                                                  OCCUPIED, checker_zone);
+    n_checkers +=
+        getDiagonolChecker(K, enemy_player_state.bishop,
+                           enemy_player_state.queen, OCCUPIED, checker_zone);
+    n_checkers +=
+        getKnightChecker(K, enemy_player_state.knight, OCCUPIED, checker_zone);
+  }
+  return check;
+}
+
+uint8_t get_B_moves(GameState &gamestate, Move *b_moves, bool &check) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
+
+  uint64_t DZ = 0;
+  uint8_t n_checkers = 0;
+  uint64_t checker_zone = 0;
+  check = isInCheck(gamestate.whites_turn, gamestate.black.king,
+                    gamestate.white, OCCUPIED, DZ, checker_zone, n_checkers);
+
+  uint64_t PINNED = get_pinned_pieces(
+      gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
+      gamestate.white.bishop, gamestate.white.rook, OCCUPIED,
+      gamestate.en_passant, gamestate.whites_turn);
+
+  uint8_t n_moves = 0;
+  if (!check) {
+    get_K_castle(gamestate.black.can_king_side_castle, gamestate.black.king,
+                 ~OCCUPIED, DZ, b_moves, n_moves);
+    get_Q_castle(gamestate.black.can_queen_side_castle, gamestate.black.king,
+                 ~OCCUPIED, DZ, b_moves, n_moves);
+  }
+
+  if (n_checkers < 2) {
+    get_B_pawn_moves(gamestate.whites_turn, gamestate.black.pawn,
+                     gamestate.black.king, gamestate.en_passant, ~OCCUPIED,
+                     WHITE_PIECES, PINNED, checker_zone, b_moves, n_moves);
+    get_rook_moves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
+                   OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
+    get_bishop_moves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
+                     OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
+    get_queen_moves(gamestate.black.queen, gamestate.black.king, BLACK_PIECES,
+                    OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
+    get_knight_moves(gamestate.black.knight, gamestate.black.king, BLACK_PIECES,
+                     PINNED, checker_zone, b_moves, n_moves);
+  }
+  get_king_moves(gamestate.black.king, BLACK_PIECES, DZ, b_moves, n_moves);
 
   return n_moves;
 }
 
-void get_W_moves(GameState &gamestate, bool &CM, bool &SM, Move *w_moves,
-                 uint8_t &n_w_moves) {
-
+uint8_t get_W_moves(GameState &gamestate, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
-  // w_moves.clear();
-  n_w_moves = 0;
+  uint64_t DZ = 0;
+  uint8_t n_checkers = 0;
+  uint64_t checker_zone = 0;
+  check = isInCheck(gamestate.whites_turn, gamestate.white.king,
+                    gamestate.black, OCCUPIED, DZ, checker_zone, n_checkers);
 
-  uint64_t DZ = unsafe_for_XK(
-      gamestate.whites_turn, gamestate.black.pawn, gamestate.black.rook,
-      gamestate.black.knight, gamestate.black.bishop, gamestate.black.queen,
-      gamestate.black.king, gamestate.white.king, OCCUPIED);
-
-  // DZ is the danger zone. If the king is inside of it, its in check.
-  uint8_t num_checkers = 0;
   uint64_t PINNED = get_pinned_pieces(
       gamestate.white.king, gamestate.white.pawn, gamestate.black.queen,
       gamestate.black.bishop, gamestate.black.rook, OCCUPIED,
-      gamestate.en_passant,
-      gamestate.whites_turn); // todo: need to put this to work. dont generate
-                              // pinned moves if in check, skip that piece
-  bool check = DZ & gamestate.white.king;
+      gamestate.en_passant, gamestate.whites_turn);
 
-  uint64_t checkers = 0;
-  uint64_t new_checker = 0;
-
-  // checker zone is the area that the piece is attacking
-                  // through (applies only to sliders). We have the potential to
-                  // block the check by moving  apiece in the line of fire
-                  // (pinning your own piece)
- uint64_t checker_zone = 0;
-
-  // ------------------
-  if (check) { // currently in check
-    // todo: generate checkers_bb, update_num_checkers. create method.
-    uint64_t HV = gamestate.black.rook | gamestate.black.queen;
-    uint8_t k_bit = findSetBit(gamestate.white.king);
-    uint64_t K_moves;
-
-    // check horizontal pieces
-    K_moves = h_moves(gamestate.white.king, k_bit, OCCUPIED);
-    new_checker = K_moves & HV;
-    if (new_checker) {
-      checkers |= new_checker;
-      checker_zone |=
-          h_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
-
-    // check vertical pieces
-    K_moves = v_moves(gamestate.white.king, k_bit, OCCUPIED);
-    new_checker = K_moves & HV;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          v_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
-
-    uint64_t D = gamestate.black.bishop | gamestate.black.queen;
-    // check down and to the right pieces
-    K_moves = ddr_moves(gamestate.white.king, k_bit, OCCUPIED);
-    new_checker = K_moves & D;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          ddr_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
-
-    // check up and to the right pieces
-    K_moves = dur_moves(gamestate.white.king, k_bit, OCCUPIED);
-    new_checker = K_moves & D;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      checker_zone |=
-          dur_moves(new_checker, findSetBit(new_checker), OCCUPIED) & K_moves;
-      num_checkers++;
-    }
-
-    // Check for knight attacks.
-    if (k_bit > 21) {
-      K_moves = KNIGHT_MOVES << (k_bit - 21);
-    } else {
-      K_moves = KNIGHT_MOVES >> (21 - k_bit);
-    }
-
-    if (k_bit % 8 > 3) {
-      K_moves &= ~file_ab;
-    } else {
-      K_moves &= ~file_gh;
-    }
-
-    new_checker = K_moves & gamestate.black.knight;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
-    }
-
-    // check for pawn right attack (from pawns perspective)
-    K_moves = (gamestate.white.king << 7) & ~file_h; // todo: verify
-    new_checker = K_moves & gamestate.black.pawn;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
-    }
-
-    // check for pawn left attack (from pawns perspective)
-    K_moves = (gamestate.white.king << 9) & ~file_a; // todo: verify
-    new_checker = K_moves & gamestate.black.pawn;
-    if (new_checker && num_checkers != 2) {
-      checkers |= new_checker;
-      num_checkers++;
-    }
-
-  } else { // only search for castles if you aren't in check
+  uint8_t n_moves = 0;
+  if (!check) {
     get_K_castle(gamestate.white.can_king_side_castle, gamestate.white.king,
-                 ~OCCUPIED, DZ, w_moves, n_w_moves);
+                 ~OCCUPIED, DZ, moves, n_moves);
     get_Q_castle(gamestate.white.can_queen_side_castle, gamestate.white.king,
-                 ~OCCUPIED, DZ, w_moves, n_w_moves);
+                 ~OCCUPIED, DZ, moves, n_moves);
   }
 
-  checker_zone |= checkers;
-  // todo: pass check zones into the files
-
-  if (num_checkers < 2) {
+  if (n_checkers < 2) {
     get_W_pawn_moves(gamestate.whites_turn, gamestate.white.pawn,
                      gamestate.white.king, gamestate.en_passant, ~OCCUPIED,
-                     BLACK_PIECES, PINNED, checker_zone, w_moves, n_w_moves);
+                     BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
     get_rook_moves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
-                   OCCUPIED, PINNED, checker_zone, w_moves, n_w_moves);
+                   OCCUPIED, PINNED, checker_zone, moves, n_moves);
     get_bishop_moves(gamestate.white.bishop, gamestate.white.king, WHITE_PIECES,
-                     OCCUPIED, PINNED, checker_zone, w_moves, n_w_moves);
+                     OCCUPIED, PINNED, checker_zone, moves, n_moves);
     get_queen_moves(gamestate.white.queen, gamestate.white.king, WHITE_PIECES,
-                    OCCUPIED, PINNED, checker_zone, w_moves, n_w_moves);
+                    OCCUPIED, PINNED, checker_zone, moves, n_moves);
     get_knight_moves(gamestate.white.knight, gamestate.white.king, WHITE_PIECES,
-                     PINNED, checker_zone, w_moves, n_w_moves);
+                     PINNED, checker_zone, moves, n_moves);
   }
-  get_king_moves(gamestate.white.king, WHITE_PIECES, DZ, w_moves, n_w_moves);
+  get_king_moves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
 
-  if (!n_w_moves && check) {
-    CM = true;
-  } else if (!n_w_moves && !check) {
-    SM = true;
-  } else if ((gamestate.black.king | gamestate.white.king) == OCCUPIED) {
-    SM = true;
-  }
+  return n_moves;
+}
+
+uint8_t getMoves(GameState &gamestate, Move *moves, bool &check) {
+  return gamestate.whites_turn ? get_W_moves(gamestate, moves, check)
+                               : get_B_moves(gamestate, moves, check);
 }
 
 void apply_move(Move move, GameState &gamestate) {
@@ -1656,15 +1608,12 @@ void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   }
 }
 
-void perft(uint32_t &nodes, GameState &gamestate, Move *moves, uint8_t &n_moves,
-           uint8_t depth, uint8_t orig_depth, bool total) {
+void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
+           uint8_t orig_depth, bool total) {
 
-  bool a = false;
-  if (gamestate.whites_turn) {
-    get_W_moves(gamestate, a, a, moves, n_moves);
-  } else {
-    get_B_moves(gamestate, a, a, moves, n_moves);
-  }
+  bool check = false;
+  Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+  uint8_t n_moves = getMoves(gamestate, moves, check);
 
   if (depth == 1) {
     nodes += n_moves;
@@ -1680,11 +1629,10 @@ void perft(uint32_t &nodes, GameState &gamestate, Move *moves, uint8_t &n_moves,
       apply_move(moves[i], gamestate_temp);
 
       //  else if (CMt or)
-      Move moves_temp[MAX_POSSIBLE_MOVES_PER_POSITION];
-      uint8_t n_moves_temp = 0;
+      //   Move moves_temp[MAX_POSSIBLE_MOVES_PER_POSITION];
+      //   uint8_t n_moves_temp = 0;
 
-      perft(nodes, gamestate_temp, moves_temp, n_moves_temp, uint8_t(depth - 1),
-            orig_depth, total);
+      perft(nodes, gamestate_temp, uint8_t(depth - 1), orig_depth, total);
 
       if (depth == orig_depth && false) {
         if (total) {
@@ -1738,8 +1686,6 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
                   bool my_turn, double alpha = -100000000,
                   double beta = 100000000) {
 
-  // std::cout<<"alpha: "<<alpha<<". beta: "<<beta<<"."<<std::endl;
-
   if (depth == 0) { // todo: add a conditon for game over
     // todo add evaluation function
     nodes2++;
@@ -1753,13 +1699,13 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
 
   if (my_turn) {
     Move w_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    uint8_t n_w_moves = 0;
 
     Move max_move;
     double max_val = -10000000;
     AI_return a;
 
-    get_W_moves(gamestate, CM, SM, w_moves, n_w_moves);
+    bool check = false;
+    uint8_t n_moves = getMoves(gamestate, w_moves, check);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
       Move null_move;
       null_move.data = 0;
@@ -1773,7 +1719,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
       return leaf;
     }
 
-    for (uint8_t i = 0; i < n_w_moves; i++) {
+    for (uint8_t i = 0; i < n_moves; i++) {
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
@@ -1802,13 +1748,14 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
 
   } else {
     Move b_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    uint8_t n_b_moves = 0;
+    // uint8_t n_b_moves = 0;
 
     Move min_move;
     double min_val = 10000000;
     AI_return a;
 
-    get_B_moves(gamestate, CM, SM, b_moves, n_b_moves);
+    bool check = false;
+    uint8_t n_moves = getMoves(gamestate, b_moves, check);
 
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
       Move null_move;
@@ -1823,7 +1770,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
       return leaf;
     }
 
-    for (uint8_t j = 0; j < n_b_moves; j++) {
+    for (uint8_t j = 0; j < n_moves; j++) {
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
@@ -2096,13 +2043,13 @@ void generate_board(std::string name, uint8_t diff) {
 
       // todo: create a player class for their choosing mechanism
       Move b_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-      uint8_t n_b_moves = 0;
 
       // TODO: uncomment this and fix
-      get_B_moves(gamestate, CM, SM, b_moves, n_b_moves);
+      bool check = false;
+      uint8_t n_moves = get_B_moves(gamestate, b_moves, check);
 
       std::cout << "Please select your move: " << std::endl;
-      print_moves(gamestate.whites_turn, b_moves, n_b_moves);
+      print_moves(gamestate.whites_turn, b_moves, n_moves);
 
       int user_choice;
       std::cin >> user_choice;
