@@ -11,9 +11,6 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     print_board(gamestate);
     uint32_t nodes = 0;
 
-    bool CM = false;
-    bool SM = false;
-
     Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
     uint8_t n_moves = 0;
 
@@ -21,7 +18,7 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    perft(nodes, gamestate, moves, n_moves, CM, SM, depth, depth, total);
+    perft(nodes, gamestate, moves, n_moves, depth, depth, total);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -37,13 +34,13 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
 
 // https://www.chessprogramming.org/Perft_Results.
 std::tuple<std::string, uint8_t, uint32_t> perft_test[5] = {
-    {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197281},
-    {"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 3,
-     97862},
-    {"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 5, 674624},
-    {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 4,
-     422333},
-    {"rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 3, 62379},
+    {"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 5, 4865609},
+    {"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 4,
+     4085603},
+    {"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 6, 11030083},
+    {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 5,
+     15833292},
+    {"rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 4, 2103487},
 };
 
 void testAllPerft(void) {
@@ -58,12 +55,10 @@ void testAllPerft(void) {
     uint32_t nodes = 0;
     GameState gamestate;
     fenToGameState(fen, gamestate);
-    bool CM = false;
-    bool SM = false;
     Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
     uint8_t n_moves = 0;
 
-    perft(nodes, gamestate, moves, n_moves, CM, SM, depth, depth, "total");
+    perft(nodes, gamestate, moves, n_moves, depth, depth, "total");
 
     total_nodes += nodes;
 

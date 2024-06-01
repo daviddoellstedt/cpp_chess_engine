@@ -119,6 +119,15 @@ uint8_t findSetBit(uint64_t bitboard) {
   return 63 - (bitboard ? __builtin_clzll(bitboard) : 255);
 }
 
+uint8_t countSetBits(uint64_t bitboard) {
+  uint8_t count = 0;
+  while (bitboard) {
+    clearLowestSetBit(bitboard);
+    count++;
+  }
+  return count;
+}
+
 /** Printing the board to the command line.
  *
  * arguments: the 12 bitboards for the all the pieces
@@ -1684,38 +1693,34 @@ void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
 }
 
 void perft(uint32_t &nodes, GameState &gamestate, Move *moves, uint8_t &n_moves,
-           bool CM, bool SM, uint8_t depth, uint8_t orig_depth, bool total) {
+           uint8_t depth, uint8_t orig_depth, bool total) {
 
-  bool check = false;
-
+  bool a = false;
   if (gamestate.whites_turn) {
-    get_W_moves(gamestate, CM, SM, moves, n_moves);
+    get_W_moves(gamestate, a, a, moves, n_moves);
   } else {
-    get_B_moves(gamestate, CM, SM, moves, n_moves);
+    get_B_moves(gamestate, a, a, moves, n_moves);
   }
 
-  if (depth > 0) {
+  if (depth == 1) {
+    nodes += n_moves;
+  }
+
+  if (depth > 1) {
 
     for (uint8_t i = 0; i < n_moves; i++) {
       uint8_t cap_count_temp = 0;
 
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      bool CMt = false, SMt = false;
       apply_move(moves[i], gamestate_temp);
 
-      //  std::cout<<"depth: "<< depth<<std::endl;
-      //  std::cout<<"nodes: "<< nodes<<std::endl;
-
-      if (depth == 1) {
-        nodes++;
-      }
       //  else if (CMt or)
       Move moves_temp[MAX_POSSIBLE_MOVES_PER_POSITION];
       uint8_t n_moves_temp = 0;
 
-      perft(nodes, gamestate_temp, moves_temp, n_moves_temp, CMt, SMt,
-            uint8_t(depth - 1), orig_depth, total);
+      perft(nodes, gamestate_temp, moves_temp, n_moves_temp, uint8_t(depth - 1),
+            orig_depth, total);
 
       if (depth == orig_depth && false) {
         if (total) {
@@ -1740,27 +1745,27 @@ double eval(const GameState gamestate) {
 
   // material
   double counter = 0;
-  counter += ((double)std::bitset<64>(gamestate.white.pawn).count() -
-              (double)std::bitset<64>(gamestate.black.pawn).count()) *
+  counter += (countSetBits(gamestate.white.pawn) -
+              countSetBits(gamestate.black.pawn)) *
              100;
-  counter += ((double)std::bitset<64>(gamestate.white.bishop).count() -
-              (double)std::bitset<64>(gamestate.black.bishop).count()) *
+  counter += (countSetBits(gamestate.white.bishop) -
+              countSetBits(gamestate.black.bishop)) *
              300; // todo: add special case regarding number of bishops
-  counter += ((double)std::bitset<64>(gamestate.white.knight).count() -
-              (double)std::bitset<64>(gamestate.black.knight).count()) *
+  counter += (countSetBits(gamestate.white.knight) -
+              countSetBits(gamestate.black.knight)) *
              300;
-  counter += ((double)std::bitset<64>(gamestate.white.rook).count() -
-              (double)std::bitset<64>(gamestate.black.rook).count()) *
+  counter += (countSetBits(gamestate.white.rook) -
+              countSetBits(gamestate.black.rook)) *
              500;
-  counter += ((double)std::bitset<64>(gamestate.white.queen).count() -
-              (double)std::bitset<64>(gamestate.black.queen).count()) *
+  counter += (countSetBits(gamestate.white.queen) -
+              countSetBits(gamestate.black.queen)) *
              900;
 
-  //  if (counter > 700){
-  //     std::cout << counter << std::endl;
-  //     print_board(gamestate);
-  //     exit(1);
-  //  }
+  //    if (counter > 1000000){
+  //       std::cout << counter << std::endl;
+  //       print_board(gamestate);
+  //       exit(1);
+  //    }
 
   return counter;
 }
