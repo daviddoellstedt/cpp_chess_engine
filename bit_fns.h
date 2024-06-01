@@ -6,7 +6,6 @@
 #define DDS_CHESS_ENGINE_BIT_FNS_H
 
 #include <string>
-#include <vector>
 
 struct Move {
   // Moves are stored as a 16-bit integer. Kept as lightweight as possible to
@@ -44,9 +43,9 @@ typedef struct GameState {
   uint64_t en_passant = 0;
 } GameState;
 
-void generate_board(std::string name, int diff);
+void generate_board(std::string name, uint8_t diff);
 
-void perft(uint32_t &nodes, GameState &gamestate, std::vector<Move> moves,
+void perft(uint32_t &nodes, GameState &gamestate, Move *moves, uint8_t &n_moves,
            bool CM, bool SM, uint8_t depth, uint8_t orig_depth, bool total);
 
 void fenToGameState(const std::string fen, GameState &gamestate);

@@ -16,6 +16,10 @@ const uint64_t KING_MOVES = 0xE0A0E0;
 // Mask of entirely filled board.
 const uint64_t FILLED = ~0;
 
+// Max number of moves per position.
+// https://www.chessprogramming.org/Chess_Position#:~:text=The%20maximum%20number%20of%20moves%20per%20chess%20position%20seems%20218.
+const uint8_t MAX_POSSIBLE_MOVES_PER_POSITION = 218;
+
 // Masks for reading/writing to move.
 const uint16_t X_INITIAL = 0x7;
 const uint16_t Y_INITIAL = 0x38;

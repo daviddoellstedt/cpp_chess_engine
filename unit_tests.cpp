@@ -1,9 +1,9 @@
 #include "bit_fns.h"
+#include "constants.h"
 #include <iostream>
 #include <stdint.h>
 #include <string>
 #include <tuple>
-#include <vector>
 
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     GameState gamestate;
@@ -13,12 +13,15 @@ uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
 
     bool CM = false;
     bool SM = false;
-    std::vector<Move> moves;
+
+    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+    uint8_t n_moves = 0;
+
     bool total = true;
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    perft(nodes, gamestate, moves, CM, SM, depth, depth, total);
+    perft(nodes, gamestate, moves, n_moves, CM, SM, depth, depth, total);
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -57,9 +60,10 @@ void testAllPerft(void) {
     fenToGameState(fen, gamestate);
     bool CM = false;
     bool SM = false;
-    std::vector<Move> moves;
+    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+    uint8_t n_moves = 0;
 
-    perft(nodes, gamestate, moves, CM, SM, depth, depth, "total");
+    perft(nodes, gamestate, moves, n_moves, CM, SM, depth, depth, "total");
 
     total_nodes += nodes;
 
