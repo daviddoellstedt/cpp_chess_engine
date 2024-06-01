@@ -1676,7 +1676,7 @@ void apply_move(Move move, GameState &gamestate) {
   gamestate.whites_turn = white_move;
 }
 
-void print_moves(bool white_to_move, Move *moves, uint8_t &n_moves) {
+void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
   for (uint8_t i = 0; i < n_moves; i++) {
     std::cout << i + 1 << ": " + moveToString(moves[i]) << std::endl;
@@ -1756,10 +1756,16 @@ double eval(const GameState gamestate) {
               (double)std::bitset<64>(gamestate.black.queen).count()) *
              900;
 
+  //  if (counter > 700){
+  //     std::cout << counter << std::endl;
+  //     print_board(gamestate);
+  //     exit(1);
+  //  }
+
   return counter;
 }
 
-AI_return minimax(GameState &gamestate, bool CM, bool SM, uint8_t depth,
+AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
                   bool my_turn, double alpha = -100000000,
                   double beta = 100000000) {
 
@@ -1803,11 +1809,11 @@ AI_return minimax(GameState &gamestate, bool CM, bool SM, uint8_t depth,
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
 
-      bool CMt = false, SMt = false;
+      //   bool CMt = false, SMt = false;
 
       apply_move(w_moves[i], gamestate_temp);
 
-      a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
+      a = minimax(gamestate_temp, CM, SM, depth - 1, !my_turn, alpha, beta);
 
       if (a.value > max_val) {
         max_val = a.value;
@@ -2065,8 +2071,7 @@ void generate_board(std::string name, uint8_t diff) {
   std::string FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   // FEN = "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1";
   // FEN= "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2";
-  bool BCK = false, BCQ = false, WCK = false, WCQ = false, CM = false,
-       SM = false, white_to_move;
+  bool CM = false, SM = false;
 
   GameState gamestate;
   fenToGameState(FEN, gamestate);
@@ -2082,14 +2087,12 @@ void generate_board(std::string name, uint8_t diff) {
     depth = 6;
   }
 
-  // This is the GAME
   // for now, the AI is only white
   // todo: implement AI for both colors
   srand(time(nullptr));
 
   Player p = Player(true);
   Player p2 = Player(true, true);
-  std::cout << p.color << std::endl;
 
   while (!CM && !SM) {
 
@@ -2098,23 +2101,20 @@ void generate_board(std::string name, uint8_t diff) {
     uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
     if (gamestate.whites_turn) {
-      print_board(gamestate);
 
       std::cout << "WHITE'S MOVE: " << std::endl;
       std::cout << "AI Agent thinking... wait a few seconds." << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
-      // std::cout<<"WHITES MOVE (SHOULD BE 1): "<<white_to_move<<std::endl;
 
-      AI_choice = minimax(gamestate, gamestate.en_passant, CM, SM, depth, true);
+      AI_choice = minimax(gamestate, CM, SM, depth, true);
       auto end = std::chrono::high_resolution_clock::now();
 
       std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
       std::cout << AI_choice.value << std::endl;
-      std::cout << "WHITES MOVE (SHOULD BE 1): " << white_to_move << std::endl;
 
       apply_move(AI_choice.move, gamestate);
 
-      std::cout << "depth: " << depth << ". time elapsed: "
+      std::cout << "depth: " << depth + 0<< ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
                 << " s. nodes searched: " << nodes2 << "." << std::endl;
       std::cout << "NPS: "
@@ -2133,9 +2133,9 @@ void generate_board(std::string name, uint8_t diff) {
       get_B_moves(gamestate, CM, SM, b_moves, n_b_moves);
 
       std::cout << "Please select your move: " << std::endl;
-      print_moves(white_to_move, b_moves, n_b_moves);
+      print_moves(gamestate.whites_turn, b_moves, n_b_moves);
 
-      uint8_t user_choice;
+      int user_choice;
       std::cin >> user_choice;
 
       apply_move(b_moves[user_choice - 1], gamestate);
