@@ -5,6 +5,7 @@
 #ifndef DDS_CHESS_ENGINE_BIT_FNS_H
 #define DDS_CHESS_ENGINE_BIT_FNS_H
 
+#include <stdint.h>
 #include <string>
 
 struct Move {

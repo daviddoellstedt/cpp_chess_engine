@@ -5,13 +5,9 @@
 #include "Helper_functions.h"
 #include "Players.h"
 #include "constants.h"
-#include <bitset>
-#include <chrono> // for high_resolution_clock
+#include <chrono>
 #include <cmath>
-#include <cstdlib>
-#include <ctime>
 #include <iostream>
-#include <map>
 #include <regex>
 #include <stdint.h>
 #include <string>
@@ -98,14 +94,17 @@ void updateSpecialMove(Move &move, SpecialMove special_move) {
   move.data |= (special_move << 12);
 }
 
+uint64_t generatePlayerOccupiedBitboard(const PlayerState &player_state) {
+  return player_state.pawn | player_state.rook | player_state.knight |
+         player_state.bishop | player_state.queen | player_state.king;
+}
+
 uint64_t generateWhiteOccupiedBitboard(const GameState &gamestate){
-  return gamestate.white.pawn | gamestate.white.rook | gamestate.white.knight |
-         gamestate.white.bishop | gamestate.white.queen | gamestate.white.king;
+  return generatePlayerOccupiedBitboard(gamestate.white);
 }
 
 uint64_t generateBlackOccupiedBitboard(const GameState &gamestate){
-  return gamestate.black.pawn | gamestate.black.rook | gamestate.black.knight |
-         gamestate.black.bishop | gamestate.black.queen | gamestate.black.king;
+  return generatePlayerOccupiedBitboard(gamestate.black);
 }
 
 uint64_t findLowestSetBitValue(uint64_t bitboard) {
@@ -313,14 +312,14 @@ uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
 }
 
 /** Function that returns a bitboard mask of the straight line between two
- * pieces. Inputs are guaranteed to be colinear at a diagonal or orthogonal
+ * pieces. Inputs need to be colinear at a diagonal or orthogonal
  * perspective. More or less a lookup table.
  *
  * @param p1: first piece
  * @param p2: second piece
  * @return bitboard mask of rank/file/diagonal connection between the two pieces
  */
-uint64_t get_mask(uint64_t p1, uint64_t p2) {
+uint64_t getMask(uint64_t p1, uint64_t p2) {
   uint8_t k_bit = findSetBit(p2);
   uint8_t p_bit = findSetBit(p1);
 
@@ -342,9 +341,9 @@ uint64_t get_mask(uint64_t p1, uint64_t p2) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return PINNED: bitboard of all pinned pieces for a color
  */
-uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
-                           uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
-                           bool white_to_move) {
+uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
+                         uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
+                         bool white_to_move) {
   uint64_t PINNED = 0;
   uint64_t K_slider = 0;
   uint8_t k_bit = findSetBit(K);
@@ -415,9 +414,9 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
  * @param moves: list of all possible moves for the input player. Output
  * will be appended to this list.
  */
-void getRookMoves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
-                  uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                  uint8_t &n_moves) {
+void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
+                       uint64_t OCCUPIED, uint64_t PINNED,
+                       uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -427,7 +426,7 @@ void getRookMoves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
     uint64_t bb = findLowestSetBitValue(R);
     uint8_t bit = findSetBit(bb);
 
-    uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
+    uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
 
     uint64_t possible_moves =
         h_v_moves(bb, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
@@ -456,9 +455,9 @@ void getRookMoves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void getBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
-                    uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                    uint8_t &n_moves) {
+void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
+                         uint64_t OCCUPIED, uint64_t PINNED,
+                         uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -466,7 +465,7 @@ void getBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
   while (B) {
     uint64_t bb = findLowestSetBitValue(B);
     uint8_t bit = findSetBit(bb);
-    uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
+    uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
     uint64_t possible_moves =
         diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
@@ -494,9 +493,9 @@ void getBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void getQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
-                   uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                   uint8_t &n_moves) {
+void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
+                        uint64_t OCCUPIED, uint64_t PINNED,
+                        uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -504,20 +503,20 @@ void getQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
   while (Q) {
     uint64_t bb = findLowestSetBitValue(Q);
     uint8_t bit = findSetBit(bb);
-        uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-        uint64_t possible_moves =
-            (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES &
-            mask & checker_zone;
+    uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
+    uint64_t possible_moves =
+        (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES & mask &
+        checker_zone;
 
-        std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-        while (possible_moves) {
-          uint64_t bb_final = findLowestSetBitValue(possible_moves);
-          std::pair<uint8_t, uint8_t> final =
-              bitToCoordinates[findSetBit(bb_final)];
-          moves[n_moves++] = coordinatesToMove(initial, final);
+    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
+    while (possible_moves) {
+      uint64_t bb_final = findLowestSetBitValue(possible_moves);
+      std::pair<uint8_t, uint8_t> final =
+          bitToCoordinates[findSetBit(bb_final)];
+      moves[n_moves++] = coordinatesToMove(initial, final);
 
-          clearLowestSetBit(possible_moves);
-        }
+      clearLowestSetBit(possible_moves);
+    }
     clearLowestSetBit(Q);
   }
 }
@@ -532,8 +531,9 @@ void getQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void getKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
-                    uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
+void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
+                         uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                         uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -584,8 +584,8 @@ void getKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
  * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void getKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
-                  uint8_t &n_moves) {
+void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
+                       uint8_t &n_moves) {
 
   // get moves
   uint8_t k_bit = findSetBit(K);
@@ -614,9 +614,10 @@ void getKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
   }
 }
 
-void getPawnMoves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
-                  uint64_t E_P, uint64_t EMPTY, uint64_t ENEMY_PIECES,
-                  uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
+void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
+                       uint64_t K, uint64_t E_P, uint64_t EMPTY,
+                       uint64_t ENEMY_PIECES, uint64_t checker_zone,
+                       Move *moves, uint8_t &n_moves) {
   uint64_t P_FORWARD_1 =
       EMPTY & MASK & checker_zone &
       (white_to_move ? (P << 8) & ~rank_8 : (P >> 8) & ~rank_1);
@@ -778,58 +779,59 @@ void getPawnMoves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
   }
 }
 
-void getPinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
-                        uint64_t E_P, uint64_t EMPTY, uint64_t ENEMY_PIECES,
-                        uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                        uint8_t &n_moves) {
+void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
+                             uint64_t E_P, uint64_t EMPTY,
+                             uint64_t ENEMY_PIECES, uint64_t PINNED,
+                             uint64_t checker_zone, Move *moves,
+                             uint8_t &n_moves) {
   uint64_t pinned_pawns = P & PINNED;
   while (pinned_pawns) {
     uint64_t bb = findLowestSetBitValue(pinned_pawns);
-    uint64_t mask = get_mask(bb, K);
-    getPawnMoves(white_to_move, mask, bb, K, E_P, EMPTY, ENEMY_PIECES,
-                 checker_zone, moves, n_moves);
+    uint64_t mask = getMask(bb, K);
+    generatePawnMoves(white_to_move, mask, bb, K, E_P, EMPTY, ENEMY_PIECES,
+                      checker_zone, moves, n_moves);
     clearLowestSetBit(pinned_pawns);
   }
   // Clear pinned pawns from pawn bitboard.
   P &= ~PINNED;
 }
 
-void get_B_pawn_moves(bool white_to_move, uint64_t BP, uint64_t BK,
-                      uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
-                      uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                      uint8_t &n_moves) {
+void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
+                            uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
+                            uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                            uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  getPinnedPawnMoves(white_to_move, BP, BK, E_P, EMPTY, WHITE_PIECES, PINNED,
-                     checker_zone, moves, n_moves);
+  generatePinnedPawnMoves(white_to_move, BP, BK, E_P, EMPTY, WHITE_PIECES,
+                          PINNED, checker_zone, moves, n_moves);
 
   if (BP) { // we have at least 1 non-pinned pawn.
-    getPawnMoves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
-                 checker_zone, moves, n_moves);
+    generatePawnMoves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
+                      checker_zone, moves, n_moves);
   }
 }
 
-void getWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
-                       uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
-                       uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                       uint8_t &n_moves) {
+void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
+                            uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
+                            uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                            uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  getPinnedPawnMoves(white_to_move, WP, WK, E_P, EMPTY, BLACK_PIECES, PINNED,
-                     checker_zone, moves, n_moves);
+  generatePinnedPawnMoves(white_to_move, WP, WK, E_P, EMPTY, BLACK_PIECES,
+                          PINNED, checker_zone, moves, n_moves);
 
   if (WP) { // we have at least 1 non-pinned pawn
-    getPawnMoves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
-                 checker_zone, moves, n_moves);
+    generatePawnMoves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
+                      checker_zone, moves, n_moves);
   }
 }
 
-void getKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                           Move *moves, uint8_t &n_moves) {
+void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
+                                uint64_t DZ, Move *moves, uint8_t &n_moves) {
   if (!CK) {
     return;
   }
@@ -847,8 +849,8 @@ void getKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
   }
 }
 
-void getQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                            Move *moves, uint8_t &n_moves) {
+void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
+                                 uint64_t DZ, Move *moves, uint8_t &n_moves) {
   if (!QK) {
     return;
   }
@@ -1036,7 +1038,7 @@ bool isInCheck(bool white_to_move, uint64_t K, PlayerState enemy_player_state,
   return check;
 }
 
-uint8_t get_B_moves(GameState &gamestate, Move *moves, bool &check) {
+uint8_t generateBlackMoves(GameState &gamestate, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
@@ -1047,38 +1049,43 @@ uint8_t get_B_moves(GameState &gamestate, Move *moves, bool &check) {
   check = isInCheck(gamestate.whites_turn, gamestate.black.king,
                     gamestate.white, OCCUPIED, DZ, checker_zone, n_checkers);
 
-  uint64_t PINNED = get_pinned_pieces(
+  uint64_t PINNED = getPinnedPieces(
       gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
       gamestate.white.bishop, gamestate.white.rook, OCCUPIED,
       gamestate.en_passant, gamestate.whites_turn);
 
   uint8_t n_moves = 0;
   if (!check) {
-    getKingsideCastleMove(gamestate.black.can_king_side_castle,
-                          gamestate.black.king, ~OCCUPIED, DZ, moves, n_moves);
-    getQueensideCastleMove(gamestate.black.can_queen_side_castle,
-                           gamestate.black.king, ~OCCUPIED, DZ, moves, n_moves);
+    generateKingsideCastleMove(gamestate.black.can_king_side_castle,
+                               gamestate.black.king, ~OCCUPIED, DZ, moves,
+                               n_moves);
+    generateQueensideCastleMove(gamestate.black.can_queen_side_castle,
+                                gamestate.black.king, ~OCCUPIED, DZ, moves,
+                                n_moves);
   }
 
   if (n_checkers < 2) {
-    get_B_pawn_moves(gamestate.whites_turn, gamestate.black.pawn,
-                     gamestate.black.king, gamestate.en_passant, ~OCCUPIED,
-                     WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
-    getRookMoves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
-                 OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getBishopMoves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
-                   OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getQueenMoves(gamestate.black.queen, gamestate.black.king, BLACK_PIECES,
-                  OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getKnightMoves(gamestate.black.knight, gamestate.black.king, BLACK_PIECES,
-                   PINNED, checker_zone, moves, n_moves);
+    generateBlackPawnMoves(gamestate.whites_turn, gamestate.black.pawn,
+                           gamestate.black.king, gamestate.en_passant,
+                           ~OCCUPIED, WHITE_PIECES, PINNED, checker_zone, moves,
+                           n_moves);
+    generateRookMoves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
+                      OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    generateBishopMoves(gamestate.black.bishop, gamestate.black.king,
+                        BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                        n_moves);
+    generateQueenMoves(gamestate.black.queen, gamestate.black.king,
+                       BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                       n_moves);
+    generateKnightMoves(gamestate.black.knight, gamestate.black.king,
+                        BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
   }
-  getKingMoves(gamestate.black.king, BLACK_PIECES, DZ, moves, n_moves);
+  generateKingMoves(gamestate.black.king, BLACK_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
 
-uint8_t get_W_moves(GameState &gamestate, Move *moves, bool &check) {
+uint8_t generateWhiteMoves(GameState &gamestate, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
@@ -1089,266 +1096,219 @@ uint8_t get_W_moves(GameState &gamestate, Move *moves, bool &check) {
   check = isInCheck(gamestate.whites_turn, gamestate.white.king,
                     gamestate.black, OCCUPIED, DZ, checker_zone, n_checkers);
 
-  uint64_t PINNED = get_pinned_pieces(
+  uint64_t PINNED = getPinnedPieces(
       gamestate.white.king, gamestate.white.pawn, gamestate.black.queen,
       gamestate.black.bishop, gamestate.black.rook, OCCUPIED,
       gamestate.en_passant, gamestate.whites_turn);
 
   uint8_t n_moves = 0;
   if (!check) {
-    getKingsideCastleMove(gamestate.white.can_king_side_castle,
-                          gamestate.white.king, ~OCCUPIED, DZ, moves, n_moves);
-    getQueensideCastleMove(gamestate.white.can_queen_side_castle,
-                           gamestate.white.king, ~OCCUPIED, DZ, moves, n_moves);
+    generateKingsideCastleMove(gamestate.white.can_king_side_castle,
+                               gamestate.white.king, ~OCCUPIED, DZ, moves,
+                               n_moves);
+    generateQueensideCastleMove(gamestate.white.can_queen_side_castle,
+                                gamestate.white.king, ~OCCUPIED, DZ, moves,
+                                n_moves);
   }
 
   if (n_checkers < 2) {
-    getWhitePawnMoves(gamestate.whites_turn, gamestate.white.pawn,
-                      gamestate.white.king, gamestate.en_passant, ~OCCUPIED,
-                      BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
-    getRookMoves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
-                 OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getBishopMoves(gamestate.white.bishop, gamestate.white.king, WHITE_PIECES,
-                   OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getQueenMoves(gamestate.white.queen, gamestate.white.king, WHITE_PIECES,
-                  OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    getKnightMoves(gamestate.white.knight, gamestate.white.king, WHITE_PIECES,
-                   PINNED, checker_zone, moves, n_moves);
+    generateWhitePawnMoves(gamestate.whites_turn, gamestate.white.pawn,
+                           gamestate.white.king, gamestate.en_passant,
+                           ~OCCUPIED, BLACK_PIECES, PINNED, checker_zone, moves,
+                           n_moves);
+    generateRookMoves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
+                      OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    generateBishopMoves(gamestate.white.bishop, gamestate.white.king,
+                        WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                        n_moves);
+    generateQueenMoves(gamestate.white.queen, gamestate.white.king,
+                       WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                       n_moves);
+    generateKnightMoves(gamestate.white.knight, gamestate.white.king,
+                        WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
   }
-  getKingMoves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
+  generateKingMoves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
 
-uint8_t getMoves(GameState &gamestate, Move *moves, bool &check) {
-  return gamestate.whites_turn ? get_W_moves(gamestate, moves, check)
-                               : get_B_moves(gamestate, moves, check);
+uint8_t generateMoves(GameState &gamestate, Move *moves, bool &check) {
+  return gamestate.whites_turn ? generateWhiteMoves(gamestate, moves, check)
+                               : generateBlackMoves(gamestate, moves, check);
 }
 
-void apply_move(Move move, GameState &gamestate) {
+uint64_t moveGetInitialPositionBitboard(Move move) {
+  return (uint64_t)1 << ((moveToX1(move) * 8) + (moveToY1(move) % 8));
+}
 
-  uint64_t P =
-      gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
-  uint64_t R =
-      gamestate.whites_turn ? gamestate.white.rook : gamestate.black.rook;
-  uint64_t N =
-      gamestate.whites_turn ? gamestate.white.knight : gamestate.black.knight;
-  uint64_t B =
-      gamestate.whites_turn ? gamestate.white.bishop : gamestate.black.bishop;
-  uint64_t Q =
-      gamestate.whites_turn ? gamestate.white.queen : gamestate.black.queen;
-  uint64_t K =
-      gamestate.whites_turn ? gamestate.white.king : gamestate.black.king;
+uint64_t moveGetFinalPositionBitboard(Move move) {
+  return (uint64_t)1 << ((moveToX2(move) * 8) + (moveToY2(move) % 8));
+}
 
-  uint64_t OP =
-      !gamestate.whites_turn ? gamestate.white.pawn : gamestate.black.pawn;
-  uint64_t OR =
-      !gamestate.whites_turn ? gamestate.white.rook : gamestate.black.rook;
-  uint64_t ON =
-      !gamestate.whites_turn ? gamestate.white.knight : gamestate.black.knight;
-  uint64_t OB =
-      !gamestate.whites_turn ? gamestate.white.bishop : gamestate.black.bishop;
-  uint64_t OQ =
-      !gamestate.whites_turn ? gamestate.white.queen : gamestate.black.queen;
-  uint64_t OK =
-      !gamestate.whites_turn ? gamestate.white.king : gamestate.black.king;
+void handleCapturedPiece(bool white_to_move, uint64_t P,
+                         PlayerState &enemy_player, uint64_t E_P,
+                         uint64_t initial, uint64_t final) {
+  uint64_t ENEMY_PIECES = white_to_move
+                              ? generatePlayerOccupiedBitboard(enemy_player)
+                              : generatePlayerOccupiedBitboard(enemy_player);
 
-  bool WCK = gamestate.white.can_king_side_castle;
-  bool WCQ = gamestate.white.can_queen_side_castle;
-  bool BCK = gamestate.black.can_king_side_castle;
-  bool BCQ = gamestate.black.can_queen_side_castle;
+  if (ENEMY_PIECES & final) {
+    if (enemy_player.pawn & final) {
+      enemy_player.pawn &= ~final;
+      return;
+    }
+    if (enemy_player.knight & final) {
+      enemy_player.knight &= ~final;
+      return;
+    }
+    if (enemy_player.bishop & final) {
+      enemy_player.bishop &= ~final;
+      return;
+    }
+    if (enemy_player.queen & final) {
+      enemy_player.queen &= ~final;
+      return;
+    }
+    if (enemy_player.rook & final) {
+      enemy_player.rook &= ~final;
+      if (final & (white_to_move ? BLACK_ROOK_STARTING_POSITION_KINGSIDE
+                                 : WHITE_ROOK_STARTING_POSITION_KINGSIDE)) {
+        enemy_player.can_king_side_castle = false;
+      } else if (final &
+                 (white_to_move ? BLACK_ROOK_STARTING_POSITION_QUEENSIDE
+                                : WHITE_ROOK_STARTING_POSITION_QUEENSIDE)) {
+        enemy_player.can_queen_side_castle = false;
+      }
+      return;
+    }
+  }
+  if ((E_P & final) && (P & initial)) {
+    enemy_player.pawn &= (white_to_move ? ~(final >> 8) : ~(final << 8));
+    return;
+  }
+}
 
-  bool white_move = gamestate.whites_turn;
+void realizeMovedPiece(bool white_to_move, PlayerState &active_player,
+                       uint64_t &E_P, uint64_t initial, uint64_t final,
+                       SpecialMove special) {
+  switch (special) {
+  case NONE:
+    if (active_player.queen & initial) {
+      active_player.queen |= final;
+      active_player.queen &= ~initial;
+    } else if (active_player.bishop & initial) {
+      active_player.bishop |= final;
+      active_player.bishop &= ~initial;
+    } else if (active_player.knight & initial) {
+      active_player.knight |= final;
+      active_player.knight &= ~initial;
+    } else if (active_player.pawn & initial) {
+      active_player.pawn |= final;
+      active_player.pawn &= ~initial;
+    } else if (active_player.king & initial) {
+      active_player.can_king_side_castle = false;
+      active_player.can_queen_side_castle = false;
+      active_player.king = final;
+    } else if (active_player.rook & initial) {
+      if (initial & (white_to_move ? WHITE_ROOK_STARTING_POSITION_KINGSIDE
+                                   : BLACK_ROOK_STARTING_POSITION_KINGSIDE)) {
+        active_player.can_king_side_castle = false;
+      } else if (initial &
+                 (white_to_move ? WHITE_ROOK_STARTING_POSITION_QUEENSIDE
+                                : BLACK_ROOK_STARTING_POSITION_QUEENSIDE)) {
+        active_player.can_queen_side_castle = false;
+      }
+      active_player.rook |= final;
+      active_player.rook &= ~initial;
+    }
+    E_P = 0;
+    return;
+  case CASTLE_KINGSIDE:
+    active_player.king <<= 2;
+    active_player.rook |= white_to_move
+                              ? WHITE_ROOK_POST_KINGSIDE_CASTLE_POSITION
+                              : BLACK_ROOK_POST_KINGSIDE_CASTLE_POSITION;
+    active_player.rook &= white_to_move
+                              ? ~WHITE_ROOK_STARTING_POSITION_KINGSIDE
+                              : ~BLACK_ROOK_STARTING_POSITION_KINGSIDE;
+    active_player.can_king_side_castle = false;
+    active_player.can_queen_side_castle = false;
+    E_P = 0;
+    return;
+  case CASTLE_QUEENSIDE:
+    active_player.king >>= 2;
+    active_player.rook |= white_to_move
+                              ? WHITE_ROOK_POST_QUEENSIDE_CASTLE_POSITION
+                              : BLACK_ROOK_POST_QUEENSIDE_CASTLE_POSITION;
+    active_player.rook &= white_to_move
+                              ? ~WHITE_ROOK_STARTING_POSITION_QUEENSIDE
+                              : ~BLACK_ROOK_STARTING_POSITION_QUEENSIDE;
+    active_player.can_king_side_castle = false;
+    active_player.can_queen_side_castle = false;
+    E_P = 0;
+    return;
+  case PROMOTION_QUEEN:
+    active_player.pawn &= ~initial;
+    active_player.queen |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_ROOK:
+    active_player.pawn &= ~initial;
+    active_player.rook |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_BISHOP:
+    active_player.pawn &= ~initial;
+    active_player.bishop |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_KNIGHT:
+    active_player.pawn &= ~initial;
+    active_player.knight |= final;
+    E_P = 0;
+    return;
+  case EN_PASSANT:
+    active_player.pawn |= final;
+    active_player.pawn &= ~initial;
+    E_P = 0;
+    return;
+  case PAWN_PUSH_2:
+    active_player.pawn |= final;
+    active_player.pawn &= ~initial;
+    E_P = white_to_move ? final >> 8 : final << 8;
+    return;
+  default:
+    logErrorAndExit("ERROR: Unexpected SpecialMove value!");
+    return;
+  }
+}
 
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+void applyWhiteMove(GameState &gamestate, const Move &move, uint64_t initial,
+                    uint64_t final, SpecialMove special) {
+  handleCapturedPiece(gamestate.whites_turn, gamestate.white.pawn,
+                      gamestate.black, gamestate.en_passant, initial, final);
+  realizeMovedPiece(gamestate.whites_turn, gamestate.white,
+                    gamestate.en_passant, initial, final, special);
+}
 
-  uint8_t x1 = moveToX1(move);
-  uint8_t y1 = moveToY1(move);
-  uint8_t x2 = moveToX2(move);
-  uint8_t y2 = moveToY2(move);
-  SpecialMove special = moveToSpecial(move);
-  
-  uint64_t initial = (uint64_t)1 << ((x1 * 8) + (y1 % 8));
-  uint64_t final = (uint64_t)1 << ((x2 * 8) + (y2 % 8));
+void applyBlackMove(GameState &gamestate, const Move &move, uint64_t initial,
+                    uint64_t final, SpecialMove special) {
+  handleCapturedPiece(gamestate.whites_turn, gamestate.black.pawn,
+                      gamestate.white, gamestate.en_passant, initial, final);
+  realizeMovedPiece(gamestate.whites_turn, gamestate.black,
+                    gamestate.en_passant, initial, final, special);
+}
 
-  uint64_t capture;
-
-  if (white_move) {
-    capture = (BLACK_PIECES & ~OK) & final;
+void applyMove(Move move, GameState &gamestate) {
+  const uint64_t initial = moveGetInitialPositionBitboard(move);
+  const uint64_t final = moveGetFinalPositionBitboard(move);
+  const SpecialMove special = moveToSpecial(move);
+  if (gamestate.whites_turn) {
+    applyWhiteMove(gamestate, move, initial, final, special);
   } else {
-    capture = WHITE_PIECES & ~OK & final;
+    applyBlackMove(gamestate, move, initial, final, special);
   }
-
-  if (capture) {
-    if (OP & final) {
-      OP &= ~final;
-    } else if (OR & final) {
-
-      if (white_move) {
-
-        if (OR & 9223372036854775808u & final) {
-          BCK = false;
-        } else if (OR & 72057594037927936u & final) {
-          BCQ = false;
-        }
-      } else {
-        if (OR & 128u & final) {
-          WCK = false;
-        } else if (OR & 1u & final) {
-          WCQ = false;
-        }
-      }
-
-      OR &= ~final;
-    } else if (ON & final) {
-      ON &= ~final;
-    } else if (OB & final) {
-      OB &= ~final;
-    } else if (OQ & final) {
-      OQ &= ~final;
-    }
-
-  } else if (gamestate.en_passant == final &&
-             (initial & P)) { // this means there was an en passant capture
-    if (white_move) {
-      OP &= ~(final >> 8);
-    } else {
-      OP &= ~(final << 8);
-    }
-  }
-  // -----this concludes removing enemy pieces from board-----
-
-  // need to move piece to the final position and also remove the initial
-  // position
-
-  // No Special move
-  // TODO: make switch statement here.
-  if (special == NONE) {
-    // todo: search for which piece is moving
-    if (Q & initial) {
-      Q |= final;
-      Q &= ~initial;
-    } else if (B & initial) {
-      B |= final;
-      B &= ~initial;
-    } else if (R & initial) {
-
-      if (WCK && white_move && (R & 128u & initial)) {
-        WCK = false;
-      } else if (WCQ && white_move && (R & 1u & initial)) {
-        WCQ = false;
-      } else if (BCK && !white_move && (R & 9223372036854775808u & initial)) {
-        BCK = false;
-      } else if (BCQ && !white_move && (R & 72057594037927936u & initial)) {
-        BCQ = false;
-      }
-      R |= final;
-      R &= ~initial;
-    } else if (N & initial) {
-      N |= final;
-      N &= ~initial;
-    } else if (P & initial) {
-      P |= final;
-      P &= ~initial;
-    } else if (K & initial) {
-      if ((WCK || WCQ) && white_move) {
-        WCK = false;
-        WCQ = false;
-      }
-      if ((BCK || BCQ) && !white_move) {
-        BCK = false;
-        BCQ = false;
-      }
-      K = final;
-    }
-
-    gamestate.en_passant = 0u;
-  } else {
-    if (special == CASTLE_KINGSIDE) {
-      if (white_move) {
-        // TODO: resolve all these magic numbers.
-        K = 64u;
-        R -= 128u;
-        R += 32u;
-        WCK = false;
-        WCQ = false;
-      } else {
-        K = 4611686018427387904u;
-        R -= 9223372036854775808u;
-        R += 2305843009213693952u;
-        BCK = false;
-        BCQ = false;
-      }
-      gamestate.en_passant = 0u;
-    } else if (special == CASTLE_QUEENSIDE) {
-      if (white_move) {
-        K = 4u;
-        R -= 1u;
-        R += 8u;
-        WCQ = false;
-        WCK = false;
-      } else {
-        K = 288230376151711744u;
-        R -= 72057594037927936u;
-        R += 576460752303423488u;
-        BCQ = false;
-        BCK = false;
-      }
-      gamestate.en_passant = 0u;
-    } else if (special == PROMOTION_QUEEN) { // promotion
-      P &= ~initial;
-      Q |= final;
-      gamestate.en_passant = 0u;
-    } else if (special == PROMOTION_BISHOP) {
-      P &= ~initial;
-      B |= final;
-      gamestate.en_passant = 0u;
-    } else if (special == PROMOTION_KNIGHT) {
-      P &= ~initial;
-      N |= final;
-      gamestate.en_passant = 0u;
-    } else if (special == PROMOTION_ROOK) {
-      P &= ~initial;
-      R |= final;
-      gamestate.en_passant = 0u;
-    } else if (special == EN_PASSANT) { // en passant capture
-
-      P |= final;
-      P &= ~initial;
-      gamestate.en_passant = 0u;
-    } else { // pawn push 2
-
-      P |= final;
-      P &= ~initial;
-      if (white_move) {
-        gamestate.en_passant = (final >> 8);
-      } else {
-        gamestate.en_passant = (final << 8);
-      }
-    }
-  }
-
-  gamestate.white.pawn = white_move ? P : OP;
-  gamestate.white.rook = white_move ? R : OR;
-  gamestate.white.knight = white_move ? N : ON;
-  gamestate.white.bishop = white_move ? B : OB;
-  gamestate.white.queen = white_move ? Q : OQ;
-  gamestate.white.king = white_move ? K : OK;
-  gamestate.white.can_king_side_castle = WCK;
-  gamestate.white.can_queen_side_castle = WCQ;
-
-  gamestate.black.pawn = !white_move ? P : OP;
-  gamestate.black.rook = !white_move ? R : OR;
-  gamestate.black.knight = !white_move ? N : ON;
-  gamestate.black.bishop = !white_move ? B : OB;
-  gamestate.black.queen = !white_move ? Q : OQ;
-  gamestate.black.king = !white_move ? K : OK;
-  gamestate.black.can_king_side_castle = BCK;
-  gamestate.black.can_queen_side_castle = BCQ;
-
-  white_move = !white_move; // alternate the turn
-  gamestate.whites_turn = white_move;
+  gamestate.whites_turn = !gamestate.whites_turn;
 }
 
 void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
@@ -1363,7 +1323,7 @@ void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
 
   bool check = false;
   Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  uint8_t n_moves = getMoves(gamestate, moves, check);
+  uint8_t n_moves = generateMoves(gamestate, moves, check);
 
   if (depth == 1) {
     nodes += n_moves;
@@ -1372,15 +1332,9 @@ void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
   if (depth > 1) {
 
     for (uint8_t i = 0; i < n_moves; i++) {
-      uint8_t cap_count_temp = 0;
-
       GameState gamestate_temp;
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      apply_move(moves[i], gamestate_temp);
-
-      //  else if (CMt or)
-      //   Move moves_temp[MAX_POSSIBLE_MOVES_PER_POSITION];
-      //   uint8_t n_moves_temp = 0;
+      applyMove(moves[i], gamestate_temp);
 
       perft(nodes, gamestate_temp, uint8_t(depth - 1), orig_depth, total);
 
@@ -1455,7 +1409,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
     AI_return a;
 
     bool check = false;
-    uint8_t n_moves = getMoves(gamestate, moves, check);
+    uint8_t n_moves = generateMoves(gamestate, moves, check);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
       Move null_move;
       null_move.data = 0;
@@ -1476,7 +1430,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
 
       //   bool CMt = false, SMt = false;
 
-      apply_move(moves[i], gamestate_temp);
+      applyMove(moves[i], gamestate_temp);
 
       a = minimax(gamestate_temp, CM, SM, depth - 1, !my_turn, alpha, beta);
 
@@ -1504,7 +1458,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
     AI_return a;
 
     bool check = false;
-    uint8_t n_moves = getMoves(gamestate, moves, check);
+    uint8_t n_moves = generateMoves(gamestate, moves, check);
 
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
       Move null_move;
@@ -1525,7 +1479,7 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
       bool CMt = false, SMt = false;
 
-      apply_move(moves[j], gamestate_temp);
+      applyMove(moves[j], gamestate_temp);
 
       a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
 
@@ -1570,18 +1524,8 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
   // For more info:
   // https://chess.stackexchange.com/questions/1482/how-do-you-know-when-a-fen-position-is-legal
 
-  uint8_t n_p = 0;
-  uint8_t n_r = 0;
-  uint8_t n_n = 0;
-  uint8_t n_b = 0;
-  uint8_t n_q = 0;
-  uint8_t n_k = 0;
-  uint8_t n_P = 0;
-  uint8_t n_R = 0;
-  uint8_t n_N = 0;
-  uint8_t n_B = 0;
-  uint8_t n_Q = 0;
-  uint8_t n_K = 0;
+  uint8_t n_p = 0, n_r = 0, n_n = 0, n_b = 0, n_q = 0, n_k = 0, n_P = 0,
+          n_R = 0, n_N = 0, n_B = 0, n_Q = 0, n_K = 0;
 
   uint8_t byte = 7;
   uint8_t bit = 0;
@@ -1734,8 +1678,6 @@ void generate_board(std::string name, uint8_t diff) {
   std::cout << "GAME START" << std::endl;
 
   std::string FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  // FEN = "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1";
-  // FEN= "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2";
   bool CM = false, SM = false;
 
   GameState gamestate;
@@ -1777,7 +1719,7 @@ void generate_board(std::string name, uint8_t diff) {
       std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
       std::cout << AI_choice.value << std::endl;
 
-      apply_move(AI_choice.move, gamestate);
+      applyMove(AI_choice.move, gamestate);
 
       std::cout << "depth: " << depth + 0<< ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
@@ -1795,7 +1737,7 @@ void generate_board(std::string name, uint8_t diff) {
 
       // TODO: uncomment this and fix
       bool check = false;
-      uint8_t n_moves = get_B_moves(gamestate, moves, check);
+      uint8_t n_moves = generateMoves(gamestate, moves, check);
 
       std::cout << "Please select your move: " << std::endl;
       print_moves(gamestate.whites_turn, moves, n_moves);
@@ -1803,7 +1745,7 @@ void generate_board(std::string name, uint8_t diff) {
       int user_choice;
       std::cin >> user_choice;
 
-      apply_move(moves[user_choice - 1], gamestate);
+      applyMove(moves[user_choice - 1], gamestate);
 
       std::cout << "Move chosen: " << moveToString(moves[user_choice - 1])
                 << std::endl;

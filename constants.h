@@ -20,6 +20,17 @@ const uint64_t FILLED = ~0;
 // https://www.chessprogramming.org/Chess_Position#:~:text=The%20maximum%20number%20of%20moves%20per%20chess%20position%20seems%20218.
 const uint8_t MAX_POSSIBLE_MOVES_PER_POSITION = 218;
 
+// Castling constants.
+const uint8_t WHITE_ROOK_STARTING_POSITION_KINGSIDE = 0x80;
+const uint8_t WHITE_ROOK_STARTING_POSITION_QUEENSIDE = 0x1;
+const uint64_t BLACK_ROOK_STARTING_POSITION_KINGSIDE = 0x8000000000000000;
+const uint64_t BLACK_ROOK_STARTING_POSITION_QUEENSIDE = 0x100000000000000;
+
+const uint8_t WHITE_ROOK_POST_KINGSIDE_CASTLE_POSITION = 0x20;
+const uint8_t WHITE_ROOK_POST_QUEENSIDE_CASTLE_POSITION = 0x8;
+const uint64_t BLACK_ROOK_POST_KINGSIDE_CASTLE_POSITION = 0x2000000000000000;
+const uint64_t BLACK_ROOK_POST_QUEENSIDE_CASTLE_POSITION = 0x800000000000000;
+
 // Masks for reading/writing to move.
 const uint16_t X_INITIAL = 0x7;
 const uint16_t Y_INITIAL = 0x38;
