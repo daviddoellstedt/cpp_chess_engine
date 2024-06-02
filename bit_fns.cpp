@@ -412,12 +412,12 @@ uint64_t get_pinned_pieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
  * @param PINNED: bitboard of all pinned pieces for a color
  * @param checker_zone: bitboard of check areas for the current king (enemy
  * attacker piece(s) included).
- * @param wb_moves: list of all possible moves for the input player. Output
+ * @param moves: list of all possible moves for the input player. Output
  * will be appended to this list.
  */
-void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
-                    uint64_t PINNED, uint64_t checker_zone, Move *wb_moves,
-                    uint8_t &n_wb_moves) {
+void getRookMoves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
+                  uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                  uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -429,17 +429,17 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
 
     uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
 
-    uint64_t moves =
+    uint64_t possible_moves =
         h_v_moves(bb, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
 
     // Loop through moves and append to list.
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-    while (moves) {
-      uint64_t final_bb = findLowestSetBitValue(moves);
+    while (possible_moves) {
+      uint64_t final_bb = findLowestSetBitValue(possible_moves);
       uint8_t final_bit = findSetBit(final_bb);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[final_bit];
-      wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(moves);
+      moves[n_moves++] = coordinatesToMove(initial, final);
+      clearLowestSetBit(possible_moves);
     }
     clearLowestSetBit(R);
   }
@@ -453,12 +453,12 @@ void get_rook_moves(uint64_t R, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * @param PINNED: bitboard of all pinned pieces for a color
  * @param checker_zone: bitboard of check areas for the current king (enemy
  * attacker piece(s) included).
- * @param wb_moves: list of all possible moves for the inpout player. output
+ * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
-                      uint64_t OCCUPIED, uint64_t PINNED, uint64_t checker_zone,
-                      Move *wb_moves, uint8_t &n_wb_moves) {
+void getBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
+                    uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                    uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -467,16 +467,17 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
     uint64_t bb = findLowestSetBitValue(B);
     uint8_t bit = findSetBit(bb);
     uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-    uint64_t moves = diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
+    uint64_t possible_moves =
+        diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-    while (moves) {
-      uint64_t bb_final = findLowestSetBitValue(moves);
+    while (possible_moves) {
+      uint64_t bb_final = findLowestSetBitValue(possible_moves);
       std::pair<uint8_t, uint8_t> final =
           bitToCoordinates[findSetBit(bb_final)];
-      wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
+      moves[n_moves++] = coordinatesToMove(initial, final);
 
-      clearLowestSetBit(moves);
+      clearLowestSetBit(possible_moves);
     }
     clearLowestSetBit(B);
   }
@@ -490,12 +491,12 @@ void get_bishop_moves(uint64_t B, uint64_t K, uint64_t PIECES,
  * @param PINNED: bitboard of all pinned pieces for a color
  * @param checker_zone: bitboard of check areas for the current king (enemy
  * attacker piece(s) included).
- * @param wb_moves: list of all possible moves for the inpout player. output
+ * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
-                     uint64_t PINNED, uint64_t checker_zone, Move *wb_moves,
-                     uint8_t &n_wb_moves) {
+void getQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
+                   uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                   uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -504,17 +505,18 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
     uint64_t bb = findLowestSetBitValue(Q);
     uint8_t bit = findSetBit(bb);
         uint64_t mask = bb & PINNED ? get_mask(bb, K) : FILLED;
-        uint64_t moves = (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) &
-                         ~PIECES & mask & checker_zone;
+        uint64_t possible_moves =
+            (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES &
+            mask & checker_zone;
 
         std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
-        while (moves) {
-          uint64_t bb_final = findLowestSetBitValue(moves);
+        while (possible_moves) {
+          uint64_t bb_final = findLowestSetBitValue(possible_moves);
           std::pair<uint8_t, uint8_t> final =
               bitToCoordinates[findSetBit(bb_final)];
-          wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
+          moves[n_moves++] = coordinatesToMove(initial, final);
 
-          clearLowestSetBit(moves);
+          clearLowestSetBit(possible_moves);
         }
     clearLowestSetBit(Q);
   }
@@ -527,12 +529,11 @@ void get_queen_moves(uint64_t Q, uint64_t K, uint64_t PIECES, uint64_t OCCUPIED,
  * @param PINNED: bitboard of all pinned pieces for a color
  * @param checker_zone: bitboard of check areas for the current king (enemy
  * attacker piece(s) included).
- * @param wb_moves: list of all possible moves for the inpout player. output
+ * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
-                      uint64_t checker_zone, Move *wb_moves,
-                      uint8_t &n_wb_moves) {
+void getKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
+                    uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -565,7 +566,7 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
         uint64_t bb_final = findLowestSetBitValue(pos_moves);
         std::pair<uint8_t, uint8_t> final =
             bitToCoordinates[findSetBit(bb_final)];
-        wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
+        moves[n_moves++] = coordinatesToMove(initial, final);
 
         clearLowestSetBit(pos_moves);
       }
@@ -580,11 +581,11 @@ void get_knight_moves(uint64_t N, uint64_t K, uint64_t PIECES, uint64_t PINNED,
  * @param PIECES: bitboard representing occupied spaces by the input player
  * @param DZ: bitboard representing the current 'Danger Zone' for the King,
  * which would put him in check if he moved there (illegal move)
- * @param wb_moves: list of all possible moves for the inpout player. output
+ * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *wb_moves,
-                    uint8_t &n_wb_moves) {
+void getKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
+                  uint8_t &n_moves) {
 
   // get moves
   uint8_t k_bit = findSetBit(K);
@@ -607,402 +608,228 @@ void get_king_moves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *wb_moves,
   while (pos_moves) {
     uint64_t bb_final = findLowestSetBitValue(pos_moves);
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb_final)];
-    wb_moves[n_wb_moves++] = coordinatesToMove(initial, final);
+    moves[n_moves++] = coordinatesToMove(initial, final);
 
     clearLowestSetBit(pos_moves);
   }
 }
 
-void get_X_pawn_moves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
-                      uint64_t E_P, uint64_t EMPTY, uint64_t OPP_PIECES,
-                      uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
-  uint64_t P_FORWARD_1, P_FORWARD_2, P_ATTACK_L, P_ATTACK_R, P_PROMO_1,
-      P_PROMO_L, P_PROMO_R;
+void getPawnMoves(bool white_to_move, uint64_t MASK, uint64_t P, uint64_t K,
+                  uint64_t E_P, uint64_t EMPTY, uint64_t ENEMY_PIECES,
+                  uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
+  uint64_t P_FORWARD_1 =
+      EMPTY & MASK & checker_zone &
+      (white_to_move ? (P << 8) & ~rank_8 : (P >> 8) & ~rank_1);
+  uint64_t P_FORWARD_2 = EMPTY & MASK & checker_zone &
+                         (white_to_move ? (P << 16) & (EMPTY << 8) & rank_4
+                                        : (P >> 16) & (EMPTY >> 8) & rank_5);
+  uint64_t P_ATTACK_L =
+      ENEMY_PIECES & ~file_h & MASK & checker_zone &
+      (white_to_move ? (P << 7) & ~rank_8 : (P >> 9) & ~rank_1);
+  uint64_t P_ATTACK_R =
+      ENEMY_PIECES & ~file_a & MASK & checker_zone &
+      (white_to_move ? (P << 9) & ~rank_8 : (P >> 7) & ~rank_1);
+  uint64_t P_PROMO_1 = EMPTY & MASK & checker_zone &
+                       (white_to_move ? (P << 8) & rank_8 : (P >> 8) & rank_1);
+  uint64_t P_PROMO_L = ENEMY_PIECES & ~file_h & MASK & checker_zone &
+                       (white_to_move ? (P << 7) & rank_8 : (P >> 9) & rank_1);
+  uint64_t P_PROMO_R = ENEMY_PIECES & ~file_a & MASK & checker_zone &
+                       (white_to_move ? (P << 9) & rank_8 : (P >> 7) & rank_1);
 
-  if (!white_to_move) {
-    P_FORWARD_1 = (P >> 8) & EMPTY & ~rank_1 & MASK & checker_zone;
-    P_FORWARD_2 =
-        (P >> 16) & EMPTY & (EMPTY >> 8) & rank_5 & MASK & checker_zone;
-    P_ATTACK_L =
-        (P >> 9) & OPP_PIECES & ~rank_1 & ~file_h & MASK & checker_zone;
-    P_ATTACK_R =
-        (P >> 7) & OPP_PIECES & ~rank_1 & ~file_a & MASK & checker_zone;
-    P_PROMO_1 = (P >> 8) & EMPTY & rank_1 & MASK & checker_zone;
-    P_PROMO_L = (P >> 9) & OPP_PIECES & rank_1 & ~file_h & MASK & checker_zone;
-    P_PROMO_R = (P >> 7) & OPP_PIECES & rank_1 & ~file_a & MASK & checker_zone;
+  checker_zone |= white_to_move && ((E_P >> 8) & checker_zone) ? E_P : 0;
+  checker_zone |= !white_to_move && ((E_P << 8) & checker_zone) ? E_P : 0;
+  uint64_t P_EP_L =
+      E_P & ~file_h & MASK & checker_zone & (white_to_move ? P << 7 : P >> 9);
+  uint64_t P_EP_R =
+      E_P & ~file_a & MASK & checker_zone & (white_to_move ? P << 9 : P >> 7);
 
-    // TODO: replace all magic numbers
-    // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
-    while (P_FORWARD_1) {
-      uint64_t bb = findLowestSetBitValue(P_FORWARD_1);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_FORWARD_1);
-    }
-
-    // check to see if you can move 2
-    while (P_FORWARD_2) {
-      uint64_t bb = findLowestSetBitValue(P_FORWARD_2);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 2;
-      Move move = coordinatesToMove(initial, final);
-      updateSpecialMove(move, PAWN_PUSH_2);
-      moves[n_moves++] = move;
-
-      clearLowestSetBit(P_FORWARD_2);
-    }
-
-    // check for attacks left
-    while (P_ATTACK_L) {
-      uint64_t bb = findLowestSetBitValue(P_ATTACK_L);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      initial.second += 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_ATTACK_L);
-    }
-
-    // check for attacks right
-    while (P_ATTACK_R) {
-      uint64_t bb = findLowestSetBitValue(P_ATTACK_R);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      initial.second -= 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_ATTACK_R);
-    }
-
-    // check for promotion straight
-    while (P_PROMO_1) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_1);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-
-      clearLowestSetBit(P_PROMO_1);
-    }
-
-    // check for promotion left
-    while (P_PROMO_L) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_L);
-
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      initial.second += 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-
-      clearLowestSetBit(P_PROMO_L);
-    }
-
-    // check for promotion attack right
-    while (P_PROMO_R) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_R);
-
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first += 1;
-      initial.second -= 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-      clearLowestSetBit(P_PROMO_R);
-    }
-
-    if (E_P) {
-      // todo: specialize this for white
-      if (checker_zone != FILLED && ((E_P << 8) & checker_zone)) {
-        checker_zone |=
-            (directional_mask[findSetBit(checker_zone)][FILES] & rank_3);
-      }
-      uint64_t P_EP_L = (P >> 9) & E_P & ~file_h & MASK & checker_zone;
-      uint64_t P_EP_R = (P >> 7) & E_P & ~file_a & MASK & checker_zone;
-
-        // check for en passant left
-      while (P_EP_L) {
-        uint64_t bb = findLowestSetBitValue(P_EP_L);
-        std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-        std::pair<uint8_t, uint8_t> initial = final;
-        initial.first += 1;
-        initial.second += 1;
-        Move move = coordinatesToMove(initial, final);
-        updateSpecialMove(move, EN_PASSANT);
-        moves[n_moves++] = move;
-
-        clearLowestSetBit(P_EP_L);
-      }
-
-        // check for en passant right
-      while (P_EP_R) {
-        uint64_t bb = findLowestSetBitValue(P_EP_R);
-        std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-        std::pair<uint8_t, uint8_t> initial = final;
-        initial.first += 1;
-        initial.second -= 1;
-        Move move = coordinatesToMove(initial, final);
-        updateSpecialMove(move, EN_PASSANT);
-        moves[n_moves++] = move;
-
-        clearLowestSetBit(P_EP_R);
-      }
-    }
-  } else { // case for W
-
-    P_FORWARD_1 = (P << 8) & EMPTY & ~rank_8 & MASK & checker_zone;
-    P_FORWARD_2 =
-        (P << 16) & EMPTY & (EMPTY << 8) & rank_4 & MASK & checker_zone;
-    P_ATTACK_L =
-        (P << 7) & OPP_PIECES & ~rank_8 & ~file_h & MASK & checker_zone;
-    P_ATTACK_R =
-        (P << 9) & OPP_PIECES & ~rank_8 & ~file_a & MASK & checker_zone;
-    P_PROMO_1 = (P << 8) & EMPTY & rank_8 & MASK & checker_zone;
-    P_PROMO_L = (P << 7) & OPP_PIECES & rank_8 & ~file_h & MASK & checker_zone;
-    P_PROMO_R = (P << 9) & OPP_PIECES & rank_8 & ~file_a & MASK & checker_zone;
-
-    // check to see if you can move 1
-    while (P_FORWARD_1) {
-      uint64_t bb = findLowestSetBitValue(P_FORWARD_1);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_FORWARD_1);
-    }
-
-    // check to see if you can move 2
-    while (P_FORWARD_2) {
-      uint64_t bb = findLowestSetBitValue(P_FORWARD_2);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 2;
-      Move move = coordinatesToMove(initial, final);
-      updateSpecialMove(move, PAWN_PUSH_2);
-      moves[n_moves++] = move;
-      clearLowestSetBit(P_FORWARD_2);
-    }
-
-    // check for attacks left
-    while (P_ATTACK_L) {
-      uint64_t bb = findLowestSetBitValue(P_ATTACK_L);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      initial.second += 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_ATTACK_L);
-    }
-
-    // check for attacks right
-    while (P_ATTACK_R) {
-      uint64_t bb = findLowestSetBitValue(P_ATTACK_R);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      initial.second -= 1;
-      moves[n_moves++] = coordinatesToMove(initial, final);
-      clearLowestSetBit(P_ATTACK_R);
-    }
-
-    // check for promotion straight
-    while (P_PROMO_1) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_1);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-      clearLowestSetBit(P_PROMO_1);
-    }
-
-    // check for promotion left
-    while (P_PROMO_L) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_L);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      initial.second += 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-
-      clearLowestSetBit(P_PROMO_L);
-    }
-
-    // check for promotion attack right
-    while (P_PROMO_R) {
-      uint64_t bb = findLowestSetBitValue(P_PROMO_R);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-      std::pair<uint8_t, uint8_t> initial = final;
-      initial.first -= 1;
-      initial.second -= 1;
-      Move move = coordinatesToMove(initial, final);
-
-      updateSpecialMove(move, PROMOTION_QUEEN);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_ROOK);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_BISHOP);
-      moves[n_moves++] = move;
-
-      updateSpecialMove(move, PROMOTION_KNIGHT);
-      moves[n_moves++] = move;
-
-      clearLowestSetBit(P_PROMO_R);
-    }
-
-    if (E_P) {
-      if (checker_zone != FILLED && ((E_P >> 8) & checker_zone)) {
-        checker_zone |=
-            (directional_mask[findSetBit(checker_zone)][FILES] & rank_6);
-      }
-
-      uint64_t P_EP_L = (P << 7) & E_P & ~file_h & MASK & checker_zone;
-      uint64_t P_EP_R = (P << 9) & E_P & ~file_a & MASK & checker_zone;
-
-        // check for en passant left
-      while (P_EP_L) {
-        uint64_t bb = findLowestSetBitValue(P_EP_L);
-        std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-        std::pair<uint8_t, uint8_t> initial = final;
-        initial.first -= 1;
-        initial.second += 1;
-        Move move = coordinatesToMove(initial, final);
-        updateSpecialMove(move, EN_PASSANT);
-        moves[n_moves++] = move;
-        clearLowestSetBit(P_EP_L);
-      }
-
-        // check for en passant right
-      while (P_EP_R) {
-        uint64_t bb = findLowestSetBitValue(P_EP_R);
-        std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
-        std::pair<uint8_t, uint8_t> initial = final;
-        initial.first -= 1;
-        initial.second -= 1;
-        Move move = coordinatesToMove(initial, final);
-        updateSpecialMove(move, EN_PASSANT);
-        moves[n_moves++] = move;
-        clearLowestSetBit(P_EP_R);
-      }
-    }
+  // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
+  while (P_FORWARD_1) {
+    uint64_t bb = findLowestSetBitValue(P_FORWARD_1);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    moves[n_moves++] = coordinatesToMove(initial, final);
+    clearLowestSetBit(P_FORWARD_1);
   }
+
+  // check to see if you can move 2
+  while (P_FORWARD_2) {
+    uint64_t bb = findLowestSetBitValue(P_FORWARD_2);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -2 : 2;
+    Move move = coordinatesToMove(initial, final);
+    updateSpecialMove(move, PAWN_PUSH_2);
+    moves[n_moves++] = move;
+    clearLowestSetBit(P_FORWARD_2);
+  }
+
+  // check for attacks left
+  while (P_ATTACK_L) {
+    uint64_t bb = findLowestSetBitValue(P_ATTACK_L);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? 1 : 1;
+    moves[n_moves++] = coordinatesToMove(initial, final);
+    clearLowestSetBit(P_ATTACK_L);
+  }
+
+  // check for attacks right
+  while (P_ATTACK_R) {
+    uint64_t bb = findLowestSetBitValue(P_ATTACK_R);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? -1 : -1;
+    moves[n_moves++] = coordinatesToMove(initial, final);
+    clearLowestSetBit(P_ATTACK_R);
+  }
+
+  // check for promotion straight
+  while (P_PROMO_1) {
+    uint64_t bb = findLowestSetBitValue(P_PROMO_1);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    Move move = coordinatesToMove(initial, final);
+
+    updateSpecialMove(move, PROMOTION_QUEEN);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_ROOK);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_BISHOP);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_KNIGHT);
+    moves[n_moves++] = move;
+
+    clearLowestSetBit(P_PROMO_1);
+  }
+
+  // check for promotion left
+  while (P_PROMO_L) {
+    uint64_t bb = findLowestSetBitValue(P_PROMO_L);
+
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? 1 : 1;
+    Move move = coordinatesToMove(initial, final);
+
+    updateSpecialMove(move, PROMOTION_QUEEN);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_ROOK);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_BISHOP);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_KNIGHT);
+    moves[n_moves++] = move;
+
+    clearLowestSetBit(P_PROMO_L);
+  }
+
+  // check for promotion attack right
+  while (P_PROMO_R) {
+    uint64_t bb = findLowestSetBitValue(P_PROMO_R);
+
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? -1 : -1;
+    Move move = coordinatesToMove(initial, final);
+
+    updateSpecialMove(move, PROMOTION_QUEEN);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_ROOK);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_BISHOP);
+    moves[n_moves++] = move;
+    updateSpecialMove(move, PROMOTION_KNIGHT);
+    moves[n_moves++] = move;
+
+    clearLowestSetBit(P_PROMO_R);
+  }
+
+  // check for en passant left
+  while (P_EP_L) {
+    uint64_t bb = findLowestSetBitValue(P_EP_L);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? 1 : 1;
+    Move move = coordinatesToMove(initial, final);
+    updateSpecialMove(move, EN_PASSANT);
+    moves[n_moves++] = move;
+    clearLowestSetBit(P_EP_L);
+  }
+
+  // check for en passant right
+  while (P_EP_R) {
+    uint64_t bb = findLowestSetBitValue(P_EP_R);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> initial = final;
+    initial.first += white_to_move ? -1 : 1;
+    initial.second += white_to_move ? -1 : -1;
+    Move move = coordinatesToMove(initial, final);
+    updateSpecialMove(move, EN_PASSANT);
+    moves[n_moves++] = move;
+    clearLowestSetBit(P_EP_R);
+  }
+}
+
+void getPinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
+                        uint64_t E_P, uint64_t EMPTY, uint64_t ENEMY_PIECES,
+                        uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                        uint8_t &n_moves) {
+  uint64_t pinned_pawns = P & PINNED;
+  while (pinned_pawns) {
+    uint64_t bb = findLowestSetBitValue(pinned_pawns);
+    uint64_t mask = get_mask(bb, K);
+    getPawnMoves(white_to_move, mask, bb, K, E_P, EMPTY, ENEMY_PIECES,
+                 checker_zone, moves, n_moves);
+    clearLowestSetBit(pinned_pawns);
+  }
+  // Clear pinned pawns from pawn bitboard.
+  P &= ~PINNED;
 }
 
 void get_B_pawn_moves(bool white_to_move, uint64_t BP, uint64_t BK,
                       uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
-                      uint64_t PINNED, uint64_t checker_zone, Move *b_moves,
-                      uint8_t &n_b_moves) {
+                      uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                      uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  uint64_t pinned_pawns = BP & PINNED;
-  while (pinned_pawns) {
-    uint64_t bb = findLowestSetBitValue(pinned_pawns);
-    uint64_t mask = get_mask(bb, BK);
-    get_X_pawn_moves(white_to_move, mask, bb, BK, E_P, EMPTY, WHITE_PIECES,
-                     checker_zone, b_moves, n_b_moves);
-    clearLowestSetBit(pinned_pawns);
-  }
-  // Clear pinned pawns from pawn bitboard.
-  BP &= ~PINNED;
+  getPinnedPawnMoves(white_to_move, BP, BK, E_P, EMPTY, WHITE_PIECES, PINNED,
+                     checker_zone, moves, n_moves);
 
-  if (BP) { // we have at least 1 non-pinned pawn
-    get_X_pawn_moves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
-                     checker_zone, b_moves, n_b_moves);
+  if (BP) { // we have at least 1 non-pinned pawn.
+    getPawnMoves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
+                 checker_zone, moves, n_moves);
   }
 }
 
-void get_W_pawn_moves(bool white_to_move, uint64_t WP, uint64_t WK,
-                      uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
-                      uint64_t PINNED, uint64_t checker_zone, Move *w_moves,
-                      uint8_t &n_w_moves) {
+void getWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
+                       uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
+                       uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                       uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  uint64_t pinned_pawns = WP & PINNED;
-  while (pinned_pawns) {
-    uint64_t bb = findLowestSetBitValue(pinned_pawns);
-    uint64_t mask = get_mask(bb, WK);
-    get_X_pawn_moves(white_to_move, mask, bb, WK, E_P, EMPTY, BLACK_PIECES,
-                     checker_zone, w_moves, n_w_moves);
-    clearLowestSetBit(pinned_pawns);
-  }
-  // Clear pinned pawns from the pawn bitboard.
-  WP &= ~PINNED;
+  getPinnedPawnMoves(white_to_move, WP, WK, E_P, EMPTY, BLACK_PIECES, PINNED,
+                     checker_zone, moves, n_moves);
 
   if (WP) { // we have at least 1 non-pinned pawn
-    get_X_pawn_moves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
-                     checker_zone, w_moves, n_w_moves);
+    getPawnMoves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
+                 checker_zone, moves, n_moves);
   }
 }
 
-void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                  Move *wb_moves, uint8_t &n_moves) {
+void getKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
+                           Move *moves, uint8_t &n_moves) {
   if (!CK) {
     return;
   }
@@ -1016,12 +843,12 @@ void get_K_castle(bool CK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
     initial.second -= 2;
     Move move = coordinatesToMove(initial, final);
     updateSpecialMove(move, CASTLE_KINGSIDE);
-    wb_moves[n_moves++] = move;
+    moves[n_moves++] = move;
   }
 }
 
-void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
-                  Move *wb_moves, uint8_t &n_wb_moves) {
+void getQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
+                            Move *moves, uint8_t &n_moves) {
   if (!QK) {
     return;
   }
@@ -1035,86 +862,9 @@ void get_Q_castle(bool QK, uint64_t K, uint64_t EMPTY, uint64_t DZ,
       initial.second += 2;
       Move move = coordinatesToMove(initial, final);
       updateSpecialMove(move, CASTLE_QUEENSIDE);
-      wb_moves[n_wb_moves++] = move;
-  }
+      moves[n_moves++] = move;
+    }
 }
-
-uint64_t unsafe_for_XK(bool white_to_move, uint64_t P, uint64_t R, uint64_t N,
-                       uint64_t B, uint64_t Q, uint64_t EK, uint64_t OCCUPIED) {
-
-  uint64_t unsafe = 0;
-  uint64_t D = B | Q;
-  uint64_t HV = R | Q;
-
-  // pawn
-  if (P) {
-    if (white_to_move) {
-      unsafe = (P >> 7) & ~file_a;  // capture right
-      unsafe |= (P >> 9) & ~file_h; // capture left
-    } else {
-      unsafe = (P << 9) & ~file_a;  // capture right
-      unsafe |= (P << 7) & ~file_h; // capture left
-    }
-  }
-
-  // Knight
-  uint64_t pos_moves = 0;
-
-  while (N) {
-    uint8_t kn_bit = findSetBit(findLowestSetBitValue(N));
-
-    if (kn_bit > 21) {
-      pos_moves = KNIGHT_MOVES << (kn_bit - 21);
-    } else {
-      pos_moves = KNIGHT_MOVES >> (21 - kn_bit);
-    }
-    if (kn_bit % 8 > 3) {
-      pos_moves &= ~file_ab;
-    } else {
-      pos_moves &= ~file_gh;
-    }
-    unsafe |= pos_moves;
-    clearLowestSetBit(N);
-  }
-
-  // Diag pieces (Bishop, Queen).
-  while (D) {
-    uint64_t bb = findLowestSetBitValue(D);
-    uint8_t bit = findSetBit(bb);
-    unsafe |= diag_moves(bb, OCCUPIED, true, EK);
-    clearLowestSetBit(D);
-  }
-
-  // HV pieces (Rook, Queen).
-  while (HV) {
-    uint64_t bb = findLowestSetBitValue(HV);
-    unsafe |= h_v_moves(bb, OCCUPIED, true, EK);
-    clearLowestSetBit(HV);
-  }
-
-  return unsafe;
-}
-
-// uint8_t getPawnChecker(uint64_t K, uint64_t EP, uint64_t &checker_zone) {
-
-//   // Check for pawn right attack (from pawns perspective).
-//   uint64_t K_exposure = (K >> 9) & ~file_h;
-//   uint64_t new_checker = K_exposure & EP;
-//   if (new_checker) {
-//     checker_zone |= new_checker;
-//     return 1;
-//   }
-
-//   // check for pawn left attack (from pawns perspective)
-//   K_exposure = (K >> 7) & ~file_a;
-//   new_checker = K_exposure & EP;
-//   if (new_checker) {
-//     checker_zone |= new_checker;
-//     return 1;
-//   }
-
-//   return 0;
-// }
 
 uint64_t getPawnAttackZone(bool white_to_move, uint64_t P) {
   return white_to_move ? ((P >> 7) & ~file_a) | ((P >> 9) & ~file_h)
@@ -1286,7 +1036,7 @@ bool isInCheck(bool white_to_move, uint64_t K, PlayerState enemy_player_state,
   return check;
 }
 
-uint8_t get_B_moves(GameState &gamestate, Move *b_moves, bool &check) {
+uint8_t get_B_moves(GameState &gamestate, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
   uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
@@ -1304,26 +1054,26 @@ uint8_t get_B_moves(GameState &gamestate, Move *b_moves, bool &check) {
 
   uint8_t n_moves = 0;
   if (!check) {
-    get_K_castle(gamestate.black.can_king_side_castle, gamestate.black.king,
-                 ~OCCUPIED, DZ, b_moves, n_moves);
-    get_Q_castle(gamestate.black.can_queen_side_castle, gamestate.black.king,
-                 ~OCCUPIED, DZ, b_moves, n_moves);
+    getKingsideCastleMove(gamestate.black.can_king_side_castle,
+                          gamestate.black.king, ~OCCUPIED, DZ, moves, n_moves);
+    getQueensideCastleMove(gamestate.black.can_queen_side_castle,
+                           gamestate.black.king, ~OCCUPIED, DZ, moves, n_moves);
   }
 
   if (n_checkers < 2) {
     get_B_pawn_moves(gamestate.whites_turn, gamestate.black.pawn,
                      gamestate.black.king, gamestate.en_passant, ~OCCUPIED,
-                     WHITE_PIECES, PINNED, checker_zone, b_moves, n_moves);
-    get_rook_moves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
-                   OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
-    get_bishop_moves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
-                     OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
-    get_queen_moves(gamestate.black.queen, gamestate.black.king, BLACK_PIECES,
-                    OCCUPIED, PINNED, checker_zone, b_moves, n_moves);
-    get_knight_moves(gamestate.black.knight, gamestate.black.king, BLACK_PIECES,
-                     PINNED, checker_zone, b_moves, n_moves);
+                     WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
+    getRookMoves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
+                 OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    getBishopMoves(gamestate.black.bishop, gamestate.black.king, BLACK_PIECES,
+                   OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    getQueenMoves(gamestate.black.queen, gamestate.black.king, BLACK_PIECES,
+                  OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    getKnightMoves(gamestate.black.knight, gamestate.black.king, BLACK_PIECES,
+                   PINNED, checker_zone, moves, n_moves);
   }
-  get_king_moves(gamestate.black.king, BLACK_PIECES, DZ, b_moves, n_moves);
+  getKingMoves(gamestate.black.king, BLACK_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
@@ -1346,26 +1096,26 @@ uint8_t get_W_moves(GameState &gamestate, Move *moves, bool &check) {
 
   uint8_t n_moves = 0;
   if (!check) {
-    get_K_castle(gamestate.white.can_king_side_castle, gamestate.white.king,
-                 ~OCCUPIED, DZ, moves, n_moves);
-    get_Q_castle(gamestate.white.can_queen_side_castle, gamestate.white.king,
-                 ~OCCUPIED, DZ, moves, n_moves);
+    getKingsideCastleMove(gamestate.white.can_king_side_castle,
+                          gamestate.white.king, ~OCCUPIED, DZ, moves, n_moves);
+    getQueensideCastleMove(gamestate.white.can_queen_side_castle,
+                           gamestate.white.king, ~OCCUPIED, DZ, moves, n_moves);
   }
 
   if (n_checkers < 2) {
-    get_W_pawn_moves(gamestate.whites_turn, gamestate.white.pawn,
-                     gamestate.white.king, gamestate.en_passant, ~OCCUPIED,
-                     BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
-    get_rook_moves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
+    getWhitePawnMoves(gamestate.whites_turn, gamestate.white.pawn,
+                      gamestate.white.king, gamestate.en_passant, ~OCCUPIED,
+                      BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
+    getRookMoves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
+                 OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    getBishopMoves(gamestate.white.bishop, gamestate.white.king, WHITE_PIECES,
                    OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    get_bishop_moves(gamestate.white.bishop, gamestate.white.king, WHITE_PIECES,
-                     OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    get_queen_moves(gamestate.white.queen, gamestate.white.king, WHITE_PIECES,
-                    OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    get_knight_moves(gamestate.white.knight, gamestate.white.king, WHITE_PIECES,
-                     PINNED, checker_zone, moves, n_moves);
+    getQueenMoves(gamestate.white.queen, gamestate.white.king, WHITE_PIECES,
+                  OCCUPIED, PINNED, checker_zone, moves, n_moves);
+    getKnightMoves(gamestate.white.knight, gamestate.white.king, WHITE_PIECES,
+                   PINNED, checker_zone, moves, n_moves);
   }
-  get_king_moves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
+  getKingMoves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
@@ -1698,14 +1448,14 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
   }
 
   if (my_turn) {
-    Move w_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
 
     Move max_move;
     double max_val = -10000000;
     AI_return a;
 
     bool check = false;
-    uint8_t n_moves = getMoves(gamestate, w_moves, check);
+    uint8_t n_moves = getMoves(gamestate, moves, check);
     if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
       Move null_move;
       null_move.data = 0;
@@ -1726,13 +1476,13 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
 
       //   bool CMt = false, SMt = false;
 
-      apply_move(w_moves[i], gamestate_temp);
+      apply_move(moves[i], gamestate_temp);
 
       a = minimax(gamestate_temp, CM, SM, depth - 1, !my_turn, alpha, beta);
 
       if (a.value > max_val) {
         max_val = a.value;
-        max_move = w_moves[i];
+        max_move = moves[i];
       }
 
       alpha = std::max(alpha, a.value);
@@ -1747,15 +1497,14 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
     return leaf_node;
 
   } else {
-    Move b_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    // uint8_t n_b_moves = 0;
+    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
 
     Move min_move;
     double min_val = 10000000;
     AI_return a;
 
     bool check = false;
-    uint8_t n_moves = getMoves(gamestate, b_moves, check);
+    uint8_t n_moves = getMoves(gamestate, moves, check);
 
     if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
       Move null_move;
@@ -1776,13 +1525,13 @@ AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
       memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
       bool CMt = false, SMt = false;
 
-      apply_move(b_moves[j], gamestate_temp);
+      apply_move(moves[j], gamestate_temp);
 
       a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
 
       if (a.value < min_val) {
         min_val = a.value;
-        min_move = b_moves[j];
+        min_move = moves[j];
       }
 
       beta = std::min(beta, a.value);
@@ -2042,21 +1791,21 @@ void generate_board(std::string name, uint8_t diff) {
       std::cout << "BLACK'S MOVE: " << std::endl;
 
       // todo: create a player class for their choosing mechanism
-      Move b_moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+      Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
 
       // TODO: uncomment this and fix
       bool check = false;
-      uint8_t n_moves = get_B_moves(gamestate, b_moves, check);
+      uint8_t n_moves = get_B_moves(gamestate, moves, check);
 
       std::cout << "Please select your move: " << std::endl;
-      print_moves(gamestate.whites_turn, b_moves, n_moves);
+      print_moves(gamestate.whites_turn, moves, n_moves);
 
       int user_choice;
       std::cin >> user_choice;
 
-      apply_move(b_moves[user_choice - 1], gamestate);
+      apply_move(moves[user_choice - 1], gamestate);
 
-      std::cout << "Move chosen: " << moveToString(b_moves[user_choice - 1])
+      std::cout << "Move chosen: " << moveToString(moves[user_choice - 1])
                 << std::endl;
       std::cout << " " << std::endl;
     }
