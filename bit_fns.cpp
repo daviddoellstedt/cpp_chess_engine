@@ -14,19 +14,7 @@
 
 struct AI_return {
   Move move;
-  double value;
-};
-
-enum SpecialMove : uint8_t {
-  NONE = 0,
-  CASTLE_KINGSIDE = 1,
-  CASTLE_QUEENSIDE = 2,
-  PROMOTION_QUEEN = 3,
-  PROMOTION_ROOK = 4,
-  PROMOTION_KNIGHT = 5,
-  PROMOTION_BISHOP = 6,
-  EN_PASSANT = 7,
-  PAWN_PUSH_2 = 8,
+  double value = 0;
 };
 
 void logErrorAndExit(std::string error_message) {
@@ -1352,7 +1340,6 @@ double eval(const GameState gamestate) {
   counter += (countSetBits(gamestate.white.queen) -
               countSetBits(gamestate.black.queen)) *
              900;
-
   //    if (counter > 1000000){
   //       std::cout << counter << std::endl;
   //       print_board(gamestate);
@@ -1362,120 +1349,50 @@ double eval(const GameState gamestate) {
   return counter;
 }
 
-AI_return minimax(GameState gamestate, bool CM, bool SM, uint8_t depth,
-                  bool my_turn, double alpha = -100000000,
-                  double beta = 100000000) {
-
-  if (depth == 0) { // todo: add a conditon for game over
-    // todo add evaluation function
-    nodes2++;
-    // simply a placeholder to avoid error, TODO make more elegant.
+AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
+                  double alpha = std::numeric_limits<double>::lowest(),
+                  double beta = std::numeric_limits<double>::max()) {
+  // Terminal Node.
+  if (depth == 0) {
     Move leaf_move;
-    leaf_move.data = 0;
-    AI_return leaf = {leaf_move, eval(gamestate)};
-    //    std::cout<<leaf.value<<std::endl;
+    AI_return leaf = {leaf_move, eval(gamestate) * color};
     return leaf;
   }
 
-  if (my_turn) {
-    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+  bool check = false;
+  Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+  uint8_t n_moves = generateMoves(gamestate, moves, check);
 
-    Move max_move;
-    double max_val = -10000000;
-    AI_return a;
-
-    bool check = false;
-    uint8_t n_moves = generateMoves(gamestate, moves, check);
-    if (CM) { // std::cout << "CHECKMATE. BLACK WINS" << std::endl;
-      Move null_move;
-      null_move.data = 0;
-      AI_return leaf = {null_move, -10000};
-      return leaf;
-    }
-    if (SM) { // std::cout << "STALEMATE." << std::endl;
-      Move null_move;
-      null_move.data = 0;
-      AI_return leaf = {null_move, 0};
-      return leaf;
-    }
-
-    for (uint8_t i = 0; i < n_moves; i++) {
-
-      GameState gamestate_temp;
-      memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-
-      //   bool CMt = false, SMt = false;
-
-      applyMove(moves[i], gamestate_temp);
-
-      a = minimax(gamestate_temp, CM, SM, depth - 1, !my_turn, alpha, beta);
-
-      if (a.value > max_val) {
-        max_val = a.value;
-        max_move = moves[i];
-      }
-
-      alpha = std::max(alpha, a.value);
-      if (beta <= alpha) {
-        break;
-      }
-    }
-
-    AI_return leaf_node;
-    leaf_node.value = max_val;
-    leaf_node.move = max_move;
-    return leaf_node;
-
-  } else {
-    Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-
-    Move min_move;
-    double min_val = 10000000;
-    AI_return a;
-
-    bool check = false;
-    uint8_t n_moves = generateMoves(gamestate, moves, check);
-
-    if (CM) { // std::cout << "CHECKMATE. WHITE WINS" << std::endl;
-      Move null_move;
-      null_move.data = 0;
-      AI_return leaf = {null_move, 10000};
-      return leaf;
-    }
-    if (SM) { // std::cout << "STALEMATE." << std::endl;
-      Move null_move;
-      null_move.data = 0;
-      AI_return leaf = {null_move, 0};
-      return leaf;
-    }
-
-    for (uint8_t j = 0; j < n_moves; j++) {
-
-      GameState gamestate_temp;
-      memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      bool CMt = false, SMt = false;
-
-      applyMove(moves[j], gamestate_temp);
-
-      a = minimax(gamestate_temp, CMt, SMt, depth - 1, !my_turn, alpha, beta);
-
-      if (a.value < min_val) {
-        min_val = a.value;
-        min_move = moves[j];
-      }
-
-      beta = std::min(beta, a.value);
-      if (beta <= alpha) {
-        break;
-      }
-    }
-
-    AI_return leaf_node;
-    leaf_node.value = min_val;
-    leaf_node.move = min_move;
-
-    return leaf_node;
+  // Terminal node, Checkmate/Stalemate.
+  if (n_moves == 0) {
+    Move leaf_move; // placeholder move. Make more elegant once move is a class.
+    AI_return leaf = {
+        leaf_move, check ? std::numeric_limits<double>::lowest() * color : 0};
+    return leaf;
   }
+
+  AI_return node_max;
+  node_max.value = std::numeric_limits<double>::lowest();
+
+  for (uint8_t i = 0; i < n_moves; i++) {
+    GameState gamestate_temp;
+    memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
+    applyMove(moves[i], gamestate_temp);
+    AI_return node_temp =
+        negamax(gamestate_temp, depth - 1, -color, -beta, -alpha);
+    node_temp.value *= -color;
+
+    if (node_temp.value > node_max.value) {
+      node_max.value = node_temp.value;
+      node_max.move = moves[i];
+    }
+
+    alpha = std::max(alpha, node_max.value);
+    if (alpha >= beta) {
+      break;
+    }
+  }
+  return node_max;
 }
 
 void fenToGameState(const std::string fen, GameState &gamestate) {
@@ -1657,7 +1574,7 @@ void generate_board(std::string name, uint8_t diff) {
   } else if (diff == 2) {
     depth = 5;
   } else if (diff == 3) {
-    depth = 6;
+    depth = 3;
   }
 
   // for now, the AI is only white
@@ -1679,7 +1596,8 @@ void generate_board(std::string name, uint8_t diff) {
       std::cout << "AI Agent thinking... wait a few seconds." << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
 
-      AI_choice = minimax(gamestate, CM, SM, depth, true);
+      AI_choice = negamax(gamestate, 5);
+
       auto end = std::chrono::high_resolution_clock::now();
 
       std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;

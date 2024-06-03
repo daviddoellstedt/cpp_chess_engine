@@ -8,6 +8,18 @@
 #include <stdint.h>
 #include <string>
 
+enum SpecialMove : uint8_t {
+  NONE = 0,
+  CASTLE_KINGSIDE = 1,
+  CASTLE_QUEENSIDE = 2,
+  PROMOTION_QUEEN = 3,
+  PROMOTION_ROOK = 4,
+  PROMOTION_KNIGHT = 5,
+  PROMOTION_BISHOP = 6,
+  EN_PASSANT = 7,
+  PAWN_PUSH_2 = 8,
+};
+
 struct Move {
   // Moves are stored as a 16-bit integer. Kept as lightweight as possible to
   // allow deeper search. Bits: 0 - 2:   Initial x position 3 - 5:   Initial y
