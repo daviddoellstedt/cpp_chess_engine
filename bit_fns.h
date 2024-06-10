@@ -56,6 +56,25 @@ typedef struct GameState {
   uint64_t en_passant = 0;
 } GameState;
 
+struct MoveGameStateScore {
+  Move move;
+  GameState gamestate;
+  int16_t score = 0;
+
+  // Overloaded comparator. Used for sorting in descending order.
+  bool operator<(const MoveGameStateScore &move_gamestate_score) const {
+    return score > move_gamestate_score.score;
+  }
+};
+
+uint64_t h_moves(uint64_t piece, uint64_t OCCUPIED);
+
+void initializeRookAttacks(void);
+
+void generateRookMagicNumber(uint8_t bit);
+
+void initializeRookMagicTable(void);
+
 void generate_board(std::string name, uint8_t diff);
 
 void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,

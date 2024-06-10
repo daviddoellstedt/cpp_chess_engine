@@ -134,9 +134,14 @@ int main() {
   //   }
   //   std::cout << result << std::endl;
 
-  generate_board("ba", 3);
+  // generate_board("ba", 3);
 
+  initializeRookAttacks();
+
+  //   for (int i = 0; i < 64; i++){
+  //   generateRookMagicNumber(i);
+  //   }
+  initializeRookMagicTable();
   testAllPerft();
-
   return 0;
 }
