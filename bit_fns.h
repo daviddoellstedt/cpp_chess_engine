@@ -75,6 +75,12 @@ void generateRookMagicNumber(uint8_t bit);
 
 void initializeRookMagicTable(void);
 
+void initializeBishopAttacks(void);
+
+void generateBishopMagicNumber(uint8_t bit);
+
+void initializeBishopMagicTable(void);
+
 void generate_board(std::string name, uint8_t diff);
 
 void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,

@@ -5,21 +5,20 @@
 #include "Helper_functions.h"
 #include "Players.h"
 #include "constants.h"
+#include <bitset>
 #include <chrono>
 #include <cmath>
-#include <bitset>
 #include <iostream>
+#include <random>
 #include <regex>
 #include <stdint.h>
 #include <string>
-#include <random>
 
 struct AI_return {
   Move move;
   int16_t value = 0;
   uint32_t nodes_searched = 0;
 };
-
 
 void logErrorAndExit(std::string error_message) {
   std::cout << error_message << std::endl;
@@ -179,27 +178,20 @@ void print_board(const GameState gamestate) {
   std::cout << dividing_line << std::endl;
 }
 
-// /** Function that can generate the possible moves a slider piece can make in
-// the
-//  * horizontal direction
-//  *
-//  * @param piece: bitboard representing a horizontal sliding piece
-//  * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
-//  * @param OCCUPIED: bitboard representing all occupied spaces on the board
-//  * @return horiz_moves: bitboard of horizontal moves
-//  */
-// uint64_t h_moves(uint64_t piece, uint64_t OCCUPIED) {
-//   uint64_t horiz_moves =
-//       (((OCCUPIED)-2 * piece) ^ rev(rev(OCCUPIED) - 2 * rev(piece))) &
-//       directional_mask[findSetBit(piece)][RANKS];
-//   return horiz_moves;
-// }
-
-uint64_t h_moves(uint64_t piece, uint64_t OCCUPIED) {
-  uint8_t bit = findSetBit(piece);
-  uint8_t byte = bit / 8;
-  uint64_t h = horizontal_moves[bit % 8][(OCCUPIED >> (byte * 8)) & 0xFF];
-  return h << (byte * 8);
+/** Function that can generate the possible moves a slider piece can make in
+the
+ * horizontal direction
+ *
+ * @param piece: bitboard representing a horizontal sliding piece
+ * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
+ * @param OCCUPIED: bitboard representing all occupied spaces on the board
+ * @return horiz_moves: bitboard of horizontal moves
+ */
+uint64_t h_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
+  uint64_t horiz_moves =
+      (((OCCUPIED)-2 * piece) ^ rev(rev(OCCUPIED) - 2 * rev(piece))) &
+      directional_mask[findSetBit(piece)][RANKS];
+  return horiz_moves;
 }
 
 /** Function that can generate the possible moves a slider piece can make in the
@@ -210,7 +202,7 @@ uint64_t h_moves(uint64_t piece, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return vert_moves: bitboard of vertical moves
  */
-uint64_t v_moves(uint64_t piece, uint64_t OCCUPIED) {
+uint64_t v_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
   uint8_t sl_bit = findSetBit(piece);
   uint64_t vert_moves =
       (((OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * piece) ^
@@ -218,7 +210,6 @@ uint64_t v_moves(uint64_t piece, uint64_t OCCUPIED) {
       directional_mask[sl_bit][FILES];
   return vert_moves;
 }
-
 
 /** Function that compiles the horizontal and vertical moves bitboards and
  * handles a case where we check for unsafe moves for the king.
@@ -232,8 +223,8 @@ uint64_t v_moves(uint64_t piece, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of horizontal and vertical moves
  */
-uint64_t h_v_moves1(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
-                   uint64_t K = 0) {
+uint64_t h_v_moves_setwise(uint64_t piece, uint64_t OCCUPIED,
+                           bool unsafe_calc = false, uint64_t K = 0) {
 
   // this line is used in the case where we need to generate zones for the king
   // that are unsafe. If the king is in the attack zone of a horizontal/vertical
@@ -243,156 +234,7 @@ uint64_t h_v_moves1(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
   if (unsafe_calc) {
     OCCUPIED &= ~K;
   }
-  return h_moves(piece, OCCUPIED) | v_moves(piece, OCCUPIED);
-  // return ho_moves[findSetBit(piece)][OCCUPIED] | v_moves(piece, OCCUPIED);
-}
-
-void printBitboard(uint64_t bb){
-    for (int i = 56; i >= 0; i-=8){
-        std::bitset<8>bb_bitset ((bb >> i) & 0xFF);
-        std::cout << bb_bitset <<std::endl;
-    }
-}
-
-
-
-
-
-// Array that stores all rook attack moves for each possible combination of blockers.
-uint64_t rookAttacks[N_SQUARES][(1 << 12)];
-uint64_t rookBlockers[N_SQUARES][4096];
-
-
-// 
-void initializeRookAttacks(void){
-
-    for (uint8_t bit = 0; bit < 64; bit++){
-        uint64_t bit_bb = 1ull << bit;
-    
-    for (uint64_t i = 0; i < 4096; i++){
-        uint64_t possible_blockers = rookMagicMasks[bit];
-        uint64_t blockers = 0;
-
-        uint8_t j_blocker = 0;
-        uint64_t res = possible_blockers;
-        while (possible_blockers){
-            uint64_t blocker_bb = findLowestSetBitValue(possible_blockers);
-            uint8_t blocker_bit = findSetBit(blocker_bb);
-
-            // Check if we need to clear the blocker bit.
-            if (!(i & (1 << j_blocker))){
-                res &= ~(1ull << blocker_bit);
-            }
-            clearLowestSetBit(possible_blockers);
-            j_blocker++;
-        }
-        rookBlockers[bit][i] = res;
-        // if (bit == 0 && i == 257){
-        //      printBitboard((res));
-
-        //      std::cout<<"bit: " << bit + 0 <<", i: "<< i + 0 <<std::endl;
-        //      printBitboard(h_v_moves(bit_bb, res));
-        // }
-        rookAttacks[bit][i] = h_v_moves1(bit_bb, res);
-    }    
-    }
-}
-
-// For 1 bit at first.
-uint64_t rookMagicTable[4096] = {0};
-
-void generateRookMagicNumber(uint8_t bit){
-
-    std::random_device rd;  // a seed source for the random number engine
-    std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
-    std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
-
-    while (true){
-
-        //uint64_t magic_num = 0;
-        // uint64_t first_15 = rand();
-        // uint64_t second_15 = rand();
-        // uint64_t third_15 = rand();
-        // uint64_t fourth_15 = rand();
-        // uint64_t last_4 = rand() % 16;
-
-        // magic_num = first_15 | (second_15 << 15) | (third_15 << 30) | (fourth_15 << 45) | (last_4 << 60);
-
-        uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) | (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-        uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) | (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-        uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) | (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-        uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
-
-
-        //std::cout<<magic_num + 0 << std::endl;
-
-        //magic_num = 0xa8002c000108020ULL;
-        if(countSetBits((magic_num * rookMagicMasks[bit]) & 0xFF00000000000000ull) < 6){
-            continue;
-        }
-
-        bool fail = false;
-        uint64_t i;
-        for (i = 0; i < 4096; i++){
-            uint64_t blockers = rookBlockers[bit][i];
-            uint64_t magic_product = blockers * magic_num;
-            uint16_t index = magic_product >> 52;
-
-            // We can use it, add an entry.
-            //printBitboard(blockers);
-
-            if (rookMagicTable[index] == 0){
-                rookMagicTable[index] = rookAttacks[bit][i];
-                continue;
-            }
-            // There is already an entry, but we are lucky and it matches, continue;
-            if (rookAttacks[bit][i] == rookMagicTable[index]){
-                //std::cout << " HEY HEY HEY" << std::endl;
-                continue;
-            }
-            // Else there is a conflict. Clear the table and try the next magic number
-            memset(rookMagicTable, 0, 4096*sizeof(uint64_t));
-
-            // if (i > 2300){
-            // std::cout << "FAILED! i: " << i + 0 << std::endl;
-            // std::cout << "index: " << index + 0 << std::endl;
-            // std::cout << "magic product: " << magic_product + 0 << std::endl;
-            // }
-            fail = true;
-
-            break;
-        }
-        if (!fail){
-            ////std::cout << "---------------------MAGIC NUMBER FOUND: " << magic_num + 0 << std::endl;
-            std::cout<< "0x" << std::hex << std::uppercase << magic_num + 0 << ", " <<std::endl;
-            break;
-        }
-        //std::cout << "magic num: " << magic_num + 0 << std::endl;
-    }
-
-}
-
-uint64_t rookMagicTableAll[N_SQUARES][4096] = {0};
-
-void initializeRookMagicTable(void){
-    for (uint8_t bit = 0; bit < N_SQUARES; bit++){
-        uint64_t magic_number = rookMagicNumbers[bit];
-        for (uint16_t blockers = 0; blockers < 4096; blockers++){
-            uint64_t blockers_bitboard = rookBlockers[bit][blockers];
-            rookMagicTableAll[bit][(magic_number * blockers_bitboard) >> 52] = h_v_moves1(1ULL << bit, blockers_bitboard);
-        }
-    }
-}
-
-uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
-                   uint64_t K = 0) {
-  if (unsafe_calc) {
-    OCCUPIED &= ~K;
-  }
-    uint8_t piece_bit = findSetBit(piece);
-    uint64_t blockers = OCCUPIED &= rookMagicMasks[piece_bit];
-    uint64_t magic_moves = rookMagicTableAll[piece_bit][(blockers * rookMagicNumbers[piece_bit]) >> 52];
-    return magic_moves;
+  return h_moves_setwise(piece, OCCUPIED) | v_moves_setwise(piece, OCCUPIED);
 }
 
 /** Function that can generate the possible moves a slider piece can make in the
@@ -403,7 +245,7 @@ uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return ddr_moves: bitboard of (down, right) and (up, left) moves
  */
-uint64_t ddr_moves(uint64_t piece, uint64_t OCCUPIED) {
+uint64_t ddr_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
   uint8_t sl_bit = findSetBit(piece);
   uint64_t ddr_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONALS_DOWN_RIGHT]) -
@@ -422,7 +264,7 @@ uint64_t ddr_moves(uint64_t piece, uint64_t OCCUPIED) {
  * @param OCCUPIED: bitboard representing all occupied spaces on the board
  * @return dur_moves: bitboard of (up, right) and (down, left) moves
  */
-uint64_t dur_moves(uint64_t piece, uint64_t OCCUPIED) {
+uint64_t dur_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
   uint8_t sl_bit = findSetBit(piece);
   uint64_t dur_moves =
       (((OCCUPIED & directional_mask[sl_bit][DIAGONALS_UP_RIGHT]) - 2 * piece) ^
@@ -444,8 +286,8 @@ uint64_t dur_moves(uint64_t piece, uint64_t OCCUPIED) {
  * function for more details)
  * @return bitboard of all diagonal moves
  */
-uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
-                    uint64_t K = 0) {
+uint64_t diag_moves_setwise(uint64_t piece, uint64_t OCCUPIED,
+                            bool unsafe_calc = false, uint64_t K = 0) {
 
   // this line is used in the case where we need to generate zones for the king
   // that are unsafe. If the king is in the attack zone of a diagonal slider, we
@@ -455,7 +297,243 @@ uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
   if (unsafe_calc) {
     OCCUPIED &= ~K;
   }
-  return ddr_moves(piece, OCCUPIED) | dur_moves(piece, OCCUPIED);
+  return ddr_moves_setwise(piece, OCCUPIED) |
+         dur_moves_setwise(piece, OCCUPIED);
+}
+
+void printBitboard(uint64_t bb) {
+  for (int i = 56; i >= 0; i -= 8) {
+    std::bitset<8> bb_bitset((bb >> i) & 0xFF);
+    std::cout << bb_bitset << std::endl;
+  }
+}
+
+// Array that stores all rook attack moves for each possible combination of
+// blockers.
+uint64_t rookAttacks[N_SQUARES][(1 << 12)];
+uint64_t rookBlockers[N_SQUARES][4096];
+
+//
+void initializeRookAttacks(void) {
+
+  for (uint8_t bit = 0; bit < 64; bit++) {
+    uint64_t bit_bb = 1ull << bit;
+
+    for (uint64_t i = 0; i < 4096; i++) {
+      uint64_t possible_blockers = rookMagicMasks[bit];
+      uint64_t blockers = 0;
+
+      uint8_t j_blocker = 0;
+      uint64_t res = possible_blockers;
+      while (possible_blockers) {
+        uint64_t blocker_bb = findLowestSetBitValue(possible_blockers);
+        uint8_t blocker_bit = findSetBit(blocker_bb);
+
+        // Check if we need to clear the blocker bit.
+        if (!(i & (1 << j_blocker))) {
+          res &= ~(1ull << blocker_bit);
+        }
+        clearLowestSetBit(possible_blockers);
+        j_blocker++;
+      }
+      rookBlockers[bit][i] = res;
+      rookAttacks[bit][i] = h_v_moves_setwise(bit_bb, res);
+    }
+  }
+}
+
+// Array that stores all bishop attack moves for each possible combination of
+// blockers.
+uint64_t bishopAttacks[N_SQUARES][1 << 9];
+uint64_t bishopBlockers[N_SQUARES][1 << 9];
+
+void initializeBishopAttacks(void) {
+
+  for (uint8_t bit = 0; bit < 64; bit++) {
+    uint64_t bit_bb = 1ull << bit;
+
+    for (uint64_t i = 0; i < 512; i++) {
+      uint64_t possible_blockers = bishopMagicMasks[bit];
+      uint64_t blockers = 0;
+
+      uint8_t j_blocker = 0;
+      uint64_t res = possible_blockers;
+      while (possible_blockers) {
+        uint64_t blocker_bb = findLowestSetBitValue(possible_blockers);
+        uint8_t blocker_bit = findSetBit(blocker_bb);
+
+        // Check if we need to clear the blocker bit.
+        if (!(i & (1 << j_blocker))) {
+          res &= ~(1ull << blocker_bit);
+        }
+        clearLowestSetBit(possible_blockers);
+        j_blocker++;
+      }
+      bishopBlockers[bit][i] = res;
+      bishopAttacks[bit][i] = diag_moves_setwise(bit_bb, res);
+    }
+  }
+}
+
+// For 1 bit at first.
+uint64_t rookMagicTable[4096] = {0};
+
+void generateRookMagicNumber(uint8_t bit) {
+
+  std::random_device rd;     // a seed source for the random number engine
+  std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
+
+  while (true) {
+    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
+
+    if (countSetBits((magic_num * rookMagicMasks[bit]) &
+                     0xFF00000000000000ull) < 6) {
+      continue;
+    }
+
+    bool fail = false;
+    uint64_t i;
+    for (i = 0; i < 4096; i++) {
+      uint64_t blockers = rookBlockers[bit][i];
+      uint64_t magic_product = blockers * magic_num;
+      uint16_t index = magic_product >> 52;
+
+      // We can use it, add an entry.
+      // printBitboard(blockers);
+
+      if (rookMagicTable[index] == 0) {
+        rookMagicTable[index] = rookAttacks[bit][i];
+        continue;
+      }
+      // There is already an entry, but we are lucky and it matches, continue;
+      if (rookAttacks[bit][i] == rookMagicTable[index]) {
+        // std::cout << " HEY HEY HEY" << std::endl;
+        continue;
+      }
+      // Else there is a conflict. Clear the table and try the next magic number
+      memset(rookMagicTable, 0, 4096 * sizeof(uint64_t));
+      fail = true;
+      break;
+    }
+    // MAgic number found. Dump to std out.
+    if (!fail) {
+      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
+                << std::endl;
+      break;
+    }
+  }
+}
+
+// For 1 bit at first.
+uint64_t bishopMagicTable[512] = {0};
+
+void generateBishopMagicNumber(uint8_t bit) {
+
+  std::random_device rd;     // a seed source for the random number engine
+  std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
+
+  while (true) {
+
+    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
+                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
+
+    if (countSetBits((magic_num * bishopMagicMasks[bit]) &
+                     0xFF00000000000000ull) < 6) {
+      continue;
+    }
+
+    bool fail = false;
+    uint64_t i;
+    for (i = 0; i < 512; i++) {
+      uint64_t blockers = bishopBlockers[bit][i];
+      uint64_t magic_product = blockers * magic_num;
+      uint16_t index = magic_product >> 55;
+
+      if (bishopMagicTable[index] == 0) {
+        bishopMagicTable[index] = bishopAttacks[bit][i];
+        continue;
+      }
+      // There is already an entry, but we are lucky and it matches, continue;
+      if (bishopAttacks[bit][i] == bishopMagicTable[index]) {
+        continue;
+      }
+      // Else there is a conflict. Clear the table and try the next magic number
+      memset(bishopMagicTable, 0, 512 * sizeof(uint64_t));
+      fail = true;
+      break;
+    }
+    // Magic number found. Dump to std out.
+    if (!fail) {
+      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
+                << std::endl;
+      break;
+    }
+  }
+}
+
+uint64_t rookMagicTableAll[N_SQUARES][4096] = {0};
+
+void initializeRookMagicTable(void) {
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    uint64_t magic_number = rookMagicNumbers[bit];
+    for (uint16_t blockers = 0; blockers < 4096; blockers++) {
+      uint64_t blockers_bitboard = rookBlockers[bit][blockers];
+      rookMagicTableAll[bit][(magic_number * blockers_bitboard) >> 52] =
+          h_v_moves_setwise(1ULL << bit, blockers_bitboard);
+    }
+  }
+}
+
+uint64_t bishopMagicTableAll[N_SQUARES][512] = {0};
+
+void initializeBishopMagicTable(void) {
+  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
+    uint64_t magic_number = bishopMagicNumbers[bit];
+    for (uint16_t blockers = 0; blockers < 512; blockers++) {
+      uint64_t blockers_bitboard = bishopBlockers[bit][blockers];
+      bishopMagicTableAll[bit][(magic_number * blockers_bitboard) >> 55] =
+          diag_moves_setwise(1ULL << bit, blockers_bitboard);
+    }
+  }
+}
+
+uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
+                   uint64_t K = 0) {
+  if (unsafe_calc) {
+    OCCUPIED &= ~K;
+  }
+  uint8_t piece_bit = findSetBit(piece);
+  uint64_t blockers = OCCUPIED &= rookMagicMasks[piece_bit];
+  uint64_t magic_moves =
+      rookMagicTableAll[piece_bit]
+                       [(blockers * rookMagicNumbers[piece_bit]) >> 52];
+  return magic_moves;
+}
+
+uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
+                    uint64_t K = 0) {
+  if (unsafe_calc) {
+    OCCUPIED &= ~K;
+  }
+  uint8_t piece_bit = findSetBit(piece);
+  uint64_t blockers = OCCUPIED &= bishopMagicMasks[piece_bit];
+  uint64_t magic_moves =
+      bishopMagicTableAll[piece_bit]
+                         [(blockers * bishopMagicNumbers[piece_bit]) >> 55];
+  return magic_moves;
 }
 
 /** Function that returns a bitboard mask of the straight line between two
@@ -491,16 +569,17 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
                          uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
                          bool white_to_move) {
   uint64_t PINNED = 0;
-  uint64_t K_slider = 0;
   uint8_t k_bit = findSetBit(K);
 
   // Horizontal check.
-  K_slider = h_moves(K, OCCUPIED);
-  //  K_slider = ho_moves[findSetBit(K)][OCCUPIED];
+  uint64_t K_h_v_slider = h_v_moves(K, OCCUPIED);
+  uint64_t K_slider = K_h_v_slider & directional_mask[k_bit][RANKS];
+
   uint64_t EHV = EQ | ER;
   while (EHV) {
     uint64_t bb = findLowestSetBitValue(EHV);
-    uint64_t H_moves = h_moves(bb, OCCUPIED);
+    uint64_t H_moves =
+        h_v_moves(bb, OCCUPIED) & directional_mask[findSetBit(bb)][RANKS];
 
     // Check for special en passant pins.
     uint64_t ep_pawn = white_to_move ? E_P >> 8 : E_P << 8;
@@ -523,28 +602,34 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 
   // Vertical check.
   EHV = EQ | ER;
-  K_slider = v_moves(K, OCCUPIED);
+  K_slider = K_h_v_slider & directional_mask[k_bit][FILES];
+
   while (EHV) {
     uint64_t bb = findLowestSetBitValue(EHV);
-    PINNED |= K_slider & v_moves(bb, OCCUPIED);
+    PINNED |= K_slider & h_v_moves(bb, OCCUPIED) &
+              directional_mask[findSetBit(bb)][FILES];
     clearLowestSetBit(EHV);
   }
 
   // Down right diagonal check.
+  uint64_t K_slider_diag = diag_moves(K, OCCUPIED);
   uint64_t ED = EQ | EB;
-  K_slider = ddr_moves(K, OCCUPIED);
+  K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_DOWN_RIGHT];
   while (ED) {
     uint64_t bb = findLowestSetBitValue(ED);
-    PINNED |= K_slider & ddr_moves(bb, OCCUPIED);
+    PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
+              directional_mask[findSetBit(bb)][DIAGONALS_DOWN_RIGHT];
+
     clearLowestSetBit(ED);
   }
 
   // Upper right diagonal check.
   ED = EQ | EB;
-  K_slider = dur_moves(K, OCCUPIED);
+  K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_UP_RIGHT];
   while (ED) {
     uint64_t bb = findLowestSetBitValue(ED);
-    PINNED |= K_slider & dur_moves(bb, OCCUPIED);
+    PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
+              directional_mask[findSetBit(bb)][DIAGONALS_UP_RIGHT];
     clearLowestSetBit(ED);
   }
   return PINNED;
@@ -1778,7 +1863,7 @@ void generate_board(std::string name, uint8_t diff) {
       std::cout << "WHITE'S MOVE: " << std::endl;
       std::cout << "AI Agent thinking... wait a few seconds." << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
-      depth = 10;
+      depth = 8;
       AI_choice = negamax(gamestate, depth);
       std::cout << AI_choice.nodes_searched + 0 << std::endl;
 
