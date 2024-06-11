@@ -1,5 +1,5 @@
 #include "bit_fns.h"
-#include "Players.h"
+#include "player.h"
 #include "board.h"
 #include "constants.h"
 #include "helper_functions.h"

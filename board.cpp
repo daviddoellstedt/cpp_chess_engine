@@ -6,7 +6,7 @@
 
 /** Fills out char grid according to the game state.
  *
- * @param game_state: State of the game.
+ * @param game_state: Game state.
  * @param grid: Character grid.
  */
 void populateGridFromGameState(const GameState &game_state, char grid[8][8]) {
