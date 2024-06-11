@@ -49,3 +49,9 @@ uint8_t countSetBits(uint64_t x);
  * @return Random 64 bit integer.
  */
 uint64_t generateRandom64(void);
+
+/** Prints a bitboard as a 8x8 grid.
+ *
+ * @param bitboard: 64 bit bitboard.
+ */
+void printBitboard(uint64_t bitboard);

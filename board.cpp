@@ -1,5 +1,6 @@
 #include "board.h"
 #include "helper_functions.h"
+#include "move.h"
 #include <iostream>
 #include <regex>
 #include <string>
@@ -244,4 +245,174 @@ void fenToGameState(const std::string fen, GameState &game_state) {
       break;
     }
   }
+}
+
+// TODO ADD DOCUMENTATION
+void handleCapturedPiece(bool white_to_move, uint64_t P,
+                         PlayerState &enemy_player, uint64_t E_P,
+                         uint64_t initial, uint64_t final) {
+  uint64_t ENEMY_PIECES = white_to_move
+                              ? generatePlayerOccupiedBitboard(enemy_player)
+                              : generatePlayerOccupiedBitboard(enemy_player);
+
+  if (ENEMY_PIECES & final) {
+    if (enemy_player.pawn & final) {
+      enemy_player.pawn &= ~final;
+      return;
+    }
+    if (enemy_player.knight & final) {
+      enemy_player.knight &= ~final;
+      return;
+    }
+    if (enemy_player.bishop & final) {
+      enemy_player.bishop &= ~final;
+      return;
+    }
+    if (enemy_player.queen & final) {
+      enemy_player.queen &= ~final;
+      return;
+    }
+    if (enemy_player.rook & final) {
+      enemy_player.rook &= ~final;
+      if (final & (white_to_move ? BLACK_ROOK_STARTING_POSITION_KINGSIDE
+                                 : WHITE_ROOK_STARTING_POSITION_KINGSIDE)) {
+        enemy_player.can_king_side_castle = false;
+      } else if (final &
+                 (white_to_move ? BLACK_ROOK_STARTING_POSITION_QUEENSIDE
+                                : WHITE_ROOK_STARTING_POSITION_QUEENSIDE)) {
+        enemy_player.can_queen_side_castle = false;
+      }
+      return;
+    }
+  }
+  if ((E_P & final) && (P & initial)) {
+    enemy_player.pawn &= (white_to_move ? ~(final >> 8) : ~(final << 8));
+    return;
+  }
+}
+
+// TODO ADD DOCUMENTATION
+void realizeMovedPiece(bool white_to_move, PlayerState &active_player,
+                       uint64_t &E_P, uint64_t initial, uint64_t final,
+                       SpecialMove special) {
+  switch (special) {
+  case NONE:
+    if (active_player.queen & initial) {
+      active_player.queen |= final;
+      active_player.queen &= ~initial;
+    } else if (active_player.bishop & initial) {
+      active_player.bishop |= final;
+      active_player.bishop &= ~initial;
+    } else if (active_player.knight & initial) {
+      active_player.knight |= final;
+      active_player.knight &= ~initial;
+    } else if (active_player.pawn & initial) {
+      active_player.pawn |= final;
+      active_player.pawn &= ~initial;
+    } else if (active_player.king & initial) {
+      active_player.can_king_side_castle = false;
+      active_player.can_queen_side_castle = false;
+      active_player.king = final;
+    } else if (active_player.rook & initial) {
+      if (initial & (white_to_move ? WHITE_ROOK_STARTING_POSITION_KINGSIDE
+                                   : BLACK_ROOK_STARTING_POSITION_KINGSIDE)) {
+        active_player.can_king_side_castle = false;
+      } else if (initial &
+                 (white_to_move ? WHITE_ROOK_STARTING_POSITION_QUEENSIDE
+                                : BLACK_ROOK_STARTING_POSITION_QUEENSIDE)) {
+        active_player.can_queen_side_castle = false;
+      }
+      active_player.rook |= final;
+      active_player.rook &= ~initial;
+    }
+    E_P = 0;
+    return;
+  case CASTLE_KINGSIDE:
+    active_player.king <<= 2;
+    active_player.rook |= white_to_move
+                              ? WHITE_ROOK_POST_KINGSIDE_CASTLE_POSITION
+                              : BLACK_ROOK_POST_KINGSIDE_CASTLE_POSITION;
+    active_player.rook &= white_to_move
+                              ? ~WHITE_ROOK_STARTING_POSITION_KINGSIDE
+                              : ~BLACK_ROOK_STARTING_POSITION_KINGSIDE;
+    active_player.can_king_side_castle = false;
+    active_player.can_queen_side_castle = false;
+    E_P = 0;
+    return;
+  case CASTLE_QUEENSIDE:
+    active_player.king >>= 2;
+    active_player.rook |= white_to_move
+                              ? WHITE_ROOK_POST_QUEENSIDE_CASTLE_POSITION
+                              : BLACK_ROOK_POST_QUEENSIDE_CASTLE_POSITION;
+    active_player.rook &= white_to_move
+                              ? ~WHITE_ROOK_STARTING_POSITION_QUEENSIDE
+                              : ~BLACK_ROOK_STARTING_POSITION_QUEENSIDE;
+    active_player.can_king_side_castle = false;
+    active_player.can_queen_side_castle = false;
+    E_P = 0;
+    return;
+  case PROMOTION_QUEEN:
+    active_player.pawn &= ~initial;
+    active_player.queen |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_ROOK:
+    active_player.pawn &= ~initial;
+    active_player.rook |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_BISHOP:
+    active_player.pawn &= ~initial;
+    active_player.bishop |= final;
+    E_P = 0;
+    return;
+  case PROMOTION_KNIGHT:
+    active_player.pawn &= ~initial;
+    active_player.knight |= final;
+    E_P = 0;
+    return;
+  case EN_PASSANT:
+    active_player.pawn |= final;
+    active_player.pawn &= ~initial;
+    E_P = 0;
+    return;
+  case PAWN_PUSH_2:
+    active_player.pawn |= final;
+    active_player.pawn &= ~initial;
+    E_P = white_to_move ? final >> 8 : final << 8;
+    return;
+  default:
+    logErrorAndExit("ERROR: Unexpected SpecialMove value!");
+    return;
+  }
+}
+
+// TODO ADD DOCUMENTATION
+void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
+                    uint64_t final, SpecialMove special) {
+  handleCapturedPiece(game_state.whites_turn, game_state.white.pawn,
+                      game_state.black, game_state.en_passant, initial, final);
+  realizeMovedPiece(game_state.whites_turn, game_state.white,
+                    game_state.en_passant, initial, final, special);
+}
+
+// TODO ADD DOCUMENTATION
+void applyBlackMove(GameState &game_state, const Move &move, uint64_t initial,
+                    uint64_t final, SpecialMove special) {
+  handleCapturedPiece(game_state.whites_turn, game_state.black.pawn,
+                      game_state.white, game_state.en_passant, initial, final);
+  realizeMovedPiece(game_state.whites_turn, game_state.black,
+                    game_state.en_passant, initial, final, special);
+}
+
+void applyMove(Move move, GameState &game_state) {
+  const uint64_t initial = move.getInitialBitboard();
+  const uint64_t final = move.getFinalBitboard();
+  const SpecialMove special = move.getSpecial();
+  if (game_state.whites_turn) {
+    applyWhiteMove(game_state, move, initial, final, special);
+  } else {
+    applyBlackMove(game_state, move, initial, final, special);
+  }
+  game_state.whites_turn = !game_state.whites_turn;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "move.h"
 #include <stdint.h>
 #include <string>
 
@@ -59,3 +60,6 @@ uint64_t generateBlackOccupiedBitboard(const GameState &game_state);
 
 // TODO ADD DOCUMENTATION.
 void fenToGameState(const std::string fen, GameState &game_state);
+
+// TODO ADD DOCUMENTAITON
+void applyMove(Move move, GameState &game_state);

@@ -2,45 +2,13 @@
 #include "board.h"
 #include "constants.h"
 #include "helper_functions.h"
+#include "move.h"
 
 #include <iostream>
 #include <stdint.h>
 
 uint64_t bishopMagicTable[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
 uint64_t rookMagicTable[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS] = {0};
-
-// TODO:: add documentation.
-std::string Move::specialToString(void) {
-  switch (getSpecial()) {
-  case NONE:
-  case PAWN_PUSH_2:
-    return "";
-  case CASTLE_KINGSIDE:
-    return "Kingside Castle";
-  case CASTLE_QUEENSIDE:
-    return "Queenside Castle";
-  case PROMOTION_QUEEN:
-    return "Promotion (Queen)";
-  case PROMOTION_ROOK:
-    return "Promotion (Rook)";
-  case PROMOTION_KNIGHT:
-    return "Promotion (Knight)";
-  case PROMOTION_BISHOP:
-    return "Promotion (Bishop)";
-  case EN_PASSANT:
-    return "En Passant";
-  default:
-    logErrorAndExit("ERROR: Unknown value received for special_move.");
-    return "";
-  }
-}
-
-// TODO:: add documentation.
-std::string Move::toString(void) {
-  return (char)('a' + getY1()) + std::to_string(getX1() + 1) +
-         (char)('a' + getY2()) + std::to_string(getX2() + 1) + " " +
-         specialToString();
-}
 
 // TODO: update documentation.
 /** Function that returns a bitboard mask of the straight line between two
@@ -1227,4 +1195,12 @@ uint8_t generateWhiteMoves(GameState &game_state, Move *moves, bool &check) {
 uint8_t generateMoves(GameState &game_state, Move *moves, bool &check) {
   return game_state.whites_turn ? generateWhiteMoves(game_state, moves, check)
                                 : generateBlackMoves(game_state, moves, check);
+}
+
+// TODO remove bool?
+void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
+  std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
+  for (uint8_t i = 0; i < n_moves; i++) {
+    std::cout << i + 1 << ": " + moves[i].toString() << std::endl;
+  }
 }

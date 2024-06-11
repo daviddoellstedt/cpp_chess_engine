@@ -1,4 +1,5 @@
 #include "helper_functions.h"
+#include <bitset>
 #include <iostream>
 #include <random>
 #include <stdint.h>
@@ -40,4 +41,11 @@ uint64_t generateRandom64(void) {
   std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
   return (distrib(gen) & 0xFFFFFFFF) |
          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
+}
+
+void printBitboard(uint64_t bitboard) {
+  for (int i = 56; i >= 0; i -= 8) {
+    std::bitset<8> bitboard_bits((bitboard >> i) & 0xFF);
+    std::cout << bitboard_bits << std::endl;
+  }
 }
