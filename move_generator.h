@@ -31,10 +31,14 @@ uint64_t getSetwiseHorizontalAndVerticalMoves(uint64_t piece, uint64_t occupied,
 uint64_t getSetwiseDiagonalMoves(uint64_t piece, uint64_t occupied,
                                  bool unsafe_calc = false, uint64_t K = 0);
 
-void initializeMagicBitboards(void);
+/** Initializes the magic bitboard tables.
+ */
+void initializeMagicBitboardTables(void);
 
+// Temp, move back once all refactored.
 uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
                    uint64_t K = 0);
 
+// Temp, move back once all refactored.
 uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
                     uint64_t K = 0);

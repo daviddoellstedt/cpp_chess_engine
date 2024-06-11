@@ -1,5 +1,6 @@
 #include "helper_functions.h"
 #include <iostream>
+#include <random>
 #include <stdint.h>
 #include <string>
 
@@ -31,4 +32,12 @@ uint8_t countSetBits(uint64_t x) {
     count++;
   }
   return count;
+}
+
+uint64_t generateRandom64(void) {
+  std::random_device rd;
+  std::mt19937_64 gen(rd());
+  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
+  return (distrib(gen) & 0xFFFFFFFF) |
+         (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
 }

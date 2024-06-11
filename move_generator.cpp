@@ -3,7 +3,6 @@
 #include "helper_functions.h"
 
 #include <iostream>
-#include <random>
 #include <stdint.h>
 
 uint64_t bishopMagicTable[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
@@ -111,18 +110,11 @@ void generateRookMagicNumber(
     uint8_t bit,
     uint64_t blockers_array[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS]) {
   uint64_t rookMagicTableTemp[N_ROOK_BLOCKERS_PERMUTATIONS] = {0};
-  std::random_device rd;
-  std::mt19937_64 gen(rd());
-  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
 
   while (true) {
-    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
+    // Sparse bits produce much better magic number candidates.
+    uint64_t magic_num =
+        generateRandom64() & generateRandom64() & generateRandom64();
 
     if (countSetBits((magic_num * rookMagicMasks[bit]) &
                      0xFF00000000000000ull) < 6) {
@@ -168,19 +160,10 @@ void generateBishopMagicNumber(
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
   uint64_t bishopMagicTableTemp[N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
 
-  std::random_device rd;     // a seed source for the random number engine
-  std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
-  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
-
   while (true) {
-
-    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
+    // Sparse bits produce much better magic number candidates.
+    uint64_t magic_num =
+        generateRandom64() & generateRandom64() & generateRandom64();
 
     if (countSetBits((magic_num * bishopMagicMasks[bit]) &
                      0xFF00000000000000ull) < 6) {
@@ -192,8 +175,7 @@ void generateBishopMagicNumber(
     for (i = 0; i < N_BISHOP_BLOCKERS_PERMUTATIONS; i++) {
       uint64_t blockers = blockers_array[bit][i];
       uint64_t magic_product = blockers * magic_num;
-      uint16_t index = magic_product >> 55;
-
+      uint16_t index = magic_product >> (64 - N_BISHOP_BLOCKERS);
       uint64_t diag_moves = getSetwiseDiagonalMoves(1ull << bit, blockers);
 
       if (bishopMagicTableTemp[index] == 0) {
@@ -219,6 +201,11 @@ void generateBishopMagicNumber(
   }
 }
 
+/** Populates the global magic rook table used for generating
+ * horizontal/vertical moves.
+ *
+ * @param blockers_array: Rook blockers array.
+ */
 void initializeRookMagicTable(
     uint64_t blockers_array[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
@@ -233,6 +220,10 @@ void initializeRookMagicTable(
   }
 }
 
+/** Populates the global magic bishop table used for generating diagonal moves.
+ *
+ * @param blockers_array: Bishop blockers array.
+ */
 void initializeBishopMagicTable(
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
@@ -247,11 +238,15 @@ void initializeBishopMagicTable(
   }
 }
 
-// TODO: add documentation.
+/** Generates a blockers bitboard from the respective blocker index.
+ *
+ * @param blocker_index: Blocker index. Each set bit represents a blocker.
+ * @param all_blockers: Bitboard of all possible blockers.
+ * @return Bitboard of blockers.
+ */
 uint64_t generateBlockersBitboardFromIndex(uint16_t blocker_index,
                                            uint64_t all_blockers) {
   uint64_t blockers_bitboard = all_blockers;
-
   uint8_t i_blocker = 0;
   while (all_blockers) {
     uint64_t blocker_bb = getLowestSetBitValue(all_blockers);
@@ -267,7 +262,10 @@ uint64_t generateBlockersBitboardFromIndex(uint16_t blocker_index,
   return blockers_bitboard;
 }
 
-// ADD DOCUMENTATION.
+/** Initializes the rook blockers array.
+ *
+ * @param blockers_array: Rook blockers array.
+ */
 void initializeRookBlockers(
     uint64_t blockers_array[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
@@ -280,7 +278,10 @@ void initializeRookBlockers(
   }
 }
 
-// ADD DOCUMENTATION.
+/** Initializes the bishop blockers array.
+ *
+ * @param blockers_array: Bishop blockers array.
+ */
 void initializeBishopBlockers(
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
@@ -293,23 +294,32 @@ void initializeBishopBlockers(
   }
 }
 
-void initializeBishopMagicBitboards(void) {
+/** Initializes the bishop magic bitboard table.
+ *
+ * @param rook_blockers: Rook blockers table.
+ */
+void initializeBishopMagicBitboardTable(void) {
   uint64_t bishop_blockers[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS];
   initializeBishopBlockers(bishop_blockers);
   initializeBishopMagicTable(bishop_blockers);
 }
 
-void initializeRookMagicBitboards(void) {
+/** Initializes the rook magic bitboard table.
+ *
+ * @param rook_blockers: Rook blockers table.
+ */
+void initializeRookMagicBitboardTable(void) {
   uint64_t rook_blockers[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS];
   initializeRookBlockers(rook_blockers);
   initializeRookMagicTable(rook_blockers);
 }
 
-void initializeMagicBitboards(void) {
-  initializeBishopMagicBitboards();
-  initializeRookMagicBitboards();
+void initializeMagicBitboardTables(void) {
+  initializeBishopMagicBitboardTable();
+  initializeRookMagicBitboardTable();
 }
 
+// Add documentation
 uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc,
                    uint64_t K) {
   if (unsafe_calc) {
@@ -323,6 +333,7 @@ uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc,
   return magic_moves;
 }
 
+// Add documentation
 uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc,
                     uint64_t K) {
   if (unsafe_calc) {

@@ -43,3 +43,9 @@ void clearLowestSetBit(uint64_t &x);
  * @return The count of set bits.
  */
 uint8_t countSetBits(uint64_t x);
+
+/** Generates a random 64 bit integer..
+ *
+ * @return Random 64 bit integer.
+ */
+uint64_t generateRandom64(void);

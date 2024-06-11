@@ -135,7 +135,7 @@ int main() {
   //   }
   //   std::cout << result << std::endl;
 
-  initializeMagicBitboards();
+  initializeMagicBitboardTables();
 
   testAllPerft();
   // generate_board("ba", 3);
