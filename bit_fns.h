@@ -1,6 +1,8 @@
 #pragma once
 
 #include "board.h"
+#include "constants.h"
+#include "helper_functions.h"
 #include <stdint.h>
 #include <string>
 
@@ -16,24 +18,10 @@ enum SpecialMove : uint8_t {
   PAWN_PUSH_2 = 8,
 };
 
-struct Move {
-  // Moves are stored as a 16-bit integer. Kept as lightweight as possible to
-  // allow deeper search. Bits: 0 - 2:   Initial x position 3 - 5:   Initial y
-  // position 6 - 8:   Final x position 9 - 11:  Final y position 12 - 15:
-  // Special move flags (see SpecialMove enum)
-  uint16_t data = 0;
-};
+// struct Move {
 
-struct MoveGameStateScore {
-  Move move;
-  GameState gamestate;
-  int16_t score = 0;
-
-  // Overloaded comparator. Used for sorting in descending order.
-  bool operator<(const MoveGameStateScore &move_gamestate_score) const {
-    return score > move_gamestate_score.score;
-  }
-};
+//   uint16_t data = 0;
+// };
 
 void generate_board(std::string name, uint8_t diff);
 

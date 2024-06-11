@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include <unordered_map>
+#include <utility>
 
 // Edge bits all set.
 const uint64_t OUTER_BITS = 0xFF818181818181FF;

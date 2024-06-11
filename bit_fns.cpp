@@ -13,71 +13,81 @@
 #include <stdint.h>
 #include <string>
 
+// TODO: could cleanup and move definition outside of class for readability.
+class Move {
+private:
+  /**Moves are stored as a 16-bit integer. Kept as lightweight as possible to
+   * allow deeper search. Bits: 0 - 2:   Initial x position 3 - 5:   Initial y
+   * position 6 - 8:   Final x position 9 - 11:  Final y position 12 - 15:
+   * Special move flags (see SpecialMove enum)
+   */
+  uint16_t data = 0;
+  void setX1(uint8_t x1) { data |= x1; }
+  void setY1(uint8_t y1) { data |= y1 << 3; }
+  void setX2(uint8_t x2) { data |= x2 << 6; }
+  void setY2(uint8_t y2) { data |= y2 << 9; }
+  std::string specialToString(void) {
+    switch (getSpecial()) {
+    case NONE:
+    case PAWN_PUSH_2:
+      return "";
+    case CASTLE_KINGSIDE:
+      return "Kingside Castle";
+    case CASTLE_QUEENSIDE:
+      return "Queenside Castle";
+    case PROMOTION_QUEEN:
+      return "Promotion (Queen)";
+    case PROMOTION_ROOK:
+      return "Promotion (Rook)";
+    case PROMOTION_KNIGHT:
+      return "Promotion (Knight)";
+    case PROMOTION_BISHOP:
+      return "Promotion (Bishop)";
+    case EN_PASSANT:
+      return "En Passant";
+    default:
+      logErrorAndExit("ERROR: Unknown value received for special_move.");
+      return "";
+    }
+  }
+
+public:
+  uint8_t getX1(void) { return data & X_INITIAL; }
+  uint8_t getY1(void) { return (data & Y_INITIAL) >> 3; }
+  uint8_t getX2(void) { return (data & X_FINAL) >> 6; }
+  uint8_t getY2(void) { return (data & Y_FINAL) >> 9; }
+  SpecialMove getSpecial(void) { return (SpecialMove)((data & SPECIAL) >> 12); }
+  void setSpecial(SpecialMove special_move) {
+    data &= ~SPECIAL;
+    data |= special_move << 12;
+  }
+  std::string toString(void) {
+    return (char)('a' + getY1()) + std::to_string(getX1() + 1) +
+           (char)('a' + getY2()) + std::to_string(getX2() + 1) + " " +
+           specialToString();
+  }
+  Move() {};
+  Move(std::pair<uint8_t, uint8_t> initial, std::pair<uint8_t, uint8_t> final,
+       SpecialMove special) {
+    setX1(initial.first);
+    setY1(initial.second);
+    setX2(final.first);
+    setY2(final.second);
+    setSpecial(special);
+  }
+  Move(std::pair<uint8_t, uint8_t> initial, std::pair<uint8_t, uint8_t> final) {
+    setX1(initial.first);
+    setY1(initial.second);
+    setX2(final.first);
+    setY2(final.second);
+  }
+};
+
 struct AI_return {
   Move move;
   int16_t value = 0;
   uint32_t nodes_searched = 0;
 };
-
-uint8_t moveToX1(Move move) { return move.data & X_INITIAL; }
-
-uint8_t moveToY1(Move move) { return (move.data & Y_INITIAL) >> 3; }
-
-uint8_t moveToX2(Move move) { return (move.data & X_FINAL) >> 6; }
-
-uint8_t moveToY2(Move move) { return (move.data & Y_FINAL) >> 9; }
-
-SpecialMove moveToSpecial(Move move) {
-  return (SpecialMove)((move.data & SPECIAL) >> 12);
-}
-
-std::string specialMoveToString(SpecialMove special_move) {
-  switch (special_move) {
-  case NONE:
-  case PAWN_PUSH_2:
-    return "";
-  case CASTLE_KINGSIDE:
-    return "Kingside Castle";
-  case CASTLE_QUEENSIDE:
-    return "Queenside Castle";
-  case PROMOTION_QUEEN:
-    return "Promotion (Queen)";
-  case PROMOTION_ROOK:
-    return "Promotion (Rook)";
-  case PROMOTION_KNIGHT:
-    return "Promotion (Knight)";
-  case PROMOTION_BISHOP:
-    return "Promotion (Bishop)";
-  case EN_PASSANT:
-    return "En Passant";
-  default:
-    logErrorAndExit("ERROR: Unknown value received for special_move.");
-    return "";
-  }
-}
-
-std::string moveToString(Move move) {
-  std::string result = "";
-  result += (char)('a' + moveToY1(move)) + std::to_string(moveToX1(move) + 1) +
-            (char)('a' + moveToY2(move)) + std::to_string(moveToX2(move) + 1) +
-            " " + specialMoveToString(moveToSpecial(move));
-  return result;
-}
-
-Move coordinatesToMove(std::pair<uint8_t, uint8_t> initial,
-                       std::pair<uint8_t, uint8_t> final) {
-  Move move;
-  move.data = initial.first;
-  move.data |= (initial.second << 3);
-  move.data |= (final.first << 6);
-  move.data |= (final.second << 9);
-  return move;
-}
-
-void updateSpecialMove(Move &move, SpecialMove special_move) {
-  move.data &= ~SPECIAL;
-  move.data |= (special_move << 12);
-}
 
 void printBitboard(uint64_t bb) {
   for (int i = 56; i >= 0; i -= 8) {
@@ -218,7 +228,8 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
       uint64_t final_bb = getLowestSetBitValue(possible_moves);
       uint8_t final_bit = getSetBit(final_bb);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[final_bit];
-      moves[n_moves++] = coordinatesToMove(initial, final);
+      // moves[n_moves++] = coordinatesToMove(initial, final);
+      moves[n_moves++] = Move(initial, final);
       clearLowestSetBit(possible_moves);
     }
     clearLowestSetBit(R);
@@ -254,7 +265,7 @@ void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-      moves[n_moves++] = coordinatesToMove(initial, final);
+      moves[n_moves++] = Move(initial, final);
 
       clearLowestSetBit(possible_moves);
     }
@@ -292,7 +303,7 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-      moves[n_moves++] = coordinatesToMove(initial, final);
+      moves[n_moves++] = Move(initial, final);
 
       clearLowestSetBit(possible_moves);
     }
@@ -335,7 +346,7 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
         uint64_t bb_final = getLowestSetBitValue(pos_moves);
         std::pair<uint8_t, uint8_t> final =
             bitToCoordinates[getSetBit(bb_final)];
-        moves[n_moves++] = coordinatesToMove(initial, final);
+        moves[n_moves++] = Move(initial, final);
 
         clearLowestSetBit(pos_moves);
       }
@@ -365,7 +376,7 @@ void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
   while (pos_moves) {
     uint64_t bb_final = getLowestSetBitValue(pos_moves);
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-    moves[n_moves++] = coordinatesToMove(initial, final);
+    moves[n_moves++] = Move(initial, final);
 
     clearLowestSetBit(pos_moves);
   }
@@ -407,7 +418,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
-    moves[n_moves++] = coordinatesToMove(initial, final);
+    moves[n_moves++] = Move(initial, final);
     clearLowestSetBit(P_FORWARD_1);
   }
 
@@ -417,8 +428,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -2 : 2;
-    Move move = coordinatesToMove(initial, final);
-    updateSpecialMove(move, PAWN_PUSH_2);
+    Move move = Move(initial, final, PAWN_PUSH_2);
     moves[n_moves++] = move;
     clearLowestSetBit(P_FORWARD_2);
   }
@@ -430,7 +440,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
-    moves[n_moves++] = coordinatesToMove(initial, final);
+    moves[n_moves++] = Move(initial, final);
     clearLowestSetBit(P_ATTACK_L);
   }
 
@@ -441,7 +451,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
-    moves[n_moves++] = coordinatesToMove(initial, final);
+    moves[n_moves++] = Move(initial, final);
     clearLowestSetBit(P_ATTACK_R);
   }
 
@@ -451,15 +461,14 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
-    Move move = coordinatesToMove(initial, final);
-
-    updateSpecialMove(move, PROMOTION_QUEEN);
+    Move move = Move(initial, final, PROMOTION_QUEEN);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_ROOK);
+    move.setSpecial(PROMOTION_ROOK);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_BISHOP);
+    move.setSpecial(PROMOTION_BISHOP);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_KNIGHT);
+    move.setSpecial(PROMOTION_KNIGHT);
+    ;
     moves[n_moves++] = move;
 
     clearLowestSetBit(P_PROMO_1);
@@ -473,15 +482,14 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
-    Move move = coordinatesToMove(initial, final);
-
-    updateSpecialMove(move, PROMOTION_QUEEN);
+    Move move = Move(initial, final, PROMOTION_QUEEN);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_ROOK);
+    move.setSpecial(PROMOTION_ROOK);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_BISHOP);
+    move.setSpecial(PROMOTION_BISHOP);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_KNIGHT);
+    move.setSpecial(PROMOTION_KNIGHT);
+    ;
     moves[n_moves++] = move;
 
     clearLowestSetBit(P_PROMO_L);
@@ -495,15 +503,14 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
-    Move move = coordinatesToMove(initial, final);
-
-    updateSpecialMove(move, PROMOTION_QUEEN);
+    Move move = Move(initial, final, PROMOTION_QUEEN);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_ROOK);
+    move.setSpecial(PROMOTION_ROOK);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_BISHOP);
+    move.setSpecial(PROMOTION_BISHOP);
     moves[n_moves++] = move;
-    updateSpecialMove(move, PROMOTION_KNIGHT);
+    move.setSpecial(PROMOTION_KNIGHT);
+    ;
     moves[n_moves++] = move;
 
     clearLowestSetBit(P_PROMO_R);
@@ -516,8 +523,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
-    Move move = coordinatesToMove(initial, final);
-    updateSpecialMove(move, EN_PASSANT);
+    Move move = Move(initial, final, EN_PASSANT);
     moves[n_moves++] = move;
     clearLowestSetBit(P_EP_L);
   }
@@ -529,8 +535,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
-    Move move = coordinatesToMove(initial, final);
-    updateSpecialMove(move, EN_PASSANT);
+    Move move = Move(initial, final, EN_PASSANT);
     moves[n_moves++] = move;
     clearLowestSetBit(P_EP_R);
   }
@@ -600,8 +605,7 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.second -= 2;
-    Move move = coordinatesToMove(initial, final);
-    updateSpecialMove(move, CASTLE_KINGSIDE);
+    Move move = Move(initial, final, CASTLE_KINGSIDE);
     moves[n_moves++] = move;
   }
 }
@@ -619,8 +623,7 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.second += 2;
-      Move move = coordinatesToMove(initial, final);
-      updateSpecialMove(move, CASTLE_QUEENSIDE);
+      Move move = Move(initial, final, CASTLE_QUEENSIDE);
       moves[n_moves++] = move;
     }
 }
@@ -897,11 +900,11 @@ uint8_t generateMoves(GameState &gamestate, Move *moves, bool &check) {
 }
 
 uint64_t moveGetInitialPositionBitboard(Move move) {
-  return (uint64_t)1 << ((moveToX1(move) * 8) + (moveToY1(move) % 8));
+  return (uint64_t)1 << ((move.getX1() * 8) + (move.getY1() % 8));
 }
 
 uint64_t moveGetFinalPositionBitboard(Move move) {
-  return (uint64_t)1 << ((moveToX2(move) * 8) + (moveToY2(move) % 8));
+  return (uint64_t)1 << ((move.getX2() * 8) + (move.getY2() % 8));
 }
 
 void handleCapturedPiece(bool white_to_move, uint64_t P,
@@ -1061,7 +1064,7 @@ void applyBlackMove(GameState &gamestate, const Move &move, uint64_t initial,
 void applyMove(Move move, GameState &gamestate) {
   const uint64_t initial = moveGetInitialPositionBitboard(move);
   const uint64_t final = moveGetFinalPositionBitboard(move);
-  const SpecialMove special = moveToSpecial(move);
+  const SpecialMove special = move.getSpecial();
   if (gamestate.whites_turn) {
     applyWhiteMove(gamestate, move, initial, final, special);
   } else {
@@ -1073,7 +1076,7 @@ void applyMove(Move move, GameState &gamestate) {
 void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
   for (uint8_t i = 0; i < n_moves; i++) {
-    std::cout << i + 1 << ": " + moveToString(moves[i]) << std::endl;
+    std::cout << i + 1 << ": " + moves[i].toString() << std::endl;
   }
 }
 
@@ -1100,12 +1103,12 @@ void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
       if (depth == orig_depth && false) {
         if (total) {
           std::cout << round(((i * 100 / n_moves)))
-                    << "% complete... -> d1:" << moveToString(moves[i])
+                    << "% complete... -> d1:" << moves[i].toString()
                     << "--------------------------------------------------"
                     << std::endl;
 
         } else { // node based
-          std::cout << i << ":" << moveToString(moves[i]) << " " << nodes
+          std::cout << i << ":" << moves[i].toString() << " " << nodes
                     << std::endl;
           nodes = 0;
         }
@@ -1141,23 +1144,6 @@ int16_t eval(const GameState gamestate) {
   return counter;
 }
 
-uint8_t
-generateSortedMoveGamestateScores(GameState &gamestate,
-                                  MoveGameStateScore *move_gamestate_scores,
-                                  bool &check) {
-  Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  uint8_t n_moves = generateMoves(gamestate, moves, check);
-
-  for (uint8_t i = 0; i < n_moves; i++) {
-    GameState gamestate_temp;
-    memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-    applyMove(moves[i], gamestate_temp);
-    move_gamestate_scores[i] = {moves[i], gamestate_temp, eval(gamestate_temp)};
-  }
-  std::sort(move_gamestate_scores, move_gamestate_scores + n_moves);
-  return n_moves;
-}
-
 AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
                   int16_t alpha = INT16_MIN, int16_t beta = INT16_MAX) {
   AI_return node_max;
@@ -1172,16 +1158,12 @@ AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
   }
 
   bool check = false;
-  // MoveGameStateScore move_gamestate_scores[MAX_POSSIBLE_MOVES_PER_POSITION];
   Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
   uint8_t n_moves = generateMoves(gamestate, moves, check);
-  // uint8_t n_moves = generateSortedMoveGamestateScores(gamestate,
-  // move_gamestate_scores, check);
 
   // Terminal node, Checkmate/Stalemate.
   if (n_moves == 0) {
-    Move leaf_move; // placeholder move. Make more elegant once move is a class.
-    AI_return leaf = {leaf_move, (int16_t)(check ? INT16_MAX * -color : 0), 1};
+    AI_return leaf = {Move(), (int16_t)(check ? INT16_MAX * -color : 0), 1};
     return leaf;
   }
 
@@ -1417,7 +1399,7 @@ void generate_board(std::string name, uint8_t diff) {
 
       auto end = std::chrono::high_resolution_clock::now();
 
-      std::cout << "Move chosen: " << moveToString(AI_choice.move) << std::endl;
+      std::cout << "Move chosen: " << AI_choice.move.toString() << std::endl;
       std::cout << AI_choice.value << std::endl;
 
       applyMove(AI_choice.move, gamestate);
@@ -1450,7 +1432,7 @@ void generate_board(std::string name, uint8_t diff) {
 
       applyMove(moves[user_choice - 1], gamestate);
 
-      std::cout << "Move chosen: " << moveToString(moves[user_choice - 1])
+      std::cout << "Move chosen: " << moves[user_choice - 1].toString()
                 << std::endl;
       std::cout << " " << std::endl;
     }
