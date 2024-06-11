@@ -828,8 +828,7 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.second -= 2;
-    Move move = Move(initial, final, CASTLE_KINGSIDE);
-    moves[n_moves++] = move;
+    moves[n_moves++] = Move(initial, final, CASTLE_KINGSIDE);
   }
 }
 
@@ -847,9 +846,20 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.second += 2;
-    Move move = Move(initial, final, CASTLE_QUEENSIDE);
-    moves[n_moves++] = move;
+    moves[n_moves++] = Move(initial, final, CASTLE_QUEENSIDE);
   }
+}
+
+// TODO ADD DOCUMENTATION.
+void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
+    move.setSpecial(PROMOTION_QUEEN);
+    moves[n_moves++] = move;
+    move.setSpecial(PROMOTION_ROOK);
+    moves[n_moves++] = move;
+    move.setSpecial(PROMOTION_BISHOP);
+    moves[n_moves++] = move;
+    move.setSpecial(PROMOTION_KNIGHT);
+    moves[n_moves++] = move;
 }
 
 // TODO DOCUMENTATION
@@ -900,8 +910,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -2 : 2;
-    Move move = Move(initial, final, PAWN_PUSH_2);
-    moves[n_moves++] = move;
+    moves[n_moves++] = Move(initial, final, PAWN_PUSH_2);
     clearLowestSetBit(P_FORWARD_2);
   }
 
@@ -933,15 +942,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
-    Move move = Move(initial, final, PROMOTION_QUEEN);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_ROOK);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_BISHOP);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_KNIGHT);
-    moves[n_moves++] = move;
-
+    addAllPromotionMoves(Move(initial, final), moves, n_moves);
     clearLowestSetBit(P_PROMO_1);
   }
 
@@ -953,15 +954,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
-    Move move = Move(initial, final, PROMOTION_QUEEN);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_ROOK);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_BISHOP);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_KNIGHT);
-    moves[n_moves++] = move;
-
+    addAllPromotionMoves(Move(initial, final), moves, n_moves);
     clearLowestSetBit(P_PROMO_L);
   }
 
@@ -973,15 +966,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
-    Move move = Move(initial, final, PROMOTION_QUEEN);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_ROOK);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_BISHOP);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_KNIGHT);
-    moves[n_moves++] = move;
-
+    addAllPromotionMoves(Move(initial, final), moves, n_moves);
     clearLowestSetBit(P_PROMO_R);
   }
 
@@ -992,8 +977,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
-    Move move = Move(initial, final, EN_PASSANT);
-    moves[n_moves++] = move;
+    moves[n_moves++] = Move(initial, final, EN_PASSANT);
     clearLowestSetBit(P_EP_L);
   }
 
@@ -1004,8 +988,7 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
-    Move move = Move(initial, final, EN_PASSANT);
-    moves[n_moves++] = move;
+    moves[n_moves++] = Move(initial, final, EN_PASSANT);
     clearLowestSetBit(P_EP_R);
   }
 }
