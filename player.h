@@ -1,12 +1,6 @@
-//
-// Created by David Doellstedt on 5/31/20.
-//
+#pragma once
 
-#ifndef DDS_CHESS_ENGINE_PLAYERS_H
-#define DDS_CHESS_ENGINE_PLAYERS_H
-#include <cstdlib>
-#include <ctime>
-#include <iostream>
+#include <string>
 
 class Player {
 
@@ -31,8 +25,4 @@ public:
   Player(bool h, bool c, int dif, int depth)
       : human(h), color(c), difficulty(dif), max_depth(depth) {
   } // AI player created, determined color
-
-  std::string get_move();
 };
-
-#endif // DDS_CHESS_ENGINE_PLAYERS_H

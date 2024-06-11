@@ -1,19 +1,17 @@
 #include "bit_fns.h"
 #include "board.h"
 #include "constants.h"
+#include "move_generator.h"
 #include <iostream>
 #include <stdint.h>
 #include <string>
-#include <tuple>
+#include <tuple> //tODO get rid of.
 
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
   GameState game_state;
   fenToGameState(fen, game_state);
   printBoard(game_state);
   uint32_t nodes = 0;
-
-  // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  // uint8_t n_moves = 0;
 
   bool total = true;
 
@@ -54,6 +52,7 @@ void testAllPerft(void) {
   uint32_t total_nodes = 0;
   uint8_t i = 0;
 
+  // TODO get rid of tuple.
   for (std::tuple<std::string, uint8_t, uint32_t> test : perft_test) {
     std::string fen = get<0>(test);
     uint8_t depth = get<1>(test);

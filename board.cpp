@@ -71,19 +71,6 @@ void printBoard(const GameState &game_state) {
   std::cout << dividing_line << std::endl;
 }
 
-uint64_t generatePlayerOccupiedBitboard(const PlayerState &player_state) {
-  return player_state.pawn | player_state.rook | player_state.knight |
-         player_state.bishop | player_state.queen | player_state.king;
-}
-
-uint64_t generateWhiteOccupiedBitboard(const GameState &game_state) {
-  return generatePlayerOccupiedBitboard(game_state.white);
-}
-
-uint64_t generateBlackOccupiedBitboard(const GameState &game_state) {
-  return generatePlayerOccupiedBitboard(game_state.black);
-}
-
 // TODO REFACTOR?
 void fenToGameState(const std::string fen, GameState &game_state) {
   std::string regex_string =
@@ -249,11 +236,9 @@ void fenToGameState(const std::string fen, GameState &game_state) {
 
 // TODO ADD DOCUMENTATION
 void handleCapturedPiece(bool white_to_move, uint64_t P,
-                         PlayerState &enemy_player, uint64_t E_P,
+                         ColorState &enemy_player, uint64_t E_P,
                          uint64_t initial, uint64_t final) {
-  uint64_t ENEMY_PIECES = white_to_move
-                              ? generatePlayerOccupiedBitboard(enemy_player)
-                              : generatePlayerOccupiedBitboard(enemy_player);
+  uint64_t ENEMY_PIECES = enemy_player.getOccupiedBitboard();
 
   if (ENEMY_PIECES & final) {
     if (enemy_player.pawn & final) {
@@ -292,7 +277,7 @@ void handleCapturedPiece(bool white_to_move, uint64_t P,
 }
 
 // TODO ADD DOCUMENTATION
-void realizeMovedPiece(bool white_to_move, PlayerState &active_player,
+void realizeMovedPiece(bool white_to_move, ColorState &active_player,
                        uint64_t &E_P, uint64_t initial, uint64_t final,
                        SpecialMove special) {
   switch (special) {

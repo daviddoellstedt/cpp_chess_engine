@@ -18,51 +18,6 @@ struct AI_return {
   uint32_t nodes_searched = 0;
 };
 
-// uint64_t moveGetInitialPositionBitboard(Move move) {
-//   return (uint64_t)1 << ((move.getX1() * 8) + (move.getY1() % 8));
-// }
-
-// uint64_t moveGetFinalPositionBitboard(Move move) {
-//   return (uint64_t)1 << ((move.getX2() * 8) + (move.getY2() % 8));
-// }
-
-void perft(uint32_t &nodes, GameState &game_state, uint8_t depth,
-           uint8_t orig_depth, bool total) {
-  bool check = false;
-  Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  uint8_t n_moves = generateMoves(game_state, moves, check);
-
-  if (depth == 1) {
-    nodes += n_moves;
-  }
-
-  if (depth > 1) {
-
-    for (uint8_t i = 0; i < n_moves; i++) {
-      GameState game_state_temp;
-      memcpy(&game_state_temp, &game_state, sizeof(GameState));
-      applyMove(moves[i], game_state_temp);
-
-      perft(nodes, game_state_temp, uint8_t(depth - 1), orig_depth, total);
-
-      // TODO: make part of a 'verbose' flag.
-      if (depth == orig_depth && false) {
-        if (total) {
-          std::cout << round(((i * 100 / n_moves)))
-                    << "% complete... -> d1:" << moves[i].toString()
-                    << "--------------------------------------------------"
-                    << std::endl;
-
-        } else { // node based
-          std::cout << i << ":" << moves[i].toString() << " " << nodes
-                    << std::endl;
-          nodes = 0;
-        }
-      }
-    }
-  }
-}
-
 int16_t eval(const GameState game_state) {
   // material
   int16_t counter = 0;
@@ -168,8 +123,8 @@ void generate_board(std::string name, uint8_t diff) {
 
   while (!CM && !SM) {
 
-    uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
-    uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
+    uint64_t WHITE_PIECES = game_state.getWhiteOccupiedBitboard();
+    uint64_t BLACK_PIECES = game_state.getBlackOccupiedBitboard();
     uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
     if (game_state.whites_turn) {

@@ -1,4 +1,3 @@
-#include "move_generator.h"
 #include "board.h"
 #include "constants.h"
 #include "helper_functions.h"
@@ -740,7 +739,7 @@ uint8_t getPawnChecker(bool white_to_move, uint64_t K, uint64_t EP,
 }
 
 // TODO add documentation.
-bool isInCheck(bool white_to_move, uint64_t K, PlayerState enemy_player_state,
+bool isInCheck(bool white_to_move, uint64_t K, ColorState enemy_player_state,
                uint64_t OCCUPIED, uint64_t &DZ, uint64_t &checker_zone,
                uint8_t &n_checkers) {
   DZ |= getPawnAttackZone(white_to_move, enemy_player_state.pawn);
@@ -1096,8 +1095,8 @@ void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
 
 // TODO add documentation.
 uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
+  uint64_t WHITE_PIECES = game_state.getWhiteOccupiedBitboard();
+  uint64_t BLACK_PIECES = game_state.getBlackOccupiedBitboard();
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   uint64_t DZ = 0;
@@ -1145,8 +1144,8 @@ uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
 
 // TODO add documentation.
 uint8_t generateWhiteMoves(GameState &game_state, Move *moves, bool &check) {
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
+  uint64_t WHITE_PIECES = game_state.getWhiteOccupiedBitboard();
+  uint64_t BLACK_PIECES = game_state.getBlackOccupiedBitboard();
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   uint64_t DZ = 0;
@@ -1202,5 +1201,42 @@ void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
   for (uint8_t i = 0; i < n_moves; i++) {
     std::cout << i + 1 << ": " + moves[i].toString() << std::endl;
+  }
+}
+
+void perft(uint32_t &nodes, GameState &game_state, uint8_t depth,
+           uint8_t orig_depth, bool total) {
+  bool check = false;
+  Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+  uint8_t n_moves = generateMoves(game_state, moves, check);
+
+  if (depth == 1) {
+    nodes += n_moves;
+  }
+
+  if (depth > 1) {
+
+    for (uint8_t i = 0; i < n_moves; i++) {
+      GameState game_state_temp;
+      memcpy(&game_state_temp, &game_state, sizeof(GameState));
+      applyMove(moves[i], game_state_temp);
+
+      perft(nodes, game_state_temp, uint8_t(depth - 1), orig_depth, total);
+
+      // TODO: make part of a 'verbose' flag.
+      if (depth == orig_depth && false) {
+        if (total) {
+          std::cout << round(((i * 100 / n_moves)))
+                    << "% complete... -> d1:" << moves[i].toString()
+                    << "--------------------------------------------------"
+                    << std::endl;
+
+        } else { // node based
+          std::cout << i << ":" << moves[i].toString() << " " << nodes
+                    << std::endl;
+          nodes = 0;
+        }
+      }
+    }
   }
 }
