@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 
 typedef struct PlayerState {
   uint64_t rook = 0;
@@ -55,3 +56,6 @@ uint64_t generateWhiteOccupiedBitboard(const GameState &game_state);
  * @return Black occupied bitboard.
  */
 uint64_t generateBlackOccupiedBitboard(const GameState &game_state);
+
+// TODO ADD DOCUMENTATION.
+void fenToGameState(const std::string fen, GameState &gamestate);
