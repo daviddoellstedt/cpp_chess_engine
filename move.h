@@ -72,18 +72,17 @@ public:
            specialToString();
   }
   Move() {};
-  Move(std::pair<uint8_t, uint8_t> initial, std::pair<uint8_t, uint8_t> final,
-       SpecialMove special) {
-    setX1(initial.first);
-    setY1(initial.second);
-    setX2(final.first);
-    setY2(final.second);
+  Move(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, SpecialMove special) {
+    setX1(x1);
+    setY1(y1);
+    setX2(x2);
+    setY2(y2);
     setSpecial(special);
   }
-  Move(std::pair<uint8_t, uint8_t> initial, std::pair<uint8_t, uint8_t> final) {
-    setX1(initial.first);
-    setY1(initial.second);
-    setX2(final.first);
-    setY2(final.second);
+  Move(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2) {
+    setX1(x1);
+    setY1(y1);
+    setX2(x2);
+    setY2(y2);
   }
 };

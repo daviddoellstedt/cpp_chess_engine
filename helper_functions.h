@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <stdint.h>
 #include <string>
 
@@ -55,3 +56,7 @@ uint64_t generateRandom64(void);
  * @param bitboard: 64 bit bitboard.
  */
 void printBitboard(uint64_t bitboard);
+
+inline uint8_t bitToX(uint8_t bit) { return bit / 8; }
+
+inline uint8_t bitToY(uint8_t bit) { return bit % 8; }

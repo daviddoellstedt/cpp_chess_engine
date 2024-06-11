@@ -421,14 +421,12 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
     uint64_t mask = bb & PINNED ? getColinearMask(bb, K) : FILLED;
 
     uint64_t possible_moves =
-        h_v_moves(bb, OCCUPIED, false, 0u) & ~PIECES & mask & checker_zone;
-
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
+        h_v_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
     while (possible_moves) {
       uint64_t final_bb = getLowestSetBitValue(possible_moves);
       uint8_t final_bit = getSetBit(final_bb);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[final_bit];
-      moves[n_moves++] = Move(initial, final);
+      moves[n_moves++] =
+          Move(bitToX(bit), bitToY(bit), bitToX(final_bit), bitToY(final_bit));
       clearLowestSetBit(possible_moves);
     }
     clearLowestSetBit(R);
@@ -461,11 +459,11 @@ void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
     uint64_t possible_moves =
         diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-      moves[n_moves++] = Move(initial, final);
+      uint8_t final_bit = getSetBit(bb_final);
+      moves[n_moves++] =
+          Move(bitToX(bit), bitToY(bit), bitToX(final_bit), bitToY(final_bit));
 
       clearLowestSetBit(possible_moves);
     }
@@ -500,11 +498,11 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
         (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES & mask &
         checker_zone;
 
-    std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
-      std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-      moves[n_moves++] = Move(initial, final);
+      uint8_t final_bit = getSetBit(bb_final);
+      moves[n_moves++] =
+          Move(bitToX(bit), bitToY(bit), bitToX(final_bit), bitToY(final_bit));
 
       clearLowestSetBit(possible_moves);
     }
@@ -536,12 +534,11 @@ void generateKnightMoves(uint64_t N, uint64_t PIECES, uint64_t PINNED,
     if (!(bb & PINNED)) { // only check for moves if it's not pinned.
                           // pinned knights cannot move.
       uint64_t pos_moves = knight_moves[kn_bit] & ~PIECES & checker_zone;
-      std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
       while (pos_moves) {
         uint64_t bb_final = getLowestSetBitValue(pos_moves);
-        std::pair<uint8_t, uint8_t> final =
-            bitToCoordinates[getSetBit(bb_final)];
-        moves[n_moves++] = Move(initial, final);
+        uint8_t final_bit = getSetBit(bb_final);
+        moves[n_moves++] = Move(bitToX(kn_bit), bitToY(kn_bit),
+                                bitToX(final_bit), bitToY(final_bit));
 
         clearLowestSetBit(pos_moves);
       }
@@ -564,11 +561,11 @@ void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
                        uint8_t &n_moves) {
   uint8_t k_bit = getSetBit(K);
   uint64_t pos_moves = king_moves[k_bit] & ~PIECES & ~DZ;
-  std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
   while (pos_moves) {
     uint64_t bb_final = getLowestSetBitValue(pos_moves);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
-    moves[n_moves++] = Move(initial, final);
+    uint8_t final_bit = getSetBit(bb_final);
+    moves[n_moves++] = Move(bitToX(k_bit), bitToY(k_bit), bitToX(final_bit),
+                            bitToY(final_bit));
     clearLowestSetBit(pos_moves);
   }
 }
@@ -825,10 +822,8 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
     uint8_t k_bit =
         getSetBit((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1));
 
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.second -= 2;
-    moves[n_moves++] = Move(initial, final, CASTLE_KINGSIDE);
+    moves[n_moves++] = Move(bitToX(k_bit), bitToY(k_bit) - 2, bitToX(k_bit),
+                            bitToY(k_bit), CASTLE_KINGSIDE);
   }
 }
 
@@ -843,10 +838,8 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
       0u) {
     uint8_t k_bit = getSetBit(((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) &
                               ~DZ & ~(DZ >> 1));
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.second += 2;
-    moves[n_moves++] = Move(initial, final, CASTLE_QUEENSIDE);
+    moves[n_moves++] = Move(bitToX(k_bit), bitToY(k_bit) + 2, bitToX(k_bit),
+                            bitToY(k_bit), CASTLE_QUEENSIDE);
   }
 }
 
@@ -897,98 +890,95 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
   // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
   while (P_FORWARD_1) {
     uint64_t bb = getLowestSetBitValue(P_FORWARD_1);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    moves[n_moves++] = Move(initial, final);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] = Move(x + (white_to_move ? -1 : 1), y, x, y);
     clearLowestSetBit(P_FORWARD_1);
   }
 
   // check to see if you can move 2
   while (P_FORWARD_2) {
     uint64_t bb = getLowestSetBitValue(P_FORWARD_2);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -2 : 2;
-    moves[n_moves++] = Move(initial, final, PAWN_PUSH_2);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] = Move(x + (white_to_move ? -2 : 2), y, x, y, PAWN_PUSH_2);
     clearLowestSetBit(P_FORWARD_2);
   }
 
   // check for attacks left
   while (P_ATTACK_L) {
     uint64_t bb = getLowestSetBitValue(P_ATTACK_L);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? 1 : 1;
-    moves[n_moves++] = Move(initial, final);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] = Move(x + (white_to_move ? -1 : 1), y + 1, x, y);
     clearLowestSetBit(P_ATTACK_L);
   }
 
   // check for attacks right
   while (P_ATTACK_R) {
     uint64_t bb = getLowestSetBitValue(P_ATTACK_R);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? -1 : -1;
-    moves[n_moves++] = Move(initial, final);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] = Move(x + (white_to_move ? -1 : 1), y - 1, x, y);
     clearLowestSetBit(P_ATTACK_R);
   }
 
   // check for promotion straight
   while (P_PROMO_1) {
     uint64_t bb = getLowestSetBitValue(P_PROMO_1);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    addAllPromotionMoves(Move(initial, final), moves, n_moves);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    addAllPromotionMoves(Move(x + (white_to_move ? -1 : 1), y, x, y), moves,
+                         n_moves);
     clearLowestSetBit(P_PROMO_1);
   }
 
   // check for promotion left
   while (P_PROMO_L) {
     uint64_t bb = getLowestSetBitValue(P_PROMO_L);
-
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? 1 : 1;
-    addAllPromotionMoves(Move(initial, final), moves, n_moves);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    addAllPromotionMoves(Move(x + (white_to_move ? -1 : 1), y + 1, x, y), moves,
+                         n_moves);
     clearLowestSetBit(P_PROMO_L);
   }
 
   // check for promotion attack right
   while (P_PROMO_R) {
     uint64_t bb = getLowestSetBitValue(P_PROMO_R);
-
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? -1 : -1;
-    addAllPromotionMoves(Move(initial, final), moves, n_moves);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    addAllPromotionMoves(Move(x + (white_to_move ? -1 : 1), y - 1, x, y), moves,
+                         n_moves);
     clearLowestSetBit(P_PROMO_R);
   }
 
   // check for en passant left
   while (P_EP_L) {
     uint64_t bb = getLowestSetBitValue(P_EP_L);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? 1 : 1;
-    moves[n_moves++] = Move(initial, final, EN_PASSANT);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] =
+        Move(x + (white_to_move ? -1 : 1), y + 1, x, y, EN_PASSANT);
     clearLowestSetBit(P_EP_L);
   }
 
   // check for en passant right
   while (P_EP_R) {
     uint64_t bb = getLowestSetBitValue(P_EP_R);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
-    std::pair<uint8_t, uint8_t> initial = final;
-    initial.first += white_to_move ? -1 : 1;
-    initial.second += white_to_move ? -1 : -1;
-    moves[n_moves++] = Move(initial, final, EN_PASSANT);
+    uint8_t final_bit = getSetBit(bb);
+    uint8_t x = bitToX(final_bit);
+    uint8_t y = bitToY(final_bit);
+    moves[n_moves++] =
+        Move(x + (white_to_move ? -1 : 1), y - 1, x, y, EN_PASSANT);
     clearLowestSetBit(P_EP_R);
   }
 }
