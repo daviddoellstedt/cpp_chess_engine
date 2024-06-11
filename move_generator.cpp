@@ -1127,102 +1127,104 @@ void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
 }
 
 // TODO add documentation.
-uint8_t generateBlackMoves(GameState &gamestate, Move *moves, bool &check) {
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   uint64_t DZ = 0;
   uint8_t n_checkers = 0;
   uint64_t checker_zone = 0;
-  check = isInCheck(gamestate.whites_turn, gamestate.black.king,
-                    gamestate.white, OCCUPIED, DZ, checker_zone, n_checkers);
+  check = isInCheck(game_state.whites_turn, game_state.black.king,
+                    game_state.white, OCCUPIED, DZ, checker_zone, n_checkers);
 
   uint64_t PINNED = getPinnedPieces(
-      gamestate.black.king, gamestate.black.pawn, gamestate.white.queen,
-      gamestate.white.bishop, gamestate.white.rook, OCCUPIED,
-      gamestate.en_passant, gamestate.whites_turn);
+      game_state.black.king, game_state.black.pawn, game_state.white.queen,
+      game_state.white.bishop, game_state.white.rook, OCCUPIED,
+      game_state.en_passant, game_state.whites_turn);
 
   uint8_t n_moves = 0;
   if (!check) {
-    generateKingsideCastleMove(gamestate.black.can_king_side_castle,
-                               gamestate.black.king, ~OCCUPIED, DZ, moves,
+    generateKingsideCastleMove(game_state.black.can_king_side_castle,
+                               game_state.black.king, ~OCCUPIED, DZ, moves,
                                n_moves);
-    generateQueensideCastleMove(gamestate.black.can_queen_side_castle,
-                                gamestate.black.king, ~OCCUPIED, DZ, moves,
+    generateQueensideCastleMove(game_state.black.can_queen_side_castle,
+                                game_state.black.king, ~OCCUPIED, DZ, moves,
                                 n_moves);
   }
 
   if (n_checkers < 2) {
-    generateBlackPawnMoves(gamestate.whites_turn, gamestate.black.pawn,
-                           gamestate.black.king, gamestate.en_passant,
+    generateBlackPawnMoves(game_state.whites_turn, game_state.black.pawn,
+                           game_state.black.king, game_state.en_passant,
                            ~OCCUPIED, WHITE_PIECES, PINNED, checker_zone, moves,
                            n_moves);
-    generateRookMoves(gamestate.black.rook, gamestate.black.king, BLACK_PIECES,
-                      OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    generateBishopMoves(gamestate.black.bishop, gamestate.black.king,
+    generateRookMoves(game_state.black.rook, game_state.black.king,
+                      BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                      n_moves);
+    generateBishopMoves(game_state.black.bishop, game_state.black.king,
                         BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                         n_moves);
-    generateQueenMoves(gamestate.black.queen, gamestate.black.king,
+    generateQueenMoves(game_state.black.queen, game_state.black.king,
                        BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                        n_moves);
-    generateKnightMoves(gamestate.black.knight, gamestate.black.king,
+    generateKnightMoves(game_state.black.knight, game_state.black.king,
                         BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
   }
-  generateKingMoves(gamestate.black.king, BLACK_PIECES, DZ, moves, n_moves);
+  generateKingMoves(game_state.black.king, BLACK_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
 
 // TODO add documentation.
-uint8_t generateWhiteMoves(GameState &gamestate, Move *moves, bool &check) {
-  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
-  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+uint8_t generateWhiteMoves(GameState &game_state, Move *moves, bool &check) {
+  uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
+  uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
   uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
   uint64_t DZ = 0;
   uint8_t n_checkers = 0;
   uint64_t checker_zone = 0;
-  check = isInCheck(gamestate.whites_turn, gamestate.white.king,
-                    gamestate.black, OCCUPIED, DZ, checker_zone, n_checkers);
+  check = isInCheck(game_state.whites_turn, game_state.white.king,
+                    game_state.black, OCCUPIED, DZ, checker_zone, n_checkers);
 
   uint64_t PINNED = getPinnedPieces(
-      gamestate.white.king, gamestate.white.pawn, gamestate.black.queen,
-      gamestate.black.bishop, gamestate.black.rook, OCCUPIED,
-      gamestate.en_passant, gamestate.whites_turn);
+      game_state.white.king, game_state.white.pawn, game_state.black.queen,
+      game_state.black.bishop, game_state.black.rook, OCCUPIED,
+      game_state.en_passant, game_state.whites_turn);
 
   uint8_t n_moves = 0;
   if (!check) {
-    generateKingsideCastleMove(gamestate.white.can_king_side_castle,
-                               gamestate.white.king, ~OCCUPIED, DZ, moves,
+    generateKingsideCastleMove(game_state.white.can_king_side_castle,
+                               game_state.white.king, ~OCCUPIED, DZ, moves,
                                n_moves);
-    generateQueensideCastleMove(gamestate.white.can_queen_side_castle,
-                                gamestate.white.king, ~OCCUPIED, DZ, moves,
+    generateQueensideCastleMove(game_state.white.can_queen_side_castle,
+                                game_state.white.king, ~OCCUPIED, DZ, moves,
                                 n_moves);
   }
 
   if (n_checkers < 2) {
-    generateWhitePawnMoves(gamestate.whites_turn, gamestate.white.pawn,
-                           gamestate.white.king, gamestate.en_passant,
+    generateWhitePawnMoves(game_state.whites_turn, game_state.white.pawn,
+                           game_state.white.king, game_state.en_passant,
                            ~OCCUPIED, BLACK_PIECES, PINNED, checker_zone, moves,
                            n_moves);
-    generateRookMoves(gamestate.white.rook, gamestate.white.king, WHITE_PIECES,
-                      OCCUPIED, PINNED, checker_zone, moves, n_moves);
-    generateBishopMoves(gamestate.white.bishop, gamestate.white.king,
+    generateRookMoves(game_state.white.rook, game_state.white.king,
+                      WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
+                      n_moves);
+    generateBishopMoves(game_state.white.bishop, game_state.white.king,
                         WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                         n_moves);
-    generateQueenMoves(gamestate.white.queen, gamestate.white.king,
+    generateQueenMoves(game_state.white.queen, game_state.white.king,
                        WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                        n_moves);
-    generateKnightMoves(gamestate.white.knight, gamestate.white.king,
+    generateKnightMoves(game_state.white.knight, game_state.white.king,
                         WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
   }
-  generateKingMoves(gamestate.white.king, WHITE_PIECES, DZ, moves, n_moves);
+  generateKingMoves(game_state.white.king, WHITE_PIECES, DZ, moves, n_moves);
 
   return n_moves;
 }
 
-uint8_t generateMoves(GameState &gamestate, Move *moves, bool &check) {
-  return gamestate.whites_turn ? generateWhiteMoves(gamestate, moves, check)
-                               : generateBlackMoves(gamestate, moves, check);
+uint8_t generateMoves(GameState &game_state, Move *moves, bool &check) {
+  return game_state.whites_turn ? generateWhiteMoves(game_state, moves, check)
+                                : generateBlackMoves(game_state, moves, check);
 }

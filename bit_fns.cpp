@@ -170,32 +170,32 @@ void realizeMovedPiece(bool white_to_move, PlayerState &active_player,
   }
 }
 
-void applyWhiteMove(GameState &gamestate, const Move &move, uint64_t initial,
+void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
                     uint64_t final, SpecialMove special) {
-  handleCapturedPiece(gamestate.whites_turn, gamestate.white.pawn,
-                      gamestate.black, gamestate.en_passant, initial, final);
-  realizeMovedPiece(gamestate.whites_turn, gamestate.white,
-                    gamestate.en_passant, initial, final, special);
+  handleCapturedPiece(game_state.whites_turn, game_state.white.pawn,
+                      game_state.black, game_state.en_passant, initial, final);
+  realizeMovedPiece(game_state.whites_turn, game_state.white,
+                    game_state.en_passant, initial, final, special);
 }
 
-void applyBlackMove(GameState &gamestate, const Move &move, uint64_t initial,
+void applyBlackMove(GameState &game_state, const Move &move, uint64_t initial,
                     uint64_t final, SpecialMove special) {
-  handleCapturedPiece(gamestate.whites_turn, gamestate.black.pawn,
-                      gamestate.white, gamestate.en_passant, initial, final);
-  realizeMovedPiece(gamestate.whites_turn, gamestate.black,
-                    gamestate.en_passant, initial, final, special);
+  handleCapturedPiece(game_state.whites_turn, game_state.black.pawn,
+                      game_state.white, game_state.en_passant, initial, final);
+  realizeMovedPiece(game_state.whites_turn, game_state.black,
+                    game_state.en_passant, initial, final, special);
 }
 
-void applyMove(Move move, GameState &gamestate) {
+void applyMove(Move move, GameState &game_state) {
   const uint64_t initial = moveGetInitialPositionBitboard(move);
   const uint64_t final = moveGetFinalPositionBitboard(move);
   const SpecialMove special = move.getSpecial();
-  if (gamestate.whites_turn) {
-    applyWhiteMove(gamestate, move, initial, final, special);
+  if (game_state.whites_turn) {
+    applyWhiteMove(game_state, move, initial, final, special);
   } else {
-    applyBlackMove(gamestate, move, initial, final, special);
+    applyBlackMove(game_state, move, initial, final, special);
   }
-  gamestate.whites_turn = !gamestate.whites_turn;
+  game_state.whites_turn = !game_state.whites_turn;
 }
 
 void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
@@ -205,11 +205,11 @@ void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   }
 }
 
-void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
+void perft(uint32_t &nodes, GameState &game_state, uint8_t depth,
            uint8_t orig_depth, bool total) {
   bool check = false;
   Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  uint8_t n_moves = generateMoves(gamestate, moves, check);
+  uint8_t n_moves = generateMoves(game_state, moves, check);
 
   if (depth == 1) {
     nodes += n_moves;
@@ -218,11 +218,11 @@ void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
   if (depth > 1) {
 
     for (uint8_t i = 0; i < n_moves; i++) {
-      GameState gamestate_temp;
-      memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-      applyMove(moves[i], gamestate_temp);
+      GameState game_state_temp;
+      memcpy(&game_state_temp, &game_state, sizeof(GameState));
+      applyMove(moves[i], game_state_temp);
 
-      perft(nodes, gamestate_temp, uint8_t(depth - 1), orig_depth, total);
+      perft(nodes, game_state_temp, uint8_t(depth - 1), orig_depth, total);
 
       // TODO: make part of a 'verbose' flag.
       if (depth == orig_depth && false) {
@@ -242,34 +242,34 @@ void perft(uint32_t &nodes, GameState &gamestate, uint8_t depth,
   }
 }
 
-int16_t eval(const GameState gamestate) {
+int16_t eval(const GameState game_state) {
   // material
   int16_t counter = 0;
-  counter += (countSetBits(gamestate.white.pawn) -
-              countSetBits(gamestate.black.pawn)) *
+  counter += (countSetBits(game_state.white.pawn) -
+              countSetBits(game_state.black.pawn)) *
              100;
-  counter += (countSetBits(gamestate.white.bishop) -
-              countSetBits(gamestate.black.bishop)) *
+  counter += (countSetBits(game_state.white.bishop) -
+              countSetBits(game_state.black.bishop)) *
              300; // todo: add special case regarding number of bishops
-  counter += (countSetBits(gamestate.white.knight) -
-              countSetBits(gamestate.black.knight)) *
+  counter += (countSetBits(game_state.white.knight) -
+              countSetBits(game_state.black.knight)) *
              300;
-  counter += (countSetBits(gamestate.white.rook) -
-              countSetBits(gamestate.black.rook)) *
+  counter += (countSetBits(game_state.white.rook) -
+              countSetBits(game_state.black.rook)) *
              500;
-  counter += (countSetBits(gamestate.white.queen) -
-              countSetBits(gamestate.black.queen)) *
+  counter += (countSetBits(game_state.white.queen) -
+              countSetBits(game_state.black.queen)) *
              900;
   //    if (counter > 1000000){
   //       std::cout << counter << std::endl;
-  //       printBoard(gamestate);
+  //       printBoard(game_state);
   //       exit(1);
   //    }
 
   return counter;
 }
 
-AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
+AI_return negamax(GameState game_state, uint8_t depth, int8_t color = 1,
                   int16_t alpha = INT16_MIN, int16_t beta = INT16_MAX) {
   AI_return node_max;
   node_max.value = INT16_MIN;
@@ -278,13 +278,13 @@ AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
   // Terminal Node.
   if (depth == 0) {
     Move leaf_move;
-    AI_return leaf = {leaf_move, (int16_t)(eval(gamestate) * color), 1};
+    AI_return leaf = {leaf_move, (int16_t)(eval(game_state) * color), 1};
     return leaf;
   }
 
   bool check = false;
   Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-  uint8_t n_moves = generateMoves(gamestate, moves, check);
+  uint8_t n_moves = generateMoves(game_state, moves, check);
 
   // Terminal node, Checkmate/Stalemate.
   if (n_moves == 0) {
@@ -293,21 +293,21 @@ AI_return negamax(GameState gamestate, uint8_t depth, int8_t color = 1,
   }
 
   for (uint8_t i = 0; i < n_moves; i++) {
-    GameState gamestate_temp;
-    memcpy(&gamestate_temp, &gamestate, sizeof(GameState));
-    applyMove(moves[i], gamestate_temp);
+    GameState game_state_temp;
+    memcpy(&game_state_temp, &game_state, sizeof(GameState));
+    applyMove(moves[i], game_state_temp);
     AI_return node_temp =
-        negamax(gamestate_temp, depth - 1, -color, -beta, -alpha);
+        negamax(game_state_temp, depth - 1, -color, -beta, -alpha);
     // AI_return node_temp =
-    //     negamax(move_gamestate_scores[i].gamestate, depth - 1, -color, -beta,
-    //     -alpha);
+    //     negamax(move_game_state_scores[i].game_state, depth - 1, -color,
+    //     -beta, -alpha);
     node_temp.value *= -color;
     node_max.nodes_searched += node_temp.nodes_searched;
 
     if (node_temp.value > node_max.value) {
       node_max.value = node_temp.value;
       node_max.move = moves[i];
-      // node_max.move = move_gamestate_scores[i].move;
+      // node_max.move = move_game_state_scores[i].move;
     }
 
     alpha = std::max(alpha, node_max.value);
@@ -324,8 +324,8 @@ void generate_board(std::string name, uint8_t diff) {
   std::string FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
   bool CM = false, SM = false;
 
-  GameState gamestate;
-  fenToGameState(FEN, gamestate);
+  GameState game_state;
+  fenToGameState(FEN, game_state);
 
   AI_return AI_choice;
 
@@ -347,17 +347,17 @@ void generate_board(std::string name, uint8_t diff) {
 
   while (!CM && !SM) {
 
-    uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(gamestate);
-    uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(gamestate);
+    uint64_t WHITE_PIECES = generateWhiteOccupiedBitboard(game_state);
+    uint64_t BLACK_PIECES = generateBlackOccupiedBitboard(game_state);
     uint64_t OCCUPIED = BLACK_PIECES | WHITE_PIECES;
 
-    if (gamestate.whites_turn) {
+    if (game_state.whites_turn) {
 
       std::cout << "WHITE'S MOVE: " << std::endl;
       std::cout << "AI Agent thinking... wait a few seconds." << std::endl;
       auto start = std::chrono::high_resolution_clock::now();
       depth = 8;
-      AI_choice = negamax(gamestate, depth);
+      AI_choice = negamax(game_state, depth);
       std::cout << AI_choice.nodes_searched + 0 << std::endl;
 
       auto end = std::chrono::high_resolution_clock::now();
@@ -365,7 +365,7 @@ void generate_board(std::string name, uint8_t diff) {
       std::cout << "Move chosen: " << AI_choice.move.toString() << std::endl;
       std::cout << AI_choice.value << std::endl;
 
-      applyMove(AI_choice.move, gamestate);
+      applyMove(AI_choice.move, game_state);
 
       std::cout << "depth: " << depth + 0 << ". time elapsed: "
                 << (double)(end - start).count() / 1000000000
@@ -377,7 +377,7 @@ void generate_board(std::string name, uint8_t diff) {
                 << std::endl;
       std::cout << " " << std::endl;
     } else {
-      printBoard(gamestate);
+      printBoard(game_state);
       std::cout << "BLACK'S MOVE: " << std::endl;
 
       // todo: create a player class for their choosing mechanism
@@ -385,15 +385,15 @@ void generate_board(std::string name, uint8_t diff) {
 
       // TODO: uncomment this and fix
       bool check = false;
-      uint8_t n_moves = generateMoves(gamestate, moves, check);
+      uint8_t n_moves = generateMoves(game_state, moves, check);
 
       std::cout << "Please select your move: " << std::endl;
-      print_moves(gamestate.whites_turn, moves, n_moves);
+      print_moves(game_state.whites_turn, moves, n_moves);
 
       int user_choice;
       std::cin >> user_choice;
 
-      applyMove(moves[user_choice - 1], gamestate);
+      applyMove(moves[user_choice - 1], game_state);
 
       std::cout << "Move chosen: " << moves[user_choice - 1].toString()
                 << std::endl;

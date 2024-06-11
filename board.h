@@ -58,4 +58,4 @@ uint64_t generateWhiteOccupiedBitboard(const GameState &game_state);
 uint64_t generateBlackOccupiedBitboard(const GameState &game_state);
 
 // TODO ADD DOCUMENTATION.
-void fenToGameState(const std::string fen, GameState &gamestate);
+void fenToGameState(const std::string fen, GameState &game_state);

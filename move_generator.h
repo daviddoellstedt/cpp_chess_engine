@@ -65,4 +65,4 @@ public:
 void initializeMagicBitboardTables(void);
 
 // TODO add documentation.
-uint8_t generateMoves(GameState &gamestate, Move *moves, bool &check);
+uint8_t generateMoves(GameState &game_state, Move *moves, bool &check);

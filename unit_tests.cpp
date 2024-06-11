@@ -7,30 +7,30 @@
 #include <tuple>
 
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
-    GameState gamestate;
-    fenToGameState(fen, gamestate);
-    printBoard(gamestate);
-    uint32_t nodes = 0;
+  GameState game_state;
+  fenToGameState(fen, game_state);
+  printBoard(game_state);
+  uint32_t nodes = 0;
 
-    // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
-    // uint8_t n_moves = 0;
+  // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];
+  // uint8_t n_moves = 0;
 
-    bool total = true;
+  bool total = true;
 
-    auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
 
-    perft(nodes, gamestate, depth, depth, total);
+  perft(nodes, game_state, depth, depth, total);
 
-    auto end = std::chrono::high_resolution_clock::now();
+  auto end = std::chrono::high_resolution_clock::now();
 
-    std::cout << "depth: " << depth + 0 << ". time elapsed: "
-              << (double)(end - start).count() / 1000000000
-              << " s. nodes searched: " << nodes << "." << std::endl;
-    std::cout << "NPS: " << nodes / ((double)(end - start).count() / 1000000000)
-              << std::endl;
-    std::cout << " " << std::endl;
+  std::cout << "depth: " << depth + 0
+            << ". time elapsed: " << (double)(end - start).count() / 1000000000
+            << " s. nodes searched: " << nodes << "." << std::endl;
+  std::cout << "NPS: " << nodes / ((double)(end - start).count() / 1000000000)
+            << std::endl;
+  std::cout << " " << std::endl;
 
-    return nodes;
+  return nodes;
 }
 
 // https://www.chessprogramming.org/Perft_Results.
@@ -59,10 +59,10 @@ void testAllPerft(void) {
     uint8_t depth = get<1>(test);
     uint32_t nodes_expected = get<2>(test);
     uint32_t nodes = 0;
-    GameState gamestate;
-    fenToGameState(fen, gamestate);
+    GameState game_state;
+    fenToGameState(fen, game_state);
 
-    perft(nodes, gamestate, depth, depth, true);
+    perft(nodes, game_state, depth, depth, true);
 
     total_nodes += nodes;
 

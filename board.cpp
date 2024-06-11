@@ -84,7 +84,7 @@ uint64_t generateBlackOccupiedBitboard(const GameState &game_state) {
 }
 
 // TODO REFACTOR?
-void fenToGameState(const std::string fen, GameState &gamestate) {
+void fenToGameState(const std::string fen, GameState &game_state) {
   std::string regex_string =
       "^ *([rnbqkpRNBQKP1-8]+/){7}([rnbqkpRNBQKP1-8]+) ([wb]) "
       "(([kqKQ]{1,4})|(-)) (([a-h][36])|(-)) *(.*)$";
@@ -120,59 +120,59 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
     case 'p':
       if (byte == 0 || byte == 7) {
         logErrorAndExit("ERROR: Pawns cannot be on rank 1 or rank 8.");
-        memset(&gamestate, 0, sizeof(GameState));
+        memset(&game_state, 0, sizeof(GameState));
         return;
       }
-      gamestate.black.pawn += 1ull << (byte * 8 + bit);
+      game_state.black.pawn += 1ull << (byte * 8 + bit);
       n_p++;
       break;
     case 'r':
-      gamestate.black.rook += (1ull << (byte * 8 + bit));
+      game_state.black.rook += (1ull << (byte * 8 + bit));
       n_r++;
       break;
     case 'n':
-      gamestate.black.knight += 1ull << (byte * 8 + bit);
+      game_state.black.knight += 1ull << (byte * 8 + bit);
       n_n++;
       break;
     case 'b':
-      gamestate.black.bishop += 1ull << (byte * 8 + bit);
+      game_state.black.bishop += 1ull << (byte * 8 + bit);
       n_b++;
       break;
     case 'q':
-      gamestate.black.queen += 1ull << (byte * 8 + bit);
+      game_state.black.queen += 1ull << (byte * 8 + bit);
       n_q++;
       break;
     case 'k':
-      gamestate.black.king += 1ull << (byte * 8 + bit);
+      game_state.black.king += 1ull << (byte * 8 + bit);
       n_k++;
       break;
     case 'P':
       if (byte == 0 || byte == 7) {
         logErrorAndExit("ERROR: Pawns cannot be on rank 1 or rank 8.");
-        memset(&gamestate, 0, sizeof(GameState));
+        memset(&game_state, 0, sizeof(GameState));
         return;
       }
-      gamestate.white.pawn += 1ull << (byte * 8 + bit);
+      game_state.white.pawn += 1ull << (byte * 8 + bit);
       n_P++;
       break;
     case 'R':
-      gamestate.white.rook += 1ull << (byte * 8 + bit);
+      game_state.white.rook += 1ull << (byte * 8 + bit);
       n_R++;
       break;
     case 'N':
-      gamestate.white.knight += 1ull << (byte * 8 + bit);
+      game_state.white.knight += 1ull << (byte * 8 + bit);
       n_N++;
       break;
     case 'B':
-      gamestate.white.bishop += 1ull << (byte * 8 + bit);
+      game_state.white.bishop += 1ull << (byte * 8 + bit);
       n_B++;
       break;
     case 'Q':
-      gamestate.white.queen += 1ull << (byte * 8 + bit);
+      game_state.white.queen += 1ull << (byte * 8 + bit);
       n_Q++;
       break;
     case 'K':
-      gamestate.white.king += 1ull << (byte * 8 + bit);
+      game_state.white.king += 1ull << (byte * 8 + bit);
       n_K++;
       break;
     case '/':
@@ -196,7 +196,7 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
   if (n_P > 8 || n_p > 8 || n_K != 1 || n_k != 1 || n_p_missing < n_promoted ||
       n_P_missing < n_Promoted) {
     logErrorAndExit("ERROR: FEN position not legal/possible.");
-    memset(&gamestate, 0, sizeof(GameState));
+    memset(&game_state, 0, sizeof(GameState));
     return;
   }
 
@@ -207,36 +207,36 @@ void fenToGameState(const std::string fen, GameState &gamestate) {
     switch (field) {
     case 1:
       if (fen[i] == 'w') {
-        gamestate.whites_turn = true;
+        game_state.whites_turn = true;
         field++;
       } else if (fen[i] == 'b') {
-        gamestate.whites_turn = false;
+        game_state.whites_turn = false;
         field++;
       }
       continue;
     case 2:
-      if (((gamestate.white.can_king_side_castle ||
-            gamestate.white.can_queen_side_castle ||
-            gamestate.black.can_king_side_castle ||
-            gamestate.black.can_queen_side_castle) &&
+      if (((game_state.white.can_king_side_castle ||
+            game_state.white.can_queen_side_castle ||
+            game_state.black.can_king_side_castle ||
+            game_state.black.can_queen_side_castle) &&
            fen[i] == ' ') ||
           fen[i] == '-') {
         field++;
       } else if (fen[i] == 'K') {
-        gamestate.white.can_king_side_castle = true;
+        game_state.white.can_king_side_castle = true;
       } else if (fen[i] == 'Q') {
-        gamestate.white.can_queen_side_castle = true;
+        game_state.white.can_queen_side_castle = true;
       } else if (fen[i] == 'k') {
-        gamestate.black.can_king_side_castle = true;
+        game_state.black.can_king_side_castle = true;
       } else if (fen[i] == 'q') {
-        gamestate.black.can_queen_side_castle = true;
+        game_state.black.can_queen_side_castle = true;
       }
       continue;
     case 3:
       if (fen[i] >= 'a' && fen[i] <= 'h') {
         uint8_t col = fen[i] - 'a';
         uint8_t row = fen[i + 1] - '0' - 1;
-        gamestate.en_passant = 1ull << (row * 8 + col);
+        game_state.en_passant = 1ull << (row * 8 + col);
       }
       continue;
     default:
