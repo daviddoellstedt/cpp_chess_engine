@@ -162,7 +162,7 @@ void generateRookMagicNumber(
     uint64_t magic_num =
         generateRandom64() & generateRandom64() & generateRandom64();
 
-    if (countSetBits((magic_num * rookMagicMasks[bit]) &
+    if (countSetBits((magic_num * rook_magic_masks[bit]) &
                      0xFF00000000000000ull) < 6) {
       continue;
     }
@@ -211,7 +211,7 @@ void generateBishopMagicNumber(
     uint64_t magic_num =
         generateRandom64() & generateRandom64() & generateRandom64();
 
-    if (countSetBits((magic_num * bishopMagicMasks[bit]) &
+    if (countSetBits((magic_num * bishop_magic_masks[bit]) &
                      0xFF00000000000000ull) < 6) {
       continue;
     }
@@ -255,7 +255,7 @@ void generateBishopMagicNumber(
 void initializeRookMagicTable(
     uint64_t blockers_array[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    uint64_t magic_number = rookMagicNumbers[bit];
+    uint64_t magic_number = rook_magic_numbers[bit];
     for (uint16_t blockers_index = 0;
          blockers_index < N_ROOK_BLOCKERS_PERMUTATIONS; blockers_index++) {
       uint64_t blockers_bitboard = blockers_array[bit][blockers_index];
@@ -273,7 +273,7 @@ void initializeRookMagicTable(
 void initializeBishopMagicTable(
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    uint64_t magic_number = bishopMagicNumbers[bit];
+    uint64_t magic_number = bishop_magic_numbers[bit];
     for (uint16_t blockers_index = 0;
          blockers_index < N_BISHOP_BLOCKERS_PERMUTATIONS; blockers_index++) {
       uint64_t blockers_bitboard = blockers_array[bit][blockers_index];
@@ -317,8 +317,8 @@ void initializeRookBlockers(
   for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
     for (uint16_t blocker_index = 0;
          blocker_index < N_ROOK_BLOCKERS_PERMUTATIONS; blocker_index++) {
-      uint64_t blockers_bitboard =
-          generateBlockersBitboardFromIndex(blocker_index, rookMagicMasks[bit]);
+      uint64_t blockers_bitboard = generateBlockersBitboardFromIndex(
+          blocker_index, rook_magic_masks[bit]);
       blockers_array[bit][blocker_index] = blockers_bitboard;
     }
   }
@@ -334,7 +334,7 @@ void initializeBishopBlockers(
     for (uint16_t blocker_index = 0;
          blocker_index < N_BISHOP_BLOCKERS_PERMUTATIONS; blocker_index++) {
       uint64_t blockers_bitboard = generateBlockersBitboardFromIndex(
-          blocker_index, bishopMagicMasks[bit]);
+          blocker_index, bishop_magic_masks[bit]);
       blockers_array[bit][blocker_index] = blockers_bitboard;
     }
   }
@@ -372,9 +372,9 @@ uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED,
     OCCUPIED &= ~K;
   }
   uint8_t piece_bit = getSetBit(piece);
-  uint64_t blockers = OCCUPIED &= rookMagicMasks[piece_bit];
+  uint64_t blockers = OCCUPIED &= rook_magic_masks[piece_bit];
   uint64_t magic_moves =
-      rookMagicTable[piece_bit][(blockers * rookMagicNumbers[piece_bit]) >>
+      rookMagicTable[piece_bit][(blockers * rook_magic_numbers[piece_bit]) >>
                                 (64 - N_ROOK_BLOCKERS)];
   return magic_moves;
 }
@@ -386,10 +386,11 @@ uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED,
     OCCUPIED &= ~K;
   }
   uint8_t piece_bit = getSetBit(piece);
-  uint64_t blockers = OCCUPIED &= bishopMagicMasks[piece_bit];
+  uint64_t blockers = OCCUPIED &= bishop_magic_masks[piece_bit];
   uint64_t magic_moves =
-      bishopMagicTable[piece_bit][(blockers * bishopMagicNumbers[piece_bit]) >>
-                                  (64 - N_BISHOP_BLOCKERS)];
+      bishopMagicTable[piece_bit]
+                      [(blockers * bishop_magic_numbers[piece_bit]) >>
+                       (64 - N_BISHOP_BLOCKERS)];
   return magic_moves;
 }
 
@@ -522,9 +523,8 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
  * @param moves: list of all possible moves for the inpout player. output
  * will be appended to this variable.
  */
-void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
-                         uint64_t PINNED, uint64_t checker_zone, Move *moves,
-                         uint8_t &n_moves) {
+void generateKnightMoves(uint64_t N, uint64_t PIECES, uint64_t PINNED,
+                         uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
@@ -535,13 +535,7 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
 
     if (!(bb & PINNED)) { // only check for moves if it's not pinned.
                           // pinned knights cannot move.
-      uint64_t pos_moves =
-          kn_bit > KNIGHT_MASK_BIT_POSITION
-              ? KNIGHT_MOVES << (kn_bit - KNIGHT_MASK_BIT_POSITION)
-              : KNIGHT_MOVES >> (KNIGHT_MASK_BIT_POSITION - kn_bit);
-      pos_moves &=
-          ~PIECES & checker_zone & (kn_bit % 8 > 3 ? ~file_ab : ~file_gh);
-
+      uint64_t pos_moves = knight_moves[kn_bit] & ~PIECES & checker_zone;
       std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
       while (pos_moves) {
         uint64_t bb_final = getLowestSetBitValue(pos_moves);
@@ -569,17 +563,12 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
 void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
                        uint8_t &n_moves) {
   uint8_t k_bit = getSetBit(K);
-  uint64_t pos_moves = k_bit > KING_MASK_BIT_POSITION
-                           ? KING_MOVES << (k_bit - KING_MASK_BIT_POSITION)
-                           : KING_MOVES >> (KING_MASK_BIT_POSITION - k_bit);
-  pos_moves &= ~PIECES & ~DZ & (k_bit % 8 > 3 ? ~file_a : ~file_h);
-
+  uint64_t pos_moves = king_moves[k_bit] & ~PIECES & ~DZ;
   std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
   while (pos_moves) {
     uint64_t bb_final = getLowestSetBitValue(pos_moves);
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
     moves[n_moves++] = Move(initial, final);
-
     clearLowestSetBit(pos_moves);
   }
 }
@@ -621,27 +610,14 @@ uint64_t getBishopQueenAttackZone(uint64_t K, uint64_t EB, uint64_t EQ,
 uint64_t getKnightAttackZone(uint64_t N) {
   uint64_t DZ = 0;
   while (N) {
-    uint8_t kn_bit = getSetBit(getLowestSetBitValue(N));
-    uint64_t pos_moves =
-        kn_bit > KNIGHT_MASK_BIT_POSITION
-            ? KNIGHT_MOVES << (kn_bit - KNIGHT_MASK_BIT_POSITION)
-            : KNIGHT_MOVES >> (KNIGHT_MASK_BIT_POSITION - kn_bit);
-    pos_moves &= kn_bit % 8 > 3 ? ~file_ab : ~file_gh;
-    DZ |= pos_moves;
+    DZ |= knight_moves[getSetBit(getLowestSetBitValue(N))];
     clearLowestSetBit(N);
   }
   return DZ;
 }
 
 // TODO add documentation.
-uint64_t getKingAttackZone(uint64_t K) {
-  uint8_t k_bit = getSetBit(K);
-  uint64_t pos_moves = k_bit > KING_MASK_BIT_POSITION
-                           ? KING_MOVES << (k_bit - KING_MASK_BIT_POSITION)
-                           : KING_MOVES >> (KING_MASK_BIT_POSITION - k_bit);
-  pos_moves &= k_bit % 8 > 3 ? ~file_a : ~file_h;
-  return pos_moves;
-}
+uint64_t getKingAttackZone(uint64_t K) { return king_moves[getSetBit(K)]; }
 
 // TODO add documentation.
 //  Check horizontal/vertical pieces. Note: only one horizontal/vertical slider
@@ -681,12 +657,7 @@ uint8_t getDiagonalChecker(uint64_t K, uint64_t EB, uint64_t EQ,
 uint8_t getKnightChecker(uint64_t K, uint64_t EN, uint64_t OCCUPIED,
                          uint64_t &checker_zone) {
   // Check for knight attacks.
-  uint64_t k_bit = getSetBit(K);
-  uint64_t K_exposure =
-      k_bit > KNIGHT_MASK_BIT_POSITION
-          ? KNIGHT_MOVES << (k_bit - KNIGHT_MASK_BIT_POSITION)
-          : KNIGHT_MOVES >> (KNIGHT_MASK_BIT_POSITION - k_bit);
-  K_exposure &= k_bit % 8 > 3 ? ~file_ab : ~file_gh;
+  uint64_t K_exposure = knight_moves[getSetBit(K)];
 
   uint64_t new_checker = K_exposure & EN;
   if (new_checker) {
@@ -849,7 +820,7 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
   if (!CK) {
     return;
   }
-  // todo: implement lookup table
+
   if ((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)) {
     uint8_t k_bit =
         getSetBit((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1));
@@ -1134,8 +1105,8 @@ uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
     generateQueenMoves(game_state.black.queen, game_state.black.king,
                        BLACK_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                        n_moves);
-    generateKnightMoves(game_state.black.knight, game_state.black.king,
-                        BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
+    generateKnightMoves(game_state.black.knight, BLACK_PIECES, PINNED,
+                        checker_zone, moves, n_moves);
   }
   generateKingMoves(game_state.black.king, BLACK_PIECES, DZ, moves, n_moves);
 
@@ -1183,8 +1154,8 @@ uint8_t generateWhiteMoves(GameState &game_state, Move *moves, bool &check) {
     generateQueenMoves(game_state.white.queen, game_state.white.king,
                        WHITE_PIECES, OCCUPIED, PINNED, checker_zone, moves,
                        n_moves);
-    generateKnightMoves(game_state.white.knight, game_state.white.king,
-                        WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
+    generateKnightMoves(game_state.white.knight, WHITE_PIECES, PINNED,
+                        checker_zone, moves, n_moves);
   }
   generateKingMoves(game_state.white.king, WHITE_PIECES, DZ, moves, n_moves);
 

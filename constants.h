@@ -10,14 +10,6 @@ const uint64_t INNER_BITS = ~OUTER_BITS;
 // 8 x 8 chessboard.
 const uint8_t N_SQUARES = 64;
 
-// Mask of the possible ways a knight can move.
-const uint64_t KNIGHT_MOVES = 0x5088008850;
-const uint8_t KNIGHT_MASK_BIT_POSITION = 21;
-
-// Mask of the possible ways a king can move.
-const uint64_t KING_MOVES = 0xE0A0E0;
-const uint8_t KING_MASK_BIT_POSITION = 14;
-
 // Mask of entirely filled board.
 const uint64_t FILLED = ~0;
 
@@ -192,7 +184,7 @@ const uint8_t N_ROOK_BLOCKERS = 12;
 const uint16_t N_BISHOP_BLOCKERS_PERMUTATIONS = 1 << N_BISHOP_BLOCKERS;
 const uint16_t N_ROOK_BLOCKERS_PERMUTATIONS = 1 << N_ROOK_BLOCKERS;
 
-const uint64_t bishopMagicMasks[N_SQUARES] = {
+const uint64_t bishop_magic_masks[N_SQUARES] = {
     0x40201008040200, 0x402010080400,   0x4020100A00,     0x40221400,
     0x2442800,        0x204085000,      0x20408102000,    0x2040810204000,
     0x20100804020000, 0x40201008040000, 0x4020100A0000,   0x4022140000,
@@ -210,7 +202,7 @@ const uint64_t bishopMagicMasks[N_SQUARES] = {
     0x2040810204000,  0x4081020400000,  0xA102040000000,  0x14224000000000,
     0x28440200000000, 0x50080402000000, 0x20100804020000, 0x40201008040200};
 
-const uint64_t bishopMagicNumbers[N_SQUARES] = {
+const uint64_t bishop_magic_numbers[N_SQUARES] = {
     0x6110003449004200, 0x808100824410410,  0x482280011881802,
     0x801230002008400,  0x8048208800000001, 0x420040A090200800,
     0x1000820800822300, 0x1100028058A01040, 0x320004808293012,
@@ -236,7 +228,7 @@ const uint64_t bishopMagicNumbers[N_SQUARES] = {
 
 // Masks that include both horizontal and vertical lines, excluding outer
 // squares and the repective bit. Used for doing magic calculations.
-const uint64_t rookMagicMasks[N_SQUARES] = {
+const uint64_t rook_magic_masks[N_SQUARES] = {
     0x101010101017E,    0x202020202027C,    0x404040404047A,
     0x8080808080876,    0x1010101010106E,   0x2020202020205E,
     0x4040404040403E,   0x8080808080807E,   0x1010101017E00,
@@ -260,7 +252,7 @@ const uint64_t rookMagicMasks[N_SQUARES] = {
     0x6E10101010101000, 0x5E20202020202000, 0x3E40404040404000,
     0x7E80808080808000};
 
-const uint64_t rookMagicNumbers[N_SQUARES] = {
+const uint64_t rook_magic_numbers[N_SQUARES] = {
     0x5080008020400014, 0x6004012000081100, 0x8800A8020001001,
     0x200024005920020,  0x8A000216011A0008, 0x8024010482000400,
     0x48008008020122,   0x100025225000086,  0x9080080C80204100,
@@ -283,3 +275,133 @@ const uint64_t rookMagicNumbers[N_SQUARES] = {
     0x202008008204902,  0x2040902100094441, 0x4004184200041002,
     0x3000210010082183, 0x18104900040001C1, 0x304081000810044,
     0x2290010424009142};
+
+const uint64_t king_moves[N_SQUARES] = {0x302,
+                                        0x705,
+                                        0xE0A,
+                                        0x1C14,
+                                        0x3828,
+                                        0x7050,
+                                        0xE0A0,
+                                        0xC040,
+                                        0x30203,
+                                        0x70507,
+                                        0xE0A0E,
+                                        0x1C141C,
+                                        0x382838,
+                                        0x705070,
+                                        0xE0A0E0,
+                                        0xC040C0,
+                                        0x3020300,
+                                        0x7050700,
+                                        0xE0A0E00,
+                                        0x1C141C00,
+                                        0x38283800,
+                                        0x70507000,
+                                        0xE0A0E000,
+                                        0xC040C000,
+                                        0x302030000,
+                                        0x705070000,
+                                        0xE0A0E0000,
+                                        0x1C141C0000,
+                                        0x3828380000,
+                                        0x7050700000,
+                                        0xE0A0E00000,
+                                        0xC040C00000,
+                                        0x30203000000,
+                                        0x70507000000,
+                                        0xE0A0E000000,
+                                        0x1C141C000000,
+                                        0x382838000000,
+                                        0x705070000000,
+                                        0xE0A0E0000000,
+                                        0xC040C0000000,
+                                        0x3020300000000,
+                                        0x7050700000000,
+                                        0xE0A0E00000000,
+                                        0x1C141C00000000,
+                                        0x38283800000000,
+                                        0x70507000000000,
+                                        0xE0A0E000000000,
+                                        0xC040C000000000,
+                                        0x302030000000000,
+                                        0x705070000000000,
+                                        0xE0A0E0000000000,
+                                        0x1C141C0000000000,
+                                        0x3828380000000000,
+                                        0x7050700000000000,
+                                        0xE0A0E00000000000,
+                                        0xC040C00000000000,
+                                        0x203000000000000,
+                                        0x507000000000000,
+                                        0xA0E000000000000,
+                                        0x141C000000000000,
+                                        0x2838000000000000,
+                                        0x5070000000000000,
+                                        0xA0E0000000000000,
+                                        0x40C0000000000000};
+
+const uint64_t knight_moves[N_SQUARES] = {0x20400,
+                                          0x50800,
+                                          0xA1100,
+                                          0x142200,
+                                          0x284400,
+                                          0x508800,
+                                          0xA01000,
+                                          0x402000,
+                                          0x2040004,
+                                          0x5080008,
+                                          0xA110011,
+                                          0x14220022,
+                                          0x28440044,
+                                          0x50880088,
+                                          0xA0100010,
+                                          0x40200020,
+                                          0x204000402,
+                                          0x508000805,
+                                          0xA1100110A,
+                                          0x1422002214,
+                                          0x2844004428,
+                                          0x5088008850,
+                                          0xA0100010A0,
+                                          0x4020002040,
+                                          0x20400040200,
+                                          0x50800080500,
+                                          0xA1100110A00,
+                                          0x142200221400,
+                                          0x284400442800,
+                                          0x508800885000,
+                                          0xA0100010A000,
+                                          0x402000204000,
+                                          0x2040004020000,
+                                          0x5080008050000,
+                                          0xA1100110A0000,
+                                          0x14220022140000,
+                                          0x28440044280000,
+                                          0x50880088500000,
+                                          0xA0100010A00000,
+                                          0x40200020400000,
+                                          0x204000402000000,
+                                          0x508000805000000,
+                                          0xA1100110A000000,
+                                          0x1422002214000000,
+                                          0x2844004428000000,
+                                          0x5088008850000000,
+                                          0xA0100010A0000000,
+                                          0x4020002040000000,
+                                          0x400040200000000,
+                                          0x800080500000000,
+                                          0x1100110A00000000,
+                                          0x2200221400000000,
+                                          0x4400442800000000,
+                                          0x8800885000000000,
+                                          0x100010A000000000,
+                                          0x2000204000000000,
+                                          0x4020000000000,
+                                          0x8050000000000,
+                                          0x110A0000000000,
+                                          0x22140000000000,
+                                          0x44280000000000,
+                                          0x88500000000000,
+                                          0x10A00000000000,
+                                          0x20400000000000};
