@@ -89,6 +89,7 @@
  */
 
 #include "bit_fns.h"
+#include "move_generator.h"
 #include "unit_tests.h"
 #include <iostream>
 #include <string>
@@ -134,13 +135,10 @@ int main() {
   //   }
   //   std::cout << result << std::endl;
 
-  initializeRookAttacks();
-  initializeRookMagicTable();
-  initializeBishopAttacks();
-  initializeBishopMagicTable();
+  initializeMagicBitboards();
 
-  // testAllPerft();
-  generate_board("ba", 3);
+  testAllPerft();
+  // generate_board("ba", 3);
 
   return 0;
 }

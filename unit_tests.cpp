@@ -1,4 +1,5 @@
 #include "bit_fns.h"
+#include "board.h"
 #include "constants.h"
 #include <iostream>
 #include <stdint.h>
@@ -8,7 +9,7 @@
 uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
     GameState gamestate;
     fenToGameState(fen, gamestate);
-    print_board(gamestate);
+    printBoard(gamestate);
     uint32_t nodes = 0;
 
     // Move moves[MAX_POSSIBLE_MOVES_PER_POSITION];

@@ -1,5 +1,4 @@
-#ifndef DDS_CHESS_ENGINE_CONSTANTS_H
-#define DDS_CHESS_ENGINE_CONSTANTS_H
+#pragma once
 
 #include <stdint.h>
 #include <unordered_map>
@@ -188,6 +187,11 @@ const std::pair<uint8_t, uint8_t> bitToCoordinates[N_SQUARES] = {
     {7, 0}, {7, 1}, {7, 2}, {7, 3}, {7, 4}, {7, 5}, {7, 6}, {7, 7},
 };
 
+const uint8_t N_BISHOP_BLOCKERS = 9;
+const uint8_t N_ROOK_BLOCKERS = 12;
+const uint16_t N_BISHOP_BLOCKERS_PERMUTATIONS = 1 << N_BISHOP_BLOCKERS;
+const uint16_t N_ROOK_BLOCKERS_PERMUTATIONS = 1 << N_ROOK_BLOCKERS;
+
 const uint64_t bishopMagicMasks[N_SQUARES] = {
     0x40201008040200, 0x402010080400,   0x4020100A00,     0x40221400,
     0x2442800,        0x204085000,      0x20408102000,    0x2040810204000,
@@ -279,5 +283,3 @@ const uint64_t rookMagicNumbers[N_SQUARES] = {
     0x202008008204902,  0x2040902100094441, 0x4004184200041002,
     0x3000210010082183, 0x18104900040001C1, 0x304081000810044,
     0x2290010424009142};
-
-#endif // DDS_CHESS_ENGINE_CONSTANTS_H

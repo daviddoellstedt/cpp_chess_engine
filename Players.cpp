@@ -4,9 +4,7 @@
 
 
 #include "Players.h"
-#include "Board.h"
-
-
+#include "board.h"
 
 //todo: needs to take in a board object and return a move
 // std::string Player:: get_move(){

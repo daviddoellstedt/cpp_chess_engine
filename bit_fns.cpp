@@ -1,10 +1,9 @@
-//
-// Created by David Doellstedt on 5/12/20.
-//
 #include "bit_fns.h"
-#include "Helper_functions.h"
 #include "Players.h"
+#include "board.h"
 #include "constants.h"
+#include "helper_functions.h"
+#include "move_generator.h"
 #include <bitset>
 #include <chrono>
 #include <cmath>
@@ -19,11 +18,6 @@ struct AI_return {
   int16_t value = 0;
   uint32_t nodes_searched = 0;
 };
-
-void logErrorAndExit(std::string error_message) {
-  std::cout << error_message << std::endl;
-  // exit(1);
-}
 
 uint8_t moveToX1(Move move) { return move.data & X_INITIAL; }
 
@@ -85,455 +79,11 @@ void updateSpecialMove(Move &move, SpecialMove special_move) {
   move.data |= (special_move << 12);
 }
 
-uint64_t generatePlayerOccupiedBitboard(const PlayerState &player_state) {
-  return player_state.pawn | player_state.rook | player_state.knight |
-         player_state.bishop | player_state.queen | player_state.king;
-}
-
-uint64_t generateWhiteOccupiedBitboard(const GameState &gamestate){
-  return generatePlayerOccupiedBitboard(gamestate.white);
-}
-
-uint64_t generateBlackOccupiedBitboard(const GameState &gamestate){
-  return generatePlayerOccupiedBitboard(gamestate.black);
-}
-
-uint64_t findLowestSetBitValue(uint64_t bitboard) {
-  return bitboard & ~(bitboard - 1);
-}
-
-void clearLowestSetBit(uint64_t &bitboard) { bitboard &= (bitboard - 1); }
-
-// Defined behavior for arguments that only have 1 set bit.
-uint8_t findSetBit(uint64_t bitboard) { return 63 - __builtin_clzll(bitboard); }
-
-uint8_t countSetBits(uint64_t bitboard) {
-  uint8_t count = 0;
-  while (bitboard) {
-    clearLowestSetBit(bitboard);
-    count++;
-  }
-  return count;
-}
-
-/** Printing the board to the command line.
- *
- * arguments: the 12 bitboards for the all the pieces
- */
-void print_board(const GameState gamestate) {
-  char grid[8][8];
-
-  for (int8_t row = 7; row >= 0; row--) {
-    for (uint8_t col = 0; col < 8; col++) {
-      uint8_t bit = ((7 - row) * 8) + col;
-      if (gamestate.white.pawn & (1ULL << bit)) {
-        grid[row][col] = 'P';
-      } else if (gamestate.white.rook & (1ULL << bit)) {
-        grid[row][col] = 'R';
-      } else if (gamestate.white.knight & (1ULL << bit)) {
-        grid[row][col] = 'N';
-      } else if (gamestate.white.bishop & (1ULL << bit)) {
-        grid[row][col] = 'B';
-      } else if (gamestate.white.queen & (1ULL << bit)) {
-        grid[row][col] = 'Q';
-      } else if (gamestate.white.king & (1ULL << bit)) {
-        grid[row][col] = 'K';
-      } else if (gamestate.black.pawn & (1ULL << bit)) {
-        grid[row][col] = 'p';
-      } else if (gamestate.black.rook & (1ULL << bit)) {
-        grid[row][col] = 'r';
-      } else if (gamestate.black.knight & (1ULL << bit)) {
-        grid[row][col] = 'n';
-      } else if (gamestate.black.bishop & (1ULL << bit)) {
-        grid[row][col] = 'b';
-      } else if (gamestate.black.queen & (1ULL << bit)) {
-        grid[row][col] = 'q';
-      } else if (gamestate.black.king & (1ULL << bit)) {
-        grid[row][col] = 'k';
-      } else {
-        grid[row][col] = ' ';
-      }
-    }
-  }
-
-  std::string dividing_line =
-      "|---|-----|-----|-----|-----|-----|-----|-----|-----|";
-
-  std::string line;
-  for (uint8_t i = 0; i <= 7; i++) {
-    std::cout << dividing_line << std::endl;
-    line = "| " + std::to_string(8 - i) + " |  ";
-    for (uint8_t j = 0; j < 8; j++) {
-      line.push_back(grid[i][j]);
-      if (j != 7) {
-        line += "  |  ";
-      }
-    }
-    std::cout << line + "  |" << std::endl;
-  }
-  std::cout << dividing_line << std::endl;
-
-  std::cout << "|   |  a  |  b  |  c  |  d  |  e  |  f  |  g  |  h  |"
-            << std::endl;
-  std::cout << dividing_line << std::endl;
-}
-
-/** Function that can generate the possible moves a slider piece can make in
-the
- * horizontal direction
- *
- * @param piece: bitboard representing a horizontal sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @return horiz_moves: bitboard of horizontal moves
- */
-uint64_t h_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
-  uint64_t horiz_moves =
-      (((OCCUPIED)-2 * piece) ^ rev(rev(OCCUPIED) - 2 * rev(piece))) &
-      directional_mask[findSetBit(piece)][RANKS];
-  return horiz_moves;
-}
-
-/** Function that can generate the possible moves a slider piece can make in the
- * vertical direction
- *
- * @param piece: bitboard representing a vertical sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @return vert_moves: bitboard of vertical moves
- */
-uint64_t v_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
-  uint8_t sl_bit = findSetBit(piece);
-  uint64_t vert_moves =
-      (((OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * piece) ^
-       rev(rev(OCCUPIED & directional_mask[sl_bit][FILES]) - 2 * rev(piece))) &
-      directional_mask[sl_bit][FILES];
-  return vert_moves;
-}
-
-/** Function that compiles the horizontal and vertical moves bitboards and
- * handles a case where we check for unsafe moves for the king.
- *
- * @param piece: bitboard representing a horizontal/vertical sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @param unsafe_calc: flag used to see if we need to remove the enemy king from
- * the occupied spaces (see inline comment for more details)
- * @param K: bitboard representing king location. (see inline comment in the
- * function for more details)
- * @return bitboard of horizontal and vertical moves
- */
-uint64_t h_v_moves_setwise(uint64_t piece, uint64_t OCCUPIED,
-                           bool unsafe_calc = false, uint64_t K = 0) {
-
-  // this line is used in the case where we need to generate zones for the king
-  // that are unsafe. If the king is in the attack zone of a horizontal/vertical
-  // slider, we want to remove the king from the calculation. Because a move of
-  // the king, that still lies in the path of attack (further away from the
-  // slider) is still an "unsafe" move.
-  if (unsafe_calc) {
-    OCCUPIED &= ~K;
-  }
-  return h_moves_setwise(piece, OCCUPIED) | v_moves_setwise(piece, OCCUPIED);
-}
-
-/** Function that can generate the possible moves a slider piece can make in the
- * (down, right) and (up, left) diagonal
- *
- * @param piece: bitboard representing a diagonal sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @return ddr_moves: bitboard of (down, right) and (up, left) moves
- */
-uint64_t ddr_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
-  uint8_t sl_bit = findSetBit(piece);
-  uint64_t ddr_moves =
-      (((OCCUPIED & directional_mask[sl_bit][DIAGONALS_DOWN_RIGHT]) -
-        2 * piece) ^
-       rev(rev(OCCUPIED & directional_mask[sl_bit][DIAGONALS_DOWN_RIGHT]) -
-           2 * rev(piece))) &
-      directional_mask[sl_bit][DIAGONALS_DOWN_RIGHT];
-  return ddr_moves;
-}
-
-/** Function that can generate the possible moves a slider piece can make in the
- * (up, right) and (down, left) diagonal
- *
- * @param piece: bitboard representing a diagonal sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @return dur_moves: bitboard of (up, right) and (down, left) moves
- */
-uint64_t dur_moves_setwise(uint64_t piece, uint64_t OCCUPIED) {
-  uint8_t sl_bit = findSetBit(piece);
-  uint64_t dur_moves =
-      (((OCCUPIED & directional_mask[sl_bit][DIAGONALS_UP_RIGHT]) - 2 * piece) ^
-       rev(rev(OCCUPIED & directional_mask[sl_bit][DIAGONALS_UP_RIGHT]) -
-           2 * rev(piece))) &
-      directional_mask[sl_bit][DIAGONALS_UP_RIGHT];
-  return dur_moves;
-}
-
-/** Function that compiles the diagonal moves bitboards and handles a case where
- * we check for unsafe moves for the king.
- *
- * @param piece: bitboard representing a diagonal sliding piece
- * @param sl_bit: the position of the set bit from 'piece' (log_2(piece))
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @param unsafe_calc: flag used to see if we need to remove the enemy king from
- * the occupied spaces (see inline comment for more details)
- * @param K: bitboard representing king location. (see inline comment in the
- * function for more details)
- * @return bitboard of all diagonal moves
- */
-uint64_t diag_moves_setwise(uint64_t piece, uint64_t OCCUPIED,
-                            bool unsafe_calc = false, uint64_t K = 0) {
-
-  // this line is used in the case where we need to generate zones for the king
-  // that are unsafe. If the king is in the attack zone of a diagonal slider, we
-  // want to remove the king from the calculation. Because a move of the king,
-  // that still lies in the path of attack (further away from the slider) is
-  // still an "unsafe" move.
-  if (unsafe_calc) {
-    OCCUPIED &= ~K;
-  }
-  return ddr_moves_setwise(piece, OCCUPIED) |
-         dur_moves_setwise(piece, OCCUPIED);
-}
-
 void printBitboard(uint64_t bb) {
   for (int i = 56; i >= 0; i -= 8) {
     std::bitset<8> bb_bitset((bb >> i) & 0xFF);
     std::cout << bb_bitset << std::endl;
   }
-}
-
-// Array that stores all rook attack moves for each possible combination of
-// blockers.
-uint64_t rookAttacks[N_SQUARES][(1 << 12)];
-uint64_t rookBlockers[N_SQUARES][4096];
-
-//
-void initializeRookAttacks(void) {
-
-  for (uint8_t bit = 0; bit < 64; bit++) {
-    uint64_t bit_bb = 1ull << bit;
-
-    for (uint64_t i = 0; i < 4096; i++) {
-      uint64_t possible_blockers = rookMagicMasks[bit];
-      uint64_t blockers = 0;
-
-      uint8_t j_blocker = 0;
-      uint64_t res = possible_blockers;
-      while (possible_blockers) {
-        uint64_t blocker_bb = findLowestSetBitValue(possible_blockers);
-        uint8_t blocker_bit = findSetBit(blocker_bb);
-
-        // Check if we need to clear the blocker bit.
-        if (!(i & (1 << j_blocker))) {
-          res &= ~(1ull << blocker_bit);
-        }
-        clearLowestSetBit(possible_blockers);
-        j_blocker++;
-      }
-      rookBlockers[bit][i] = res;
-      rookAttacks[bit][i] = h_v_moves_setwise(bit_bb, res);
-    }
-  }
-}
-
-// Array that stores all bishop attack moves for each possible combination of
-// blockers.
-uint64_t bishopAttacks[N_SQUARES][1 << 9];
-uint64_t bishopBlockers[N_SQUARES][1 << 9];
-
-void initializeBishopAttacks(void) {
-
-  for (uint8_t bit = 0; bit < 64; bit++) {
-    uint64_t bit_bb = 1ull << bit;
-
-    for (uint64_t i = 0; i < 512; i++) {
-      uint64_t possible_blockers = bishopMagicMasks[bit];
-      uint64_t blockers = 0;
-
-      uint8_t j_blocker = 0;
-      uint64_t res = possible_blockers;
-      while (possible_blockers) {
-        uint64_t blocker_bb = findLowestSetBitValue(possible_blockers);
-        uint8_t blocker_bit = findSetBit(blocker_bb);
-
-        // Check if we need to clear the blocker bit.
-        if (!(i & (1 << j_blocker))) {
-          res &= ~(1ull << blocker_bit);
-        }
-        clearLowestSetBit(possible_blockers);
-        j_blocker++;
-      }
-      bishopBlockers[bit][i] = res;
-      bishopAttacks[bit][i] = diag_moves_setwise(bit_bb, res);
-    }
-  }
-}
-
-// For 1 bit at first.
-uint64_t rookMagicTable[4096] = {0};
-
-void generateRookMagicNumber(uint8_t bit) {
-
-  std::random_device rd;     // a seed source for the random number engine
-  std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
-  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
-
-  while (true) {
-    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
-
-    if (countSetBits((magic_num * rookMagicMasks[bit]) &
-                     0xFF00000000000000ull) < 6) {
-      continue;
-    }
-
-    bool fail = false;
-    uint64_t i;
-    for (i = 0; i < 4096; i++) {
-      uint64_t blockers = rookBlockers[bit][i];
-      uint64_t magic_product = blockers * magic_num;
-      uint16_t index = magic_product >> 52;
-
-      // We can use it, add an entry.
-      // printBitboard(blockers);
-
-      if (rookMagicTable[index] == 0) {
-        rookMagicTable[index] = rookAttacks[bit][i];
-        continue;
-      }
-      // There is already an entry, but we are lucky and it matches, continue;
-      if (rookAttacks[bit][i] == rookMagicTable[index]) {
-        // std::cout << " HEY HEY HEY" << std::endl;
-        continue;
-      }
-      // Else there is a conflict. Clear the table and try the next magic number
-      memset(rookMagicTable, 0, 4096 * sizeof(uint64_t));
-      fail = true;
-      break;
-    }
-    // MAgic number found. Dump to std out.
-    if (!fail) {
-      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
-                << std::endl;
-      break;
-    }
-  }
-}
-
-// For 1 bit at first.
-uint64_t bishopMagicTable[512] = {0};
-
-void generateBishopMagicNumber(uint8_t bit) {
-
-  std::random_device rd;     // a seed source for the random number engine
-  std::mt19937_64 gen(rd()); // mersenne_twister_engine seeded with rd()
-  std::uniform_int_distribution<> distrib(0U, UINT32_MAX);
-
-  while (true) {
-
-    uint64_t magic_num1 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num2 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num3 = (distrib(gen) & 0xFFFFFFFF) |
-                          (((uint64_t)distrib(gen) & 0xFFFFFFFF) << 32);
-    uint64_t magic_num = magic_num1 & magic_num2 & magic_num3;
-
-    if (countSetBits((magic_num * bishopMagicMasks[bit]) &
-                     0xFF00000000000000ull) < 6) {
-      continue;
-    }
-
-    bool fail = false;
-    uint64_t i;
-    for (i = 0; i < 512; i++) {
-      uint64_t blockers = bishopBlockers[bit][i];
-      uint64_t magic_product = blockers * magic_num;
-      uint16_t index = magic_product >> 55;
-
-      if (bishopMagicTable[index] == 0) {
-        bishopMagicTable[index] = bishopAttacks[bit][i];
-        continue;
-      }
-      // There is already an entry, but we are lucky and it matches, continue;
-      if (bishopAttacks[bit][i] == bishopMagicTable[index]) {
-        continue;
-      }
-      // Else there is a conflict. Clear the table and try the next magic number
-      memset(bishopMagicTable, 0, 512 * sizeof(uint64_t));
-      fail = true;
-      break;
-    }
-    // Magic number found. Dump to std out.
-    if (!fail) {
-      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
-                << std::endl;
-      break;
-    }
-  }
-}
-
-uint64_t rookMagicTableAll[N_SQUARES][4096] = {0};
-
-void initializeRookMagicTable(void) {
-  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    uint64_t magic_number = rookMagicNumbers[bit];
-    for (uint16_t blockers = 0; blockers < 4096; blockers++) {
-      uint64_t blockers_bitboard = rookBlockers[bit][blockers];
-      rookMagicTableAll[bit][(magic_number * blockers_bitboard) >> 52] =
-          h_v_moves_setwise(1ULL << bit, blockers_bitboard);
-    }
-  }
-}
-
-uint64_t bishopMagicTableAll[N_SQUARES][512] = {0};
-
-void initializeBishopMagicTable(void) {
-  for (uint8_t bit = 0; bit < N_SQUARES; bit++) {
-    uint64_t magic_number = bishopMagicNumbers[bit];
-    for (uint16_t blockers = 0; blockers < 512; blockers++) {
-      uint64_t blockers_bitboard = bishopBlockers[bit][blockers];
-      bishopMagicTableAll[bit][(magic_number * blockers_bitboard) >> 55] =
-          diag_moves_setwise(1ULL << bit, blockers_bitboard);
-    }
-  }
-}
-
-uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
-                   uint64_t K = 0) {
-  if (unsafe_calc) {
-    OCCUPIED &= ~K;
-  }
-  uint8_t piece_bit = findSetBit(piece);
-  uint64_t blockers = OCCUPIED &= rookMagicMasks[piece_bit];
-  uint64_t magic_moves =
-      rookMagicTableAll[piece_bit]
-                       [(blockers * rookMagicNumbers[piece_bit]) >> 52];
-  return magic_moves;
-}
-
-uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
-                    uint64_t K = 0) {
-  if (unsafe_calc) {
-    OCCUPIED &= ~K;
-  }
-  uint8_t piece_bit = findSetBit(piece);
-  uint64_t blockers = OCCUPIED &= bishopMagicMasks[piece_bit];
-  uint64_t magic_moves =
-      bishopMagicTableAll[piece_bit]
-                         [(blockers * bishopMagicNumbers[piece_bit]) >> 55];
-  return magic_moves;
 }
 
 /** Function that returns a bitboard mask of the straight line between two
@@ -545,8 +95,8 @@ uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED, bool unsafe_calc = false,
  * @return bitboard mask of rank/file/diagonal connection between the two pieces
  */
 uint64_t getMask(uint64_t p1, uint64_t p2) {
-  uint8_t k_bit = findSetBit(p2);
-  uint8_t p_bit = findSetBit(p1);
+  uint8_t k_bit = getSetBit(p2);
+  uint8_t p_bit = getSetBit(p1);
 
   for (uint8_t dir = 0; dir < N_DIRECTIONS; dir++) {
     if (directional_mask[k_bit][dir] == directional_mask[p_bit][dir]) {
@@ -569,7 +119,7 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
                          uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
                          bool white_to_move) {
   uint64_t PINNED = 0;
-  uint8_t k_bit = findSetBit(K);
+  uint8_t k_bit = getSetBit(K);
 
   // Horizontal check.
   uint64_t K_h_v_slider = h_v_moves(K, OCCUPIED);
@@ -577,9 +127,9 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 
   uint64_t EHV = EQ | ER;
   while (EHV) {
-    uint64_t bb = findLowestSetBitValue(EHV);
+    uint64_t bb = getLowestSetBitValue(EHV);
     uint64_t H_moves =
-        h_v_moves(bb, OCCUPIED) & directional_mask[findSetBit(bb)][RANKS];
+        h_v_moves(bb, OCCUPIED) & directional_mask[getSetBit(bb)][RANKS];
 
     // Check for special en passant pins.
     uint64_t ep_pawn = white_to_move ? E_P >> 8 : E_P << 8;
@@ -605,9 +155,9 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   K_slider = K_h_v_slider & directional_mask[k_bit][FILES];
 
   while (EHV) {
-    uint64_t bb = findLowestSetBitValue(EHV);
+    uint64_t bb = getLowestSetBitValue(EHV);
     PINNED |= K_slider & h_v_moves(bb, OCCUPIED) &
-              directional_mask[findSetBit(bb)][FILES];
+              directional_mask[getSetBit(bb)][FILES];
     clearLowestSetBit(EHV);
   }
 
@@ -616,9 +166,9 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   uint64_t ED = EQ | EB;
   K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_DOWN_RIGHT];
   while (ED) {
-    uint64_t bb = findLowestSetBitValue(ED);
+    uint64_t bb = getLowestSetBitValue(ED);
     PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
-              directional_mask[findSetBit(bb)][DIAGONALS_DOWN_RIGHT];
+              directional_mask[getSetBit(bb)][DIAGONALS_DOWN_RIGHT];
 
     clearLowestSetBit(ED);
   }
@@ -627,9 +177,9 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   ED = EQ | EB;
   K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_UP_RIGHT];
   while (ED) {
-    uint64_t bb = findLowestSetBitValue(ED);
+    uint64_t bb = getLowestSetBitValue(ED);
     PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
-              directional_mask[findSetBit(bb)][DIAGONALS_UP_RIGHT];
+              directional_mask[getSetBit(bb)][DIAGONALS_UP_RIGHT];
     clearLowestSetBit(ED);
   }
   return PINNED;
@@ -655,8 +205,8 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
 
   while (R) {
 
-    uint64_t bb = findLowestSetBitValue(R);
-    uint8_t bit = findSetBit(bb);
+    uint64_t bb = getLowestSetBitValue(R);
+    uint8_t bit = getSetBit(bb);
 
     uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
 
@@ -665,8 +215,8 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
 
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (possible_moves) {
-      uint64_t final_bb = findLowestSetBitValue(possible_moves);
-      uint8_t final_bit = findSetBit(final_bb);
+      uint64_t final_bb = getLowestSetBitValue(possible_moves);
+      uint8_t final_bit = getSetBit(final_bb);
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[final_bit];
       moves[n_moves++] = coordinatesToMove(initial, final);
       clearLowestSetBit(possible_moves);
@@ -694,17 +244,16 @@ void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
   }
 
   while (B) {
-    uint64_t bb = findLowestSetBitValue(B);
-    uint8_t bit = findSetBit(bb);
+    uint64_t bb = getLowestSetBitValue(B);
+    uint8_t bit = getSetBit(bb);
     uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
     uint64_t possible_moves =
         diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (possible_moves) {
-      uint64_t bb_final = findLowestSetBitValue(possible_moves);
-      std::pair<uint8_t, uint8_t> final =
-          bitToCoordinates[findSetBit(bb_final)];
+      uint64_t bb_final = getLowestSetBitValue(possible_moves);
+      std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
       moves[n_moves++] = coordinatesToMove(initial, final);
 
       clearLowestSetBit(possible_moves);
@@ -732,8 +281,8 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
   }
 
   while (Q) {
-    uint64_t bb = findLowestSetBitValue(Q);
-    uint8_t bit = findSetBit(bb);
+    uint64_t bb = getLowestSetBitValue(Q);
+    uint8_t bit = getSetBit(bb);
     uint64_t mask = bb & PINNED ? getMask(bb, K) : FILLED;
     uint64_t possible_moves =
         (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES & mask &
@@ -741,9 +290,8 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
 
     std::pair<uint8_t, uint8_t> initial = bitToCoordinates[bit];
     while (possible_moves) {
-      uint64_t bb_final = findLowestSetBitValue(possible_moves);
-      std::pair<uint8_t, uint8_t> final =
-          bitToCoordinates[findSetBit(bb_final)];
+      uint64_t bb_final = getLowestSetBitValue(possible_moves);
+      std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
       moves[n_moves++] = coordinatesToMove(initial, final);
 
       clearLowestSetBit(possible_moves);
@@ -770,8 +318,8 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
   }
 
   while (N) {
-    uint64_t bb = findLowestSetBitValue(N);
-    uint8_t kn_bit = findSetBit(bb);
+    uint64_t bb = getLowestSetBitValue(N);
+    uint8_t kn_bit = getSetBit(bb);
 
     if (!(bb & PINNED)) { // only check for moves if it's not pinned.
                           // pinned knights cannot move.
@@ -784,9 +332,9 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
 
       std::pair<uint8_t, uint8_t> initial = bitToCoordinates[kn_bit];
       while (pos_moves) {
-        uint64_t bb_final = findLowestSetBitValue(pos_moves);
+        uint64_t bb_final = getLowestSetBitValue(pos_moves);
         std::pair<uint8_t, uint8_t> final =
-            bitToCoordinates[findSetBit(bb_final)];
+            bitToCoordinates[getSetBit(bb_final)];
         moves[n_moves++] = coordinatesToMove(initial, final);
 
         clearLowestSetBit(pos_moves);
@@ -807,7 +355,7 @@ void generateKnightMoves(uint64_t N, uint64_t K, uint64_t PIECES,
  */
 void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
                        uint8_t &n_moves) {
-  uint8_t k_bit = findSetBit(K);
+  uint8_t k_bit = getSetBit(K);
   uint64_t pos_moves = k_bit > KING_MASK_BIT_POSITION
                            ? KING_MOVES << (k_bit - KING_MASK_BIT_POSITION)
                            : KING_MOVES >> (KING_MASK_BIT_POSITION - k_bit);
@@ -815,8 +363,8 @@ void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
 
   std::pair<uint8_t, uint8_t> initial = bitToCoordinates[k_bit];
   while (pos_moves) {
-    uint64_t bb_final = findLowestSetBitValue(pos_moves);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb_final)];
+    uint64_t bb_final = getLowestSetBitValue(pos_moves);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb_final)];
     moves[n_moves++] = coordinatesToMove(initial, final);
 
     clearLowestSetBit(pos_moves);
@@ -855,8 +403,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
   while (P_FORWARD_1) {
-    uint64_t bb = findLowestSetBitValue(P_FORWARD_1);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_FORWARD_1);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     moves[n_moves++] = coordinatesToMove(initial, final);
@@ -865,8 +413,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check to see if you can move 2
   while (P_FORWARD_2) {
-    uint64_t bb = findLowestSetBitValue(P_FORWARD_2);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_FORWARD_2);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -2 : 2;
     Move move = coordinatesToMove(initial, final);
@@ -877,8 +425,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for attacks left
   while (P_ATTACK_L) {
-    uint64_t bb = findLowestSetBitValue(P_ATTACK_L);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_ATTACK_L);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
@@ -888,8 +436,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for attacks right
   while (P_ATTACK_R) {
-    uint64_t bb = findLowestSetBitValue(P_ATTACK_R);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_ATTACK_R);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
@@ -899,8 +447,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for promotion straight
   while (P_PROMO_1) {
-    uint64_t bb = findLowestSetBitValue(P_PROMO_1);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_PROMO_1);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     Move move = coordinatesToMove(initial, final);
@@ -919,9 +467,9 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for promotion left
   while (P_PROMO_L) {
-    uint64_t bb = findLowestSetBitValue(P_PROMO_L);
+    uint64_t bb = getLowestSetBitValue(P_PROMO_L);
 
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
@@ -941,9 +489,9 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for promotion attack right
   while (P_PROMO_R) {
-    uint64_t bb = findLowestSetBitValue(P_PROMO_R);
+    uint64_t bb = getLowestSetBitValue(P_PROMO_R);
 
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
@@ -963,8 +511,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for en passant left
   while (P_EP_L) {
-    uint64_t bb = findLowestSetBitValue(P_EP_L);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_EP_L);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? 1 : 1;
@@ -976,8 +524,8 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
 
   // check for en passant right
   while (P_EP_R) {
-    uint64_t bb = findLowestSetBitValue(P_EP_R);
-    std::pair<uint8_t, uint8_t> final = bitToCoordinates[findSetBit(bb)];
+    uint64_t bb = getLowestSetBitValue(P_EP_R);
+    std::pair<uint8_t, uint8_t> final = bitToCoordinates[getSetBit(bb)];
     std::pair<uint8_t, uint8_t> initial = final;
     initial.first += white_to_move ? -1 : 1;
     initial.second += white_to_move ? -1 : -1;
@@ -995,7 +543,7 @@ void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
                              uint8_t &n_moves) {
   uint64_t pinned_pawns = P & PINNED;
   while (pinned_pawns) {
-    uint64_t bb = findLowestSetBitValue(pinned_pawns);
+    uint64_t bb = getLowestSetBitValue(pinned_pawns);
     uint64_t mask = getMask(bb, K);
     generatePawnMoves(white_to_move, mask, bb, K, E_P, EMPTY, ENEMY_PIECES,
                       checker_zone, moves, n_moves);
@@ -1047,7 +595,7 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
     // todo: implement lookup table
   if ((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1)) {
     uint8_t k_bit =
-        findSetBit((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1));
+        getSetBit((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1));
 
     std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
     std::pair<uint8_t, uint8_t> initial = final;
@@ -1066,8 +614,8 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
 
     if ((((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) & ~DZ & ~(DZ >> 1)) !=
         0u) {
-      uint8_t k_bit = findSetBit(((K >> 2) & EMPTY) & (EMPTY >> 1) &
-                                 (EMPTY << 1) & ~DZ & ~(DZ >> 1));
+      uint8_t k_bit = getSetBit(((K >> 2) & EMPTY) & (EMPTY >> 1) &
+                                (EMPTY << 1) & ~DZ & ~(DZ >> 1));
       std::pair<uint8_t, uint8_t> final = bitToCoordinates[k_bit];
       std::pair<uint8_t, uint8_t> initial = final;
       initial.second += 2;
@@ -1087,7 +635,7 @@ uint64_t getRookQueenAttackZone(uint64_t K, uint64_t ER, uint64_t EQ,
   uint64_t EHV = ER | EQ;
   uint64_t DZ = 0;
   while (EHV) {
-    uint64_t hv_piece = findLowestSetBitValue(EHV);
+    uint64_t hv_piece = getLowestSetBitValue(EHV);
     DZ |= h_v_moves(hv_piece, OCCUPIED, true, K);
     clearLowestSetBit(EHV);
   }
@@ -1099,7 +647,7 @@ uint64_t getBishopQueenAttackZone(uint64_t K, uint64_t EB, uint64_t EQ,
   uint64_t ED = EB | EQ;
   uint64_t DZ = 0;
   while (ED) {
-    uint64_t diag_piece = findLowestSetBitValue(ED);
+    uint64_t diag_piece = getLowestSetBitValue(ED);
     DZ |= diag_moves(diag_piece, OCCUPIED, true, K);
 
     clearLowestSetBit(ED);
@@ -1110,7 +658,7 @@ uint64_t getBishopQueenAttackZone(uint64_t K, uint64_t EB, uint64_t EQ,
 uint64_t getKnightAttackZone(uint64_t N) {
   uint64_t DZ = 0;
   while (N) {
-    uint8_t kn_bit = findSetBit(findLowestSetBitValue(N));
+    uint8_t kn_bit = getSetBit(getLowestSetBitValue(N));
     uint64_t pos_moves =
         kn_bit > KNIGHT_MASK_BIT_POSITION
             ? KNIGHT_MOVES << (kn_bit - KNIGHT_MASK_BIT_POSITION)
@@ -1123,7 +671,7 @@ uint64_t getKnightAttackZone(uint64_t N) {
 }
 
 uint64_t getKingAttackZone(uint64_t K) {
-  uint8_t k_bit = findSetBit(K);
+  uint8_t k_bit = getSetBit(K);
   uint64_t pos_moves = k_bit > KING_MASK_BIT_POSITION
                            ? KING_MOVES << (k_bit - KING_MASK_BIT_POSITION)
                            : KING_MOVES >> (KING_MASK_BIT_POSITION - k_bit);
@@ -1166,7 +714,7 @@ uint8_t getDiagonalChecker(uint64_t K, uint64_t EB, uint64_t EQ,
 uint8_t getKnightChecker(uint64_t K, uint64_t EN, uint64_t OCCUPIED,
                          uint64_t &checker_zone) {
   // Check for knight attacks.
-  uint64_t k_bit = findSetBit(K);
+  uint64_t k_bit = getSetBit(K);
   uint64_t K_exposure =
       k_bit > KNIGHT_MASK_BIT_POSITION
           ? KNIGHT_MOVES << (k_bit - KNIGHT_MASK_BIT_POSITION)
@@ -1586,7 +1134,7 @@ int16_t eval(const GameState gamestate) {
              900;
   //    if (counter > 1000000){
   //       std::cout << counter << std::endl;
-  //       print_board(gamestate);
+  //       printBoard(gamestate);
   //       exit(1);
   //    }
 
@@ -1884,7 +1432,7 @@ void generate_board(std::string name, uint8_t diff) {
                 << std::endl;
       std::cout << " " << std::endl;
     } else {
-      print_board(gamestate);
+      printBoard(gamestate);
       std::cout << "BLACK'S MOVE: " << std::endl;
 
       // todo: create a player class for their choosing mechanism
