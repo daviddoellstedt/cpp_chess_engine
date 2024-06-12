@@ -141,14 +141,6 @@ int main() {
 
   // generate_board("ba", 3);
 
-  //   for(int i = 0; i < 64; i++){
-  //     Move moves[64];
-  //     uint64_t DZ = 0, PIECES = 0, N = 1ull << i;
-  //     uint8_t n_moves = 0;
-  //     //std::cout<< std::endl <<"BIT: " << i <<std::endl;
-  //     uint64_t pos_moves = generateKnightMoves(N, PIECES, 0, 0, moves,
-  //     n_moves);
-  //   }
 
   return 0;
 }

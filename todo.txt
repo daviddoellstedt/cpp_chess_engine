@@ -20,8 +20,7 @@
 - fix relative pathing in the includes
 
 
-
-from build dir:
+build commands:
 cmake --build build 
 ./build/cpp_chess_engine
 
