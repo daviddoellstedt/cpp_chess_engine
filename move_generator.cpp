@@ -9,14 +9,12 @@
 uint64_t bishopMagicTable[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
 uint64_t rookMagicTable[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS] = {0};
 
-// TODO: update documentation.
-/** Function that returns a bitboard mask of the straight line between two
- * pieces. Inputs need to be colinear at a diagonal or orthogonal
- * perspective. More or less a lookup table.
+/** Returns a bitboard of the line between two pieces.
  *
- * @param p1: first piece
- * @param p2: second piece
- * @return bitboard mask of rank/file/diagonal connection between the two pieces
+ * @param p1: First piece
+ * @param p2: Second piece
+ * @return Bitboard mask of rank/file/diagonal connection between the two
+ * pieces.
  */
 uint64_t getColinearMask(uint64_t p1, uint64_t p2) {
   uint8_t k_bit = getSetBit(p2);
@@ -152,7 +150,13 @@ uint64_t getSetwiseDiagonalMoves(uint64_t piece, uint64_t occupied,
          getSetwiseUpRightDiagonalMoves(piece, occupied);
 }
 
-void generateRookMagicNumber(
+/** Finds a rook magic number for a specific bit.
+ *
+ * @param bit: Square/bit on the board to do the search for.
+ * @param blockers_array: Rook blockers array.
+ * @return Magic number, if found, else 0.
+ */
+uint64_t generateRookMagicNumber(
     uint8_t bit,
     uint64_t blockers_array[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS]) {
   uint64_t rookMagicTableTemp[N_ROOK_BLOCKERS_PERMUTATIONS] = {0};
@@ -192,18 +196,23 @@ void generateRookMagicNumber(
       fail = true;
       break;
     }
-    // MAgic number found. Dump to std out.
     if (!fail) {
-      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
-                << std::endl;
-      break;
+      return magic_num;
     }
   }
+  return 0;
 }
 
-void generateBishopMagicNumber(
+/** Finds a bishop magic number for a specific bit.
+ *
+ * @param bit: Square/bit on the board to do the search for.
+ * @param blockers_array: Bishop blockers array.
+ * @return Magic number, if found, else 0.
+ */
+uint64_t generateBishopMagicNumber(
     uint8_t bit,
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
+  // TODO: Refator. A lot fo similar code with the rook function above.
   uint64_t bishopMagicTableTemp[N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
 
   while (true) {
@@ -238,13 +247,11 @@ void generateBishopMagicNumber(
       fail = true;
       break;
     }
-    // Magic number found. Dump to std out.
     if (!fail) {
-      std::cout << "0x" << std::hex << std::uppercase << magic_num + 0 << ", "
-                << std::endl;
-      break;
+      return magic_num;
     }
   }
+  return 0;
 }
 
 /** Populates the global magic rook table used for generating
@@ -341,8 +348,6 @@ void initializeBishopBlockers(
 }
 
 /** Initializes the bishop magic bitboard table.
- *
- * @param rook_blockers: Rook blockers table.
  */
 void initializeBishopMagicBitboardTable(void) {
   uint64_t bishop_blockers[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS];
@@ -351,8 +356,6 @@ void initializeBishopMagicBitboardTable(void) {
 }
 
 /** Initializes the rook magic bitboard table.
- *
- * @param rook_blockers: Rook blockers table.
  */
 void initializeRookMagicBitboardTable(void) {
   uint64_t rook_blockers[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS];
@@ -365,9 +368,17 @@ void initializeMagicBitboardTables(void) {
   initializeRookMagicBitboardTable();
 }
 
-// Add documentation
-uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED,
-                   bool unsafe_calculation = false, uint64_t K = 0) {
+/** Generates horizontal/vertical moves. For pieces such as rook/queen.
+ *
+ * @param piece: Bitboard slider piece.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param unsafe_calculation: Flag denoting if we are caluculating safe paths
+ * for king. (Optional).
+ * @param K: Bitboard of the active player's king. (Optional).
+ */
+uint64_t horizontalAndVerticalMoves(uint64_t piece, uint64_t OCCUPIED,
+                                    bool unsafe_calculation = false,
+                                    uint64_t K = 0) {
   if (unsafe_calculation) {
     OCCUPIED &= ~K;
   }
@@ -379,9 +390,16 @@ uint64_t h_v_moves(uint64_t piece, uint64_t OCCUPIED,
   return magic_moves;
 }
 
-// Add documentation
-uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED,
-                    bool unsafe_calculation = false, uint64_t K = 0) {
+/** Generates diagonal moves. For pieces such as bishop/queen.
+ *
+ * @param piece: Bitboard slider piece.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param unsafe_calculation: Flag denoting if we are caluculating safe paths
+ * for king. (Optional).
+ * @param K: Bitboard of the active player's king. (Optional).
+ */
+uint64_t diagonalMoves(uint64_t piece, uint64_t OCCUPIED,
+                       bool unsafe_calculation = false, uint64_t K = 0) {
   if (unsafe_calculation) {
     OCCUPIED &= ~K;
   }
@@ -394,17 +412,16 @@ uint64_t diag_moves(uint64_t piece, uint64_t OCCUPIED,
   return magic_moves;
 }
 
-// TODO UPdate documentation.
-/** Function that adds Rook moves to the move list
+/** Generates and adds rook moves to the move list.
  *
- * @params Piece bitboards (Rook, King)
- * @param PIECES: bitboard representing occupied spaces by the input player
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @param PINNED: bitboard of all pinned pieces for a color
- * @param checker_zone: bitboard of check areas for the current king (enemy
- * attacker piece(s) included).
- * @param moves: list of all possible moves for the input player. Output
- * will be appended to this list.
+ * @param R: Bitboard of the active player's rooks.
+ * @param K: Bitboard of the active player's king.
+ * @param PIECES: Bitboard of the active player's pieces.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
  */
 void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
                        uint64_t OCCUPIED, uint64_t PINNED,
@@ -420,8 +437,8 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
 
     uint64_t mask = bb & PINNED ? getColinearMask(bb, K) : FILLED;
 
-    uint64_t possible_moves =
-        h_v_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
+    uint64_t possible_moves = horizontalAndVerticalMoves(bb, OCCUPIED) &
+                              ~PIECES & mask & checker_zone;
     while (possible_moves) {
       uint64_t final_bb = getLowestSetBitValue(possible_moves);
       uint8_t final_bit = getSetBit(final_bb);
@@ -433,17 +450,16 @@ void generateRookMoves(uint64_t R, uint64_t K, uint64_t PIECES,
   }
 }
 
-// TODO UPdate documentation.
-/** Function that adds Bishop moves to the move list
+/** Generates and adds bishop moves to the move list.
  *
- * @params Piece bitboards (Bishop, King)
- * @param PIECES: bitboard representing occupied spaces by the input player
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @param PINNED: bitboard of all pinned pieces for a color
- * @param checker_zone: bitboard of check areas for the current king (enemy
- * attacker piece(s) included).
- * @param moves: list of all possible moves for the inpout player. output
- * will be appended to this variable.
+ * @param B: Bitboard of the active player's bishops.
+ * @param K: Bitboard of the active player's king.
+ * @param PIECES: Bitboard of the active player's pieces.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
  */
 void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
                          uint64_t OCCUPIED, uint64_t PINNED,
@@ -457,7 +473,7 @@ void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
     uint8_t bit = getSetBit(bb);
     uint64_t mask = bb & PINNED ? getColinearMask(bb, K) : FILLED;
     uint64_t possible_moves =
-        diag_moves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
+        diagonalMoves(bb, OCCUPIED) & ~PIECES & mask & checker_zone;
 
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
@@ -471,17 +487,16 @@ void generateBishopMoves(uint64_t B, uint64_t K, uint64_t PIECES,
   }
 }
 
-// TODO UPdate documentation.
-/** Function that adds Queen moves to the move list
+/** Generates and adds queen moves to the move list.
  *
- * @params Piece bitboards (Queen, King)
- * @param PIECES: bitboard representing occupied spaces by the input player
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @param PINNED: bitboard of all pinned pieces for a color
- * @param checker_zone: bitboard of check areas for the current king (enemy
- * attacker piece(s) included).
- * @param moves: list of all possible moves for the inpout player. output
- * will be appended to this variable.
+ * @param Q: Bitboard of the active player's queens.
+ * @param K: Bitboard of the active player's king.
+ * @param PIECES: Bitboard of the active player's pieces.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
  */
 void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
                         uint64_t OCCUPIED, uint64_t PINNED,
@@ -494,9 +509,9 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
     uint64_t bb = getLowestSetBitValue(Q);
     uint8_t bit = getSetBit(bb);
     uint64_t mask = bb & PINNED ? getColinearMask(bb, K) : FILLED;
-    uint64_t possible_moves =
-        (h_v_moves(bb, OCCUPIED) | diag_moves(bb, OCCUPIED)) & ~PIECES & mask &
-        checker_zone;
+    uint64_t possible_moves = (horizontalAndVerticalMoves(bb, OCCUPIED) |
+                               diagonalMoves(bb, OCCUPIED)) &
+                              ~PIECES & mask & checker_zone;
 
     while (possible_moves) {
       uint64_t bb_final = getLowestSetBitValue(possible_moves);
@@ -510,16 +525,14 @@ void generateQueenMoves(uint64_t Q, uint64_t K, uint64_t PIECES,
   }
 }
 
-// TODO UPdate documentation.
-/** Function that adds Knight moves to the move list
+/** Generates and adds knight moves to the move list.
  *
- * @params Piece bitboards (Knight, King)
- * @param PIECES: bitboard representing occupied spaces by the input player
- * @param PINNED: bitboard of all pinned pieces for a color
- * @param checker_zone: bitboard of check areas for the current king (enemy
- * attacker piece(s) included).
- * @param moves: list of all possible moves for the inpout player. output
- * will be appended to this variable.
+ * @param N: Bitboard of the active player's knights.
+ * @param PIECES: Bitboard of the active player's pieces.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
  */
 void generateKnightMoves(uint64_t N, uint64_t PIECES, uint64_t PINNED,
                          uint64_t checker_zone, Move *moves, uint8_t &n_moves) {
@@ -547,15 +560,13 @@ void generateKnightMoves(uint64_t N, uint64_t PIECES, uint64_t PINNED,
   }
 }
 
-// TODO UPdate documentation.
-/** Function that adds King moves to the move list
+/** Generates and adds king moves to the move list.
  *
- * @params Piece bitboards (King)
- * @param PIECES: bitboard representing occupied spaces by the input player
- * @param DZ: bitboard representing the current 'Danger Zone' for the King,
- * which would put him in check if he moved there (illegal move)
- * @param moves: list of all possible moves for the inpout player. output
- * will be appended to this variable.
+ * @param K: Bitboard of the active player's king.
+ * @param PIECES: Bitboard of the active player's pieces.
+ * @param DZ: Bitboard of the danger zone, where the king cannot pass through.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
  */
 void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
                        uint8_t &n_moves) {
@@ -570,40 +581,65 @@ void generateKingMoves(uint64_t K, uint64_t PIECES, uint64_t DZ, Move *moves,
   }
 }
 
-// TODO add documentation.
+/** Gets the bitboard of the squares the pawns are attacking.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param P: Bitboard of the pawns.
+ * @return Bitboard of the squares the pawns are attacking.
+ */
 uint64_t getPawnAttackZone(bool white_to_move, uint64_t P) {
   return white_to_move ? ((P >> 7) & ~file_a) | ((P >> 9) & ~file_h)
                        : ((P << 9) & ~file_a) | ((P << 7) & ~file_h);
 }
 
-// TODO add documentation.
+/** Gets the bitboard of the squares the rooks/queens are attacking
+ * horizontally/vertically.
+ *
+ * @param K: Bitboard of the active player's king.
+ * @param ER: Bitboard of the enemy player's rooks.
+ * @param EQ: Bitboard of the enemy player's queens.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @return Bitboard of the squares the rooks/queens are attacking diagonally.
+ */
 uint64_t getRookQueenAttackZone(uint64_t K, uint64_t ER, uint64_t EQ,
                                 uint64_t OCCUPIED) {
   uint64_t EHV = ER | EQ;
   uint64_t DZ = 0;
   while (EHV) {
     uint64_t hv_piece = getLowestSetBitValue(EHV);
-    DZ |= h_v_moves(hv_piece, OCCUPIED, true, K);
+    DZ |= horizontalAndVerticalMoves(hv_piece, OCCUPIED, true, K);
     clearLowestSetBit(EHV);
   }
   return DZ;
 }
 
-// TODO add documentation.
+/** Gets the bitboard of the squares the bishops/queens are attacking
+ * diagonally.
+ *
+ * @param K: Bitboard of the active player's king.
+ * @param EB: Bitboard of the enemy player's bishops.
+ * @param EQ: Bitboard of the enemy player's queens.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @return Bitboard of the squares the bishops/queens are attacking diagonally.
+ */
 uint64_t getBishopQueenAttackZone(uint64_t K, uint64_t EB, uint64_t EQ,
                                   uint64_t OCCUPIED) {
   uint64_t ED = EB | EQ;
   uint64_t DZ = 0;
   while (ED) {
     uint64_t diag_piece = getLowestSetBitValue(ED);
-    DZ |= diag_moves(diag_piece, OCCUPIED, true, K);
+    DZ |= diagonalMoves(diag_piece, OCCUPIED, true, K);
 
     clearLowestSetBit(ED);
   }
   return DZ;
 }
 
-// TODO add documentation.
+/** Gets the bitboard of the squares the knight is attacking.
+ *
+ * @param N: Bitboard of the knight.
+ * @return Bitboard of the squares the knight is attacking.
+ */
 uint64_t getKnightAttackZone(uint64_t N) {
   uint64_t DZ = 0;
   while (N) {
@@ -613,44 +649,68 @@ uint64_t getKnightAttackZone(uint64_t N) {
   return DZ;
 }
 
-// TODO add documentation.
+/** Gets the bitboard of the squares the king is attacking.
+ *
+ * @param K: Bitboard of the king.
+ * @return Bitboard of the squares the king is attacking.
+ */
 uint64_t getKingAttackZone(uint64_t K) { return king_moves[getSetBit(K)]; }
 
-// TODO add documentation.
-//  Check horizontal/vertical pieces. Note: only one horizontal/vertical slider
-//  can be checking a king at a time.
+/** Determines if the bishops/queens are putting the king in check
+ * horizontally/vertically.
+ *
+ * @param K: Bitboard of the active player's king.
+ * @param ER: Bitboard of the enemy player's rooks.
+ * @param EQ: Bitboard of the enemy player's queens.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param checker_zone: Bitboard of zone of the checkers, if applicable.
+ * @return 1 if the rook/queen is putting the king in check, else 0.
+ */
 uint8_t getHorizontalAndVerticalChecker(uint64_t K, uint64_t ER, uint64_t EQ,
                                         uint64_t OCCUPIED,
                                         uint64_t &checker_zone) {
   uint64_t EHV = ER | EQ;
-  uint64_t K_exposure = h_v_moves(K, OCCUPIED);
+  uint64_t K_exposure = horizontalAndVerticalMoves(K, OCCUPIED);
   uint64_t new_checker = K_exposure & EHV;
   if (new_checker) {
     checker_zone |= new_checker;
-    checker_zone |= h_v_moves(new_checker, OCCUPIED) & K_exposure;
+    checker_zone |=
+        horizontalAndVerticalMoves(new_checker, OCCUPIED) & K_exposure;
     return 1;
   }
   return 0;
 }
 
-// TODO add documentation.
-//  Check horizontal/vertical pieces. Note: only one diagonal slider
-//  can be checking a king at a time.
+/** Determines if the bishops/queens are putting the king in check diagonally.
+ *
+ * @param K: Bitboard of the active player's king.
+ * @param EB: Bitboard of the enemy player's bishops.
+ * @param EQ: Bitboard of the enemy player's queens.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param checker_zone: Bitboard of zone of the checkers, if applicable.
+ * @return 1 if the bishop/queen is putting the king in check, else 0.
+ */
 uint8_t getDiagonalChecker(uint64_t K, uint64_t EB, uint64_t EQ,
                            uint64_t OCCUPIED, uint64_t &checker_zone) {
   uint64_t ED = EB | EQ;
-  uint64_t K_exposure = diag_moves(K, OCCUPIED);
+  uint64_t K_exposure = diagonalMoves(K, OCCUPIED);
   uint64_t new_checker = K_exposure & ED;
   if (new_checker) {
     checker_zone |= new_checker;
-    checker_zone |= diag_moves(new_checker, OCCUPIED) & K_exposure;
+    checker_zone |= diagonalMoves(new_checker, OCCUPIED) & K_exposure;
     return 1;
   }
   return 0;
 }
 
-// TODO add documentation.
-//  Check knight pieces.
+/** Determines if the knights are putting the king in check.
+ *
+ * @param K: Bitboard of the active player's king.
+ * @param EN: Bitboard of the enemy player's knights.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param checker_zone: Bitboard of zone of the checkers, if applicable.
+ * @return 1 if the knight is putting the king in check, else 0.
+ */
 uint8_t getKnightChecker(uint64_t K, uint64_t EN, uint64_t OCCUPIED,
                          uint64_t &checker_zone) {
   // Check for knight attacks.
@@ -664,7 +724,14 @@ uint8_t getKnightChecker(uint64_t K, uint64_t EN, uint64_t OCCUPIED,
   return 0;
 }
 
-// TODO add documentation.
+/** Determines if the pawns are putting the king in check.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param K: Bitboard of the active player's king.
+ * @param EP: Bitboard of the enemy player's pawns.
+ * @param checker_zone: Bitboard of zone of the checkers, if applicable.
+ * @return 1 if the pawn is putting the king in check, else 0.
+ */
 uint8_t getPawnChecker(bool white_to_move, uint64_t K, uint64_t EP,
                        uint64_t &checker_zone) {
 
@@ -706,7 +773,17 @@ uint8_t getPawnChecker(bool white_to_move, uint64_t K, uint64_t EP,
   return 0;
 }
 
-// TODO add documentation.
+/** Determines if the king is in check.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param K: Bitboard of the active player's king.
+ * @param enemy_player_state: Enemy player state.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param DZ: Bitboard of the danger zone, where the king cannot pass through.
+ * @param checker_zone: Bitboard of zone of the checkers, if applicable.
+ * @param n_checkers: The number of pieces putting the king in check.
+ * @return true if in check, else false.
+ */
 bool isInCheck(bool white_to_move, uint64_t K, ColorState enemy_player_state,
                uint64_t OCCUPIED, uint64_t &DZ, uint64_t &checker_zone,
                uint8_t &n_checkers) {
@@ -734,12 +811,17 @@ bool isInCheck(bool white_to_move, uint64_t K, ColorState enemy_player_state,
   return check;
 }
 
-/** Returns a bitboard of pieces that are pinned. TODO EDIT THIS DOCUMENTATION.
+/** Returns a bitboard of pieces that are pinned.
  *
- * @params Piece bitboards (note that the E preceding a Piece letter denotes the
- * enemies piece, ex: EB = enemy bishop)
- * @param OCCUPIED: bitboard representing all occupied spaces on the board
- * @return PINNED: bitboard of all pinned pieces for a color
+ * @param K: Bitboard of the active player's king.
+ * @param P: Bitboard of the active player's pawns.
+ * @param EQ: Bitboard of the enemy player's queens.
+ * @param EB: Bitboard of the enemy player's bishops.
+ * @param ER: Bitboard of the enemy player's rooks.
+ * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
+ * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param white_to_move: Flag denoting the turn.
+ * @return Bitboard of all pinned pieces.
  */
 uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
                          uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
@@ -748,14 +830,14 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   uint8_t k_bit = getSetBit(K);
 
   // Horizontal check.
-  uint64_t K_h_v_slider = h_v_moves(K, OCCUPIED);
+  uint64_t K_h_v_slider = horizontalAndVerticalMoves(K, OCCUPIED);
   uint64_t K_slider = K_h_v_slider & directional_mask[k_bit][RANKS];
 
   uint64_t EHV = EQ | ER;
   while (EHV) {
     uint64_t bb = getLowestSetBitValue(EHV);
-    uint64_t H_moves =
-        h_v_moves(bb, OCCUPIED) & directional_mask[getSetBit(bb)][RANKS];
+    uint64_t H_moves = horizontalAndVerticalMoves(bb, OCCUPIED) &
+                       directional_mask[getSetBit(bb)][RANKS];
 
     // Check for special en passant pins.
     uint64_t ep_pawn = white_to_move ? E_P >> 8 : E_P << 8;
@@ -782,18 +864,18 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
 
   while (EHV) {
     uint64_t bb = getLowestSetBitValue(EHV);
-    PINNED |= K_slider & h_v_moves(bb, OCCUPIED) &
+    PINNED |= K_slider & horizontalAndVerticalMoves(bb, OCCUPIED) &
               directional_mask[getSetBit(bb)][FILES];
     clearLowestSetBit(EHV);
   }
 
   // Down right diagonal check.
-  uint64_t K_slider_diag = diag_moves(K, OCCUPIED);
+  uint64_t K_slider_diag = diagonalMoves(K, OCCUPIED);
   uint64_t ED = EQ | EB;
   K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_DOWN_RIGHT];
   while (ED) {
     uint64_t bb = getLowestSetBitValue(ED);
-    PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
+    PINNED |= K_slider & diagonalMoves(bb, OCCUPIED) &
               directional_mask[getSetBit(bb)][DIAGONALS_DOWN_RIGHT];
 
     clearLowestSetBit(ED);
@@ -804,14 +886,23 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
   K_slider = K_slider_diag & directional_mask[k_bit][DIAGONALS_UP_RIGHT];
   while (ED) {
     uint64_t bb = getLowestSetBitValue(ED);
-    PINNED |= K_slider & diag_moves(bb, OCCUPIED) &
+    PINNED |= K_slider & diagonalMoves(bb, OCCUPIED) &
               directional_mask[getSetBit(bb)][DIAGONALS_UP_RIGHT];
     clearLowestSetBit(ED);
   }
   return PINNED;
 }
 
-// TODO: ADD DOCUMENTATION
+/** Adds the kingside castle move to the move list, if applicable.
+ *
+ * @param CK: Flag denoting if the kingside castle is still available.
+ * @param K: Bitboard of the active player's king.
+ * @param EMPTY: Bitboard of the empty squares.
+ * @param DZ: Bitboard of the danger zone, where the king is not allowed to pass
+ * through.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
                                 uint64_t DZ, Move *moves, uint8_t &n_moves) {
   if (!CK) {
@@ -828,7 +919,16 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
   }
 }
 
-// TODO: ADD DOCUMENTATION
+/** Adds the queenside castle move to the move list, if applicable.
+ *
+ * @param QK: Flag denoting if the queenside castle is still available.
+ * @param K: Bitboard of the active player's king.
+ * @param EMPTY: Bitboard of the empty squares.
+ * @param DZ: Bitboard of the danger zone, where the king is not allowed to pass
+ * through.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
                                  uint64_t DZ, Move *moves, uint8_t &n_moves) {
   if (!QK) {
@@ -845,7 +945,12 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
   }
 }
 
-// TODO ADD DOCUMENTATION.
+/** Helper function that adds all 4 promotion moves to the move list.
+ *
+ * @param move: Move.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
     move.setSpecial(PROMOTION_QUEEN);
     moves[n_moves++] = move;
@@ -857,37 +962,49 @@ void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
     moves[n_moves++] = move;
 }
 
-// TODO DOCUMENTATION
-// TODO REFACTOR?
-void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
+/** Generates the possible/legal moves for pinned pawns.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param PINNED_MASK: The line of pinning, if applicable.
+ * @param P: Bitboard of active player's pawns.
+ * @param K: Bitboard of active player's king.
+ * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param EMPTY: Bitboard of empty squares.
+ * @param ENEMY_PIECES: Bitboard of enemy pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
+void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
                        uint64_t K, uint64_t E_P, uint64_t EMPTY,
                        uint64_t ENEMY_PIECES, uint64_t checker_zone,
                        Move *moves, uint8_t &n_moves) {
+  // TODO REFACTOR?
   uint64_t P_FORWARD_1 =
-      EMPTY & MASK & checker_zone &
+      EMPTY & PINNED_MASK & checker_zone &
       (white_to_move ? (P << 8) & ~rank_8 : (P >> 8) & ~rank_1);
-  uint64_t P_FORWARD_2 = EMPTY & MASK & checker_zone &
+  uint64_t P_FORWARD_2 = EMPTY & PINNED_MASK & checker_zone &
                          (white_to_move ? (P << 16) & (EMPTY << 8) & rank_4
                                         : (P >> 16) & (EMPTY >> 8) & rank_5);
   uint64_t P_ATTACK_L =
-      ENEMY_PIECES & ~file_h & MASK & checker_zone &
+      ENEMY_PIECES & ~file_h & PINNED_MASK & checker_zone &
       (white_to_move ? (P << 7) & ~rank_8 : (P >> 9) & ~rank_1);
   uint64_t P_ATTACK_R =
-      ENEMY_PIECES & ~file_a & MASK & checker_zone &
+      ENEMY_PIECES & ~file_a & PINNED_MASK & checker_zone &
       (white_to_move ? (P << 9) & ~rank_8 : (P >> 7) & ~rank_1);
-  uint64_t P_PROMO_1 = EMPTY & MASK & checker_zone &
+  uint64_t P_PROMO_1 = EMPTY & PINNED_MASK & checker_zone &
                        (white_to_move ? (P << 8) & rank_8 : (P >> 8) & rank_1);
-  uint64_t P_PROMO_L = ENEMY_PIECES & ~file_h & MASK & checker_zone &
+  uint64_t P_PROMO_L = ENEMY_PIECES & ~file_h & PINNED_MASK & checker_zone &
                        (white_to_move ? (P << 7) & rank_8 : (P >> 9) & rank_1);
-  uint64_t P_PROMO_R = ENEMY_PIECES & ~file_a & MASK & checker_zone &
+  uint64_t P_PROMO_R = ENEMY_PIECES & ~file_a & PINNED_MASK & checker_zone &
                        (white_to_move ? (P << 9) & rank_8 : (P >> 7) & rank_1);
 
   checker_zone |= white_to_move && ((E_P >> 8) & checker_zone) ? E_P : 0;
   checker_zone |= !white_to_move && ((E_P << 8) & checker_zone) ? E_P : 0;
-  uint64_t P_EP_L =
-      E_P & ~file_h & MASK & checker_zone & (white_to_move ? P << 7 : P >> 9);
-  uint64_t P_EP_R =
-      E_P & ~file_a & MASK & checker_zone & (white_to_move ? P << 9 : P >> 7);
+  uint64_t P_EP_L = E_P & ~file_h & PINNED_MASK & checker_zone &
+                    (white_to_move ? P << 7 : P >> 9);
+  uint64_t P_EP_R = E_P & ~file_a & PINNED_MASK & checker_zone &
+                    (white_to_move ? P << 9 : P >> 7);
 
   // CHECK TO SEE IF WE CAN MOVE 1 SPACE FORWARD
   while (P_FORWARD_1) {
@@ -985,7 +1102,19 @@ void generatePawnMoves(bool white_to_move, uint64_t MASK, uint64_t P,
   }
 }
 
-// TODO DOCUMENTATION.
+/** Generates the possible/legal moves for pinned pawns.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param P: Bitboard of active player's pawns.
+ * @param K: Bitboard of active player's king.
+ * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param EMPTY: Bitboard of empty squares.
+ * @param ENEMY_PIECES: Bitboard of enemy pieces.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
                              uint64_t E_P, uint64_t EMPTY,
                              uint64_t ENEMY_PIECES, uint64_t PINNED,
@@ -1003,7 +1132,19 @@ void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
   P &= ~PINNED;
 }
 
-// TODO DOCUMENTATION.
+/** Generates the possible/legal moves for black pawns.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param BP: Bitboard of black pawns.
+ * @param BK: Bitboard of black king.
+ * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param EMPTY: Bitboard of empty squares.
+ * @param WHITE_PIECES: Bitboard of white pieces.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
                             uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
                             uint64_t PINNED, uint64_t checker_zone, Move *moves,
@@ -1021,7 +1162,19 @@ void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
   }
 }
 
-// TODO DOCUMENTATION.
+/** Generates the possible/legal moves for white pawns.
+ *
+ * @param white_to_move: Flag denoting the turn.
+ * @param WP: Bitboard of white pawns.
+ * @param WK: Bitboard of white king.
+ * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param EMPTY: Bitboard of empty squares.
+ * @param BLACK_PIECES: Bitboard of black pieces.
+ * @param PINNED: Bitboard of pinned pieces.
+ * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
+ * @param moves: Move list.
+ * @param n_moves: Running total number of moves.
+ */
 void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
                             uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
                             uint64_t PINNED, uint64_t checker_zone, Move *moves,
@@ -1039,7 +1192,12 @@ void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
   }
 }
 
-// TODO add documentation.
+/** Generates the possible/legal moves for white.
+ *
+ * @param game_state: Game state.
+ * @param moves: Move list.
+ * @param check: Returns true if the player is in check.
+ */
 uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = game_state.getWhiteOccupiedBitboard();
   uint64_t BLACK_PIECES = game_state.getBlackOccupiedBitboard();
@@ -1088,7 +1246,12 @@ uint8_t generateBlackMoves(GameState &game_state, Move *moves, bool &check) {
   return n_moves;
 }
 
-// TODO add documentation.
+/** Generates the possible/legal moves for white.
+ *
+ * @param game_state: Game state.
+ * @param moves: Move list.
+ * @param check: Returns true if the player is in check.
+ */
 uint8_t generateWhiteMoves(GameState &game_state, Move *moves, bool &check) {
   uint64_t WHITE_PIECES = game_state.getWhiteOccupiedBitboard();
   uint64_t BLACK_PIECES = game_state.getBlackOccupiedBitboard();
@@ -1142,7 +1305,6 @@ uint8_t generateMoves(GameState &game_state, Move *moves, bool &check) {
                                 : generateBlackMoves(game_state, moves, check);
 }
 
-// TODO remove bool?
 void print_moves(bool white_to_move, Move *moves, uint8_t n_moves) {
   std::cout << (white_to_move ? "WHITE" : "BLACK") << "'S MOVE: " << std::endl;
   for (uint8_t i = 0; i < n_moves; i++) {

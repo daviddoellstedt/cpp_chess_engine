@@ -45,10 +45,6 @@ void populateGridFromGameState(const GameState &game_state, char grid[8][8]) {
   }
 }
 
-/** Prints the board based on current game state.
- *
- * @param game_state: Game state.
- */
 void printBoard(const GameState &game_state) {
   char grid[8][8];
   populateGridFromGameState(game_state, grid);

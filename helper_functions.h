@@ -57,6 +57,16 @@ uint64_t generateRandom64(void);
  */
 void printBitboard(uint64_t bitboard);
 
+/** Converts a bit to the respective X position.
+ *
+ * @param bit: Bit 0 - 63.
+ * @return X position.
+ */
 inline uint8_t bitToX(uint8_t bit) { return bit / 8; }
 
+/** Converts a bit to the respective Y position.
+ *
+ * @param bit: Bit 0 - 63.
+ * @return Y position.
+ */
 inline uint8_t bitToY(uint8_t bit) { return bit % 8; }
