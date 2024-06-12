@@ -819,12 +819,12 @@ bool isInCheck(bool white_to_move, uint64_t K, ColorState enemy_player_state,
  * @param EB: Bitboard of the enemy player's bishops.
  * @param ER: Bitboard of the enemy player's rooks.
  * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
- * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param en_passant: The en passant bit, if applicable.
  * @param white_to_move: Flag denoting the turn.
  * @return Bitboard of all pinned pieces.
  */
 uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
-                         uint64_t ER, uint64_t OCCUPIED, uint64_t &E_P,
+                         uint64_t ER, uint64_t OCCUPIED, int8_t &en_passant,
                          bool white_to_move) {
   uint64_t PINNED = 0;
   uint8_t k_bit = getSetBit(K);
@@ -839,6 +839,7 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
     uint64_t H_moves = horizontalAndVerticalMoves(bb, OCCUPIED) &
                        directional_mask[getSetBit(bb)][RANKS];
 
+    uint64_t E_P = getEnPassantBitboard(en_passant);
     // Check for special en passant pins.
     uint64_t ep_pawn = white_to_move ? E_P >> 8 : E_P << 8;
     uint64_t p_can_capture_ep_r =
@@ -852,7 +853,7 @@ uint64_t getPinnedPieces(uint64_t K, uint64_t P, uint64_t EQ, uint64_t EB,
         (none_between_ep_p_and_attacker && (p_can_capture_ep_r & K_slider)) ||
         (none_between_king_and_ep_p && (p_can_capture_ep_l & H_moves)) ||
         (none_between_ep_p_and_attacker && (p_can_capture_ep_l & K_slider))) {
-      E_P = 0;
+      en_passant = -1;
     }
     PINNED |= K_slider & H_moves;
     clearLowestSetBit(EHV);
@@ -968,7 +969,7 @@ void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
  * @param PINNED_MASK: The line of pinning, if applicable.
  * @param P: Bitboard of active player's pawns.
  * @param K: Bitboard of active player's king.
- * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param en_passant: The en passant bit, if applicable.
  * @param EMPTY: Bitboard of empty squares.
  * @param ENEMY_PIECES: Bitboard of enemy pieces.
  * @param checker_zone: Bitboard of the zone of the checkers, if applicable.
@@ -976,7 +977,7 @@ void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
  * @param n_moves: Running total number of moves.
  */
 void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
-                       uint64_t K, uint64_t E_P, uint64_t EMPTY,
+                       uint64_t K, int8_t en_passant, uint64_t EMPTY,
                        uint64_t ENEMY_PIECES, uint64_t checker_zone,
                        Move *moves, uint8_t &n_moves) {
   // TODO REFACTOR?
@@ -999,6 +1000,7 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
   uint64_t P_PROMO_R = ENEMY_PIECES & ~file_a & PINNED_MASK & checker_zone &
                        (white_to_move ? (P << 9) & rank_8 : (P >> 7) & rank_1);
 
+  uint64_t E_P = getEnPassantBitboard(en_passant);
   checker_zone |= white_to_move && ((E_P >> 8) & checker_zone) ? E_P : 0;
   checker_zone |= !white_to_move && ((E_P << 8) & checker_zone) ? E_P : 0;
   uint64_t P_EP_L = E_P & ~file_h & PINNED_MASK & checker_zone &
@@ -1107,7 +1109,7 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
  * @param white_to_move: Flag denoting the turn.
  * @param P: Bitboard of active player's pawns.
  * @param K: Bitboard of active player's king.
- * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param en_passant: The en passant bit, if applicable.
  * @param EMPTY: Bitboard of empty squares.
  * @param ENEMY_PIECES: Bitboard of enemy pieces.
  * @param PINNED: Bitboard of pinned pieces.
@@ -1116,7 +1118,7 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
  * @param n_moves: Running total number of moves.
  */
 void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
-                             uint64_t E_P, uint64_t EMPTY,
+                             int8_t en_passant, uint64_t EMPTY,
                              uint64_t ENEMY_PIECES, uint64_t PINNED,
                              uint64_t checker_zone, Move *moves,
                              uint8_t &n_moves) {
@@ -1124,8 +1126,8 @@ void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
   while (pinned_pawns) {
     uint64_t bb = getLowestSetBitValue(pinned_pawns);
     uint64_t mask = getColinearMask(bb, K);
-    generatePawnMoves(white_to_move, mask, bb, K, E_P, EMPTY, ENEMY_PIECES,
-                      checker_zone, moves, n_moves);
+    generatePawnMoves(white_to_move, mask, bb, K, en_passant, EMPTY,
+                      ENEMY_PIECES, checker_zone, moves, n_moves);
     clearLowestSetBit(pinned_pawns);
   }
   // Clear pinned pawns from pawn bitboard.
@@ -1137,7 +1139,7 @@ void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
  * @param white_to_move: Flag denoting the turn.
  * @param BP: Bitboard of black pawns.
  * @param BK: Bitboard of black king.
- * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param en_passant: The en passant bit, if applicable.
  * @param EMPTY: Bitboard of empty squares.
  * @param WHITE_PIECES: Bitboard of white pieces.
  * @param PINNED: Bitboard of pinned pieces.
@@ -1146,19 +1148,20 @@ void generatePinnedPawnMoves(bool white_to_move, uint64_t &P, uint64_t K,
  * @param n_moves: Running total number of moves.
  */
 void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
-                            uint64_t E_P, uint64_t EMPTY, uint64_t WHITE_PIECES,
-                            uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                            int8_t en_passant, uint64_t EMPTY,
+                            uint64_t WHITE_PIECES, uint64_t PINNED,
+                            uint64_t checker_zone, Move *moves,
                             uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  generatePinnedPawnMoves(white_to_move, BP, BK, E_P, EMPTY, WHITE_PIECES,
-                          PINNED, checker_zone, moves, n_moves);
+  generatePinnedPawnMoves(white_to_move, BP, BK, en_passant, EMPTY,
+                          WHITE_PIECES, PINNED, checker_zone, moves, n_moves);
 
   if (BP) { // we have at least 1 non-pinned pawn.
-    generatePawnMoves(white_to_move, FILLED, BP, BK, E_P, EMPTY, WHITE_PIECES,
-                      checker_zone, moves, n_moves);
+    generatePawnMoves(white_to_move, FILLED, BP, BK, en_passant, EMPTY,
+                      WHITE_PIECES, checker_zone, moves, n_moves);
   }
 }
 
@@ -1167,7 +1170,7 @@ void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
  * @param white_to_move: Flag denoting the turn.
  * @param WP: Bitboard of white pawns.
  * @param WK: Bitboard of white king.
- * @param E_P: Bitboard with en passant bit set, if applicable.
+ * @param en_passant: The en passant bit, if applicable.
  * @param EMPTY: Bitboard of empty squares.
  * @param BLACK_PIECES: Bitboard of black pieces.
  * @param PINNED: Bitboard of pinned pieces.
@@ -1176,19 +1179,20 @@ void generateBlackPawnMoves(bool white_to_move, uint64_t BP, uint64_t BK,
  * @param n_moves: Running total number of moves.
  */
 void generateWhitePawnMoves(bool white_to_move, uint64_t WP, uint64_t WK,
-                            uint64_t E_P, uint64_t EMPTY, uint64_t BLACK_PIECES,
-                            uint64_t PINNED, uint64_t checker_zone, Move *moves,
+                            int8_t en_passant, uint64_t EMPTY,
+                            uint64_t BLACK_PIECES, uint64_t PINNED,
+                            uint64_t checker_zone, Move *moves,
                             uint8_t &n_moves) {
   if (!checker_zone) {
     checker_zone = FILLED;
   }
 
-  generatePinnedPawnMoves(white_to_move, WP, WK, E_P, EMPTY, BLACK_PIECES,
-                          PINNED, checker_zone, moves, n_moves);
+  generatePinnedPawnMoves(white_to_move, WP, WK, en_passant, EMPTY,
+                          BLACK_PIECES, PINNED, checker_zone, moves, n_moves);
 
   if (WP) { // we have at least 1 non-pinned pawn
-    generatePawnMoves(white_to_move, FILLED, WP, WK, E_P, EMPTY, BLACK_PIECES,
-                      checker_zone, moves, n_moves);
+    generatePawnMoves(white_to_move, FILLED, WP, WK, en_passant, EMPTY,
+                      BLACK_PIECES, checker_zone, moves, n_moves);
   }
 }
 

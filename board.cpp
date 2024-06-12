@@ -224,7 +224,7 @@ void fenToGameState(const std::string fen, GameState &game_state) {
       if (fen[i] >= 'a' && fen[i] <= 'h') {
         uint8_t col = fen[i] - 'a';
         uint8_t row = fen[i + 1] - '0' - 1;
-        game_state.en_passant = 1ull << (row * 8 + col);
+        game_state.en_passant = row * 8 + col;
       }
       continue;
     default:
@@ -239,12 +239,12 @@ void fenToGameState(const std::string fen, GameState &game_state) {
  * @param white_to_move: Flag that denotes turn.
  * @param P: Active player's pawn bitboard.
  * @param enemy_player: Enemy player's state.
- * @param E_P: Bitboard with the en passant bit set (if applicable).
+ * @param en_passant: The en passant bit, if applicable.
  * @param initial: Bitboard of the moving piece, pre-move.
  * @param final: Bitboard of the moving piece, post-move.
  */
 void handleCapturedPiece(bool white_to_move, uint64_t P,
-                         ColorState &enemy_player, uint64_t E_P,
+                         ColorState &enemy_player, int8_t en_passant,
                          uint64_t initial, uint64_t final) {
   uint64_t ENEMY_PIECES = enemy_player.getOccupiedBitboard();
 
@@ -278,6 +278,7 @@ void handleCapturedPiece(bool white_to_move, uint64_t P,
       return;
     }
   }
+  uint64_t E_P = getEnPassantBitboard(en_passant);
   if ((E_P & final) && (P & initial)) {
     enemy_player.pawn &= (white_to_move ? ~(final >> 8) : ~(final << 8));
     return;
@@ -288,13 +289,13 @@ void handleCapturedPiece(bool white_to_move, uint64_t P,
  *
  * @param white_to_move: Flag that denotes turn.
  * @param active_player: Active player's state.
- * @param E_P: Bitboard with the en passant bit set (if applicable).
+ * @param en_passant: The en passant bit, if applicable.
  * @param initial: Bitboard of the moving piece, pre-move.
  * @param final: Bitboard of the moving piece, post-move.
  * @param special: Special move type, if applicable.
  */
 void realizeMovedPiece(bool white_to_move, ColorState &active_player,
-                       uint64_t &E_P, uint64_t initial, uint64_t final,
+                       int8_t &en_passant, uint64_t initial, uint64_t final,
                        SpecialMove special) {
   switch (special) {
   case NONE:
@@ -326,7 +327,7 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
       active_player.rook |= final;
       active_player.rook &= ~initial;
     }
-    E_P = 0;
+    en_passant = -1;
     return;
   case CASTLE_KINGSIDE:
     active_player.king <<= 2;
@@ -338,7 +339,7 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
                               : ~BLACK_ROOK_STARTING_POSITION_KINGSIDE;
     active_player.can_king_side_castle = false;
     active_player.can_queen_side_castle = false;
-    E_P = 0;
+    en_passant = -1;
     return;
   case CASTLE_QUEENSIDE:
     active_player.king >>= 2;
@@ -350,37 +351,37 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
                               : ~BLACK_ROOK_STARTING_POSITION_QUEENSIDE;
     active_player.can_king_side_castle = false;
     active_player.can_queen_side_castle = false;
-    E_P = 0;
+    en_passant = -1;
     return;
   case PROMOTION_QUEEN:
     active_player.pawn &= ~initial;
     active_player.queen |= final;
-    E_P = 0;
+    en_passant = -1;
     return;
   case PROMOTION_ROOK:
     active_player.pawn &= ~initial;
     active_player.rook |= final;
-    E_P = 0;
+    en_passant = -1;
     return;
   case PROMOTION_BISHOP:
     active_player.pawn &= ~initial;
     active_player.bishop |= final;
-    E_P = 0;
+    en_passant = -1;
     return;
   case PROMOTION_KNIGHT:
     active_player.pawn &= ~initial;
     active_player.knight |= final;
-    E_P = 0;
+    en_passant = -1;
     return;
   case EN_PASSANT:
     active_player.pawn |= final;
     active_player.pawn &= ~initial;
-    E_P = 0;
+    en_passant = -1;
     return;
   case PAWN_PUSH_2:
     active_player.pawn |= final;
     active_player.pawn &= ~initial;
-    E_P = white_to_move ? final >> 8 : final << 8;
+    en_passant = white_to_move ? getSetBit(final >> 8) : getSetBit(final << 8);
     return;
   default:
     logErrorAndExit("ERROR: Unexpected SpecialMove value!");

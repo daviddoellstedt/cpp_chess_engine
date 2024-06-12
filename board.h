@@ -34,7 +34,9 @@ public:
   // If true -> white's turn, false -> black's turn.
   bool whites_turn = true;
 
-  uint64_t en_passant = 0;
+  // The bit of the possible en passant. -1 denotes no en passant available.
+  int8_t en_passant = -1;
+
   uint64_t getWhiteOccupiedBitboard(void) {
     return white.getOccupiedBitboard();
   }
