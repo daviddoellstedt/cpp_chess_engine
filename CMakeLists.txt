@@ -1,6 +1,16 @@
-cmake_minimum_required(VERSION 3.16)
-project(DDs_chess_engine)
+cmake_minimum_required(VERSION 3.29)
+project(cpp_chess_engine)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 
-add_executable(DDs_chess_engine main.cpp bit_fns.h bit_fns.cpp Players.h Board.cpp Board.h Players.cpp Helper_functions.cpp Helper_functions.h)
+set(SOURCE_FILES
+src/main.cpp
+src/bit_fns.cpp
+src/board.cpp
+src/helper_functions.cpp
+src/player.cpp
+src/move_generator.cpp
+test/unit_tests.cpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
