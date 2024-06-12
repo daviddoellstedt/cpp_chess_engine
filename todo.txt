@@ -2,11 +2,12 @@
 - update to UCI 
 - finish refactor/delete of bit_fns.
 - clean up unit tests and add documentation
-- create src and test directories.
+- add cmakelists to gitignore
+- improve eval function 
+- add ability to choose color
+- add todo.txt to the .gitignore
 
 - handle stalemate and checkmate
-- add ability to choose color
-- improve eval function 
 - refactor bit_fns.cpp into multiple files that make more sense.
 - iterative deepening
 - move ordering
@@ -15,8 +16,6 @@
 - make a perft test suite
 - add bazel build system 
 - add google testing suite
-- further improve with more profiling
-- implement move ordering
 - fix relative pathing in the includes
 
 
