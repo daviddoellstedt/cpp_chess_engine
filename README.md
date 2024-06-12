@@ -1,30 +1,11 @@
- <br/><br/>
-<p align="center" style="margin : 0;">
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Venus_globe_-_transparent_background.png/1200px-Venus_globe_-_transparent_background.png" width="150" height="150"></p>
-
-<p style="text-align: center; margin : 0;">
-  <font size="20">
-    <b>venus
-  </font>
-</p>
-
-<p style="text-align: center; margin : 0;">
-  <font size="3">
-    a UCI-compliant chess engine written in C++
-  </font>
-</p>
-
-<p style="text-align: center; margin : 0;">
-  <font size="3">
-    current release: (TBD)
-  </font>
-</p>
-
-<p style="text-align: center;">
-  <font size="3">
-    author: David Doellstedt
-  </font>
-</p>
+<div align="center">
+ <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Venus_globe_-_transparent_background.png/1200px-Venus_globe_-_transparent_background.png" 
+  width="150" height="150">
+  <h1>venus</h1>
+  <p>a UCI-compliant chess engine written in C++</p>
+  <p>current release: (TBD)</p>
+  <p>author: David Doellstedt</p>
+</div>
 
 # Background
 This has been a personal side project, originally started during the 2020 
