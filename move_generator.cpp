@@ -822,8 +822,9 @@ void generateKingsideCastleMove(bool CK, uint64_t K, uint64_t EMPTY,
     uint8_t k_bit =
         getSetBit((K << 2) & EMPTY & (EMPTY << 1) & ~DZ & ~(DZ << 1));
 
-    moves[n_moves++] = Move(bitToX(k_bit), bitToY(k_bit) - 2, bitToX(k_bit),
-                            bitToY(k_bit), CASTLE_KINGSIDE);
+    uint8_t x = bitToX(k_bit);
+    uint8_t y = bitToY(k_bit);
+    moves[n_moves++] = Move(x, y - 2, x, y, CASTLE_KINGSIDE);
   }
 }
 
@@ -838,8 +839,9 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
       0u) {
     uint8_t k_bit = getSetBit(((K >> 2) & EMPTY) & (EMPTY >> 1) & (EMPTY << 1) &
                               ~DZ & ~(DZ >> 1));
-    moves[n_moves++] = Move(bitToX(k_bit), bitToY(k_bit) + 2, bitToX(k_bit),
-                            bitToY(k_bit), CASTLE_QUEENSIDE);
+    uint8_t x = bitToX(k_bit);
+    uint8_t y = bitToY(k_bit);
+    moves[n_moves++] = Move(x, y + 2, x, y, CASTLE_QUEENSIDE);
   }
 }
 

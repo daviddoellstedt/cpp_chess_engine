@@ -49,8 +49,16 @@ public:
  */
 void printBoard(const GameState &game_state);
 
-// TODO ADD DOCUMENTATION.
+/** Converts a FEN string to a game state.
+ *
+ * @param fen: FEN string.
+ * @param game_state: Game state.
+ */
 void fenToGameState(const std::string fen, GameState &game_state);
 
-// TODO ADD DOCUMENTAITON
+/** Updates the game state according to the move.
+ *
+ * @param move: Move.
+ * @param game_state: Game state.
+ */
 void applyMove(Move move, GameState &game_state);

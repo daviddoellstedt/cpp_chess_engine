@@ -45,6 +45,10 @@ void populateGridFromGameState(const GameState &game_state, char grid[8][8]) {
   }
 }
 
+/** Prints the board based on current game state.
+ *
+ * @param game_state: Game state.
+ */
 void printBoard(const GameState &game_state) {
   char grid[8][8];
   populateGridFromGameState(game_state, grid);
@@ -234,7 +238,15 @@ void fenToGameState(const std::string fen, GameState &game_state) {
   }
 }
 
-// TODO ADD DOCUMENTATION
+/** Checks for captured pieces and updates the enemy player state accordingly.
+ *
+ * @param white_to_move: Flag that denotes turn.
+ * @param P: Active player's pawn bitboard.
+ * @param enemy_player: Enemy player's state.
+ * @param E_P: Bitboard with the en passant bit set (if applicable).
+ * @param initial: Bitboard of the moving piece, pre-move.
+ * @param final: Bitboard of the moving piece, post-move.
+ */
 void handleCapturedPiece(bool white_to_move, uint64_t P,
                          ColorState &enemy_player, uint64_t E_P,
                          uint64_t initial, uint64_t final) {
@@ -276,7 +288,15 @@ void handleCapturedPiece(bool white_to_move, uint64_t P,
   }
 }
 
-// TODO ADD DOCUMENTATION
+/** Updates the game state with the respective moved piece.
+ *
+ * @param white_to_move: Flag that denotes turn.
+ * @param active_player: Active player's state.
+ * @param E_P: Bitboard with the en passant bit set (if applicable).
+ * @param initial: Bitboard of the moving piece, pre-move.
+ * @param final: Bitboard of the moving piece, post-move.
+ * @param special: Special move type, if applicable.
+ */
 void realizeMovedPiece(bool white_to_move, ColorState &active_player,
                        uint64_t &E_P, uint64_t initial, uint64_t final,
                        SpecialMove special) {
@@ -372,7 +392,14 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
   }
 }
 
-// TODO ADD DOCUMENTATION
+/** Applies the white player's move.
+ *
+ * @param game_state: Game state.
+ * @param move: Move.
+ * @param initial: Bitboard of the moving piece, pre-move.
+ * @param final: Bitboard of the moving piece, post-move.
+ * @param special: Special move type, if applicable.
+ */
 void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
                     uint64_t final, SpecialMove special) {
   handleCapturedPiece(game_state.whites_turn, game_state.white.pawn,
@@ -381,7 +408,14 @@ void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
                     game_state.en_passant, initial, final, special);
 }
 
-// TODO ADD DOCUMENTATION
+/** Applies the black player's move.
+ *
+ * @param game_state: Game state.
+ * @param move: Move.
+ * @param initial: Bitboard of the moving piece, pre-move.
+ * @param final: Bitboard of the moving piece, post-move.
+ * @param special: Special move type, if applicable.
+ */
 void applyBlackMove(GameState &game_state, const Move &move, uint64_t initial,
                     uint64_t final, SpecialMove special) {
   handleCapturedPiece(game_state.whites_turn, game_state.black.pawn,
