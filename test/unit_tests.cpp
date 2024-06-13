@@ -8,33 +8,9 @@
 
 struct PerftTuple {
   std::string fen = "";
-  uint8_t depth = 0;
-  uint32_t nodes = 0;
+  int depth = 0;
+  int nodes = 0;
 };
-
-uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth){
-  GameState game_state;
-  fenToGameState(fen, game_state);
-  printBoard(game_state);
-  uint32_t nodes = 0;
-
-  bool total = true;
-
-  auto start = std::chrono::high_resolution_clock::now();
-
-  perft(nodes, game_state, depth, depth, total);
-
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::cout << "depth: " << depth + 0
-            << ". time elapsed: " << (double)(end - start).count() / 1000000000
-            << " s. nodes searched: " << nodes << "." << std::endl;
-  std::cout << "NPS: " << nodes / ((double)(end - start).count() / 1000000000)
-            << std::endl;
-  std::cout << " " << std::endl;
-
-  return nodes;
-}
 
 // https://www.chessprogramming.org/Perft_Results.
 PerftTuple perft_tests[5] = {
@@ -49,8 +25,8 @@ PerftTuple perft_tests[5] = {
 
 void testAllPerft(void) {
   auto start = std::chrono::high_resolution_clock::now();
-  uint32_t total_nodes = 0;
-  uint8_t i = 0;
+  int total_nodes = 0;
+  int i = 0;
 
   for (PerftTuple test : perft_tests) {
     uint32_t nodes_explored = 0;
@@ -60,22 +36,21 @@ void testAllPerft(void) {
     total_nodes += nodes_explored;
 
     if (nodes_explored != test.nodes) {
-      std::cout << "Perft " << i + 0 << " failed! Depth: " << test.depth + 0
-                << ". Expected nodes: " << test.nodes + 0
-                << ", but got: " << nodes_explored + 0 << std::endl;
+      std::cout << "Perft " << i << " failed! Depth: " << test.depth
+                << ". Expected nodes: " << test.nodes
+                << ", but got: " << nodes_explored << std::endl;
       break;
     } else {
-      std::cout << "Perft " << i + 0 << " has succeeded!" << std::endl;
+      std::cout << "Perft " << i << " has succeeded!" << std::endl;
     }
     i++;
   }
   auto end = std::chrono::high_resolution_clock::now();
-
   std::cout << "Time elapsed: " << (double)(end - start).count() / 1000000000
             << " s." << std::endl;
-  std::cout << "Total nodes searched: " << total_nodes + 0 << "." << std::endl;
+  std::cout << "Total nodes searched: " << total_nodes << "." << std::endl;
   std::cout << "NPS: "
-            << (total_nodes + 0) / ((double)(end - start).count() / 1000000000)
+            << total_nodes / ((double)(end - start).count() / 1000000000)
             << std::endl;
   return;
 }

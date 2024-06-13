@@ -1,9 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-#include <string>
-
-
-uint32_t legalMoveGeneratorTest(std::string fen, uint8_t depth);
-
+/** Tests the move generator through a variety a perft tests. To be run before every new change to source files.
+ */
 void testAllPerft(void);
