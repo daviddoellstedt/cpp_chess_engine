@@ -1,3 +1,3 @@
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build/CMakeFiles/cpp_chess_engine.dir
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build/CMakeFiles/edit_cache.dir
-/Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build/CMakeFiles/rebuild_cache.dir
+/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/venus_chess.dir
+/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/edit_cache.dir
+/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/rebuild_cache.dir

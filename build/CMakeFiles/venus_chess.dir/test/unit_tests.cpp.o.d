@@ -1,6 +1,6 @@
-CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.o: \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/unit_tests.cpp \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/bit_fns.h \
+CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/unit_tests.cpp \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/bit_fns.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/stdint.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__config \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__config_site \
@@ -758,10 +758,10 @@ CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/weak_result_type.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_destructor.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/uses_allocator_construction.h \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/board.h \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/move.h \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/constants.h \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/helper_functions.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/board.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/move.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/constants.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/helper_functions.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/iostream \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/ios \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__locale \
@@ -828,4 +828,4 @@ CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types/_nl_item.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__locale_dir/locale_base_api/bsd_locale_defaults.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/cstdarg \
-  /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/test/../src/move_generator.h
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/move_generator.h

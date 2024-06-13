@@ -1,4 +1,3 @@
-- Update readme, then publish on github.
 - update to UCI 
 - finish refactor/delete of bit_fns.
 - clean up unit tests and add documentation
@@ -6,6 +5,7 @@
 - improve eval function 
 - add ability to choose color
 - add todo.txt to the .gitignore
+- add link on resume
 
 - handle stalemate and checkmate
 - refactor bit_fns.cpp into multiple files that make more sense.

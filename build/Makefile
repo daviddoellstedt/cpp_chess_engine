@@ -57,10 +57,10 @@ RM = /opt/homebrew/Cellar/cmake/3.29.5/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine
+CMAKE_SOURCE_DIR = /Users/daviddoellstedt/Documents/GitHub/venus_chess
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build
+CMAKE_BINARY_DIR = /Users/daviddoellstedt/Documents/GitHub/venus_chess/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build/CMakeFiles /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles /Users/daviddoellstedt/Documents/GitHub/venus_chess/build//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/daviddoellstedt/Documents/GitHub/cpp_chess_engine/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -117,24 +117,24 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named cpp_chess_engine
+# Target rules for targets named venus_chess
 
 # Build rule for target.
-cpp_chess_engine: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cpp_chess_engine
-.PHONY : cpp_chess_engine
+venus_chess: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 venus_chess
+.PHONY : venus_chess
 
 # fast build rule for target.
-cpp_chess_engine/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/build
-.PHONY : cpp_chess_engine/fast
+venus_chess/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/build
+.PHONY : venus_chess/fast
 
 src/bit_fns.o: src/bit_fns.cpp.o
 .PHONY : src/bit_fns.o
 
 # target to build an object file
 src/bit_fns.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/bit_fns.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o
 .PHONY : src/bit_fns.cpp.o
 
 src/bit_fns.i: src/bit_fns.cpp.i
@@ -142,7 +142,7 @@ src/bit_fns.i: src/bit_fns.cpp.i
 
 # target to preprocess a source file
 src/bit_fns.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/bit_fns.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/bit_fns.cpp.i
 .PHONY : src/bit_fns.cpp.i
 
 src/bit_fns.s: src/bit_fns.cpp.s
@@ -150,7 +150,7 @@ src/bit_fns.s: src/bit_fns.cpp.s
 
 # target to generate assembly for a file
 src/bit_fns.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/bit_fns.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/bit_fns.cpp.s
 .PHONY : src/bit_fns.cpp.s
 
 src/board.o: src/board.cpp.o
@@ -158,7 +158,7 @@ src/board.o: src/board.cpp.o
 
 # target to build an object file
 src/board.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/board.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/board.cpp.o
 .PHONY : src/board.cpp.o
 
 src/board.i: src/board.cpp.i
@@ -166,7 +166,7 @@ src/board.i: src/board.cpp.i
 
 # target to preprocess a source file
 src/board.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/board.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/board.cpp.i
 .PHONY : src/board.cpp.i
 
 src/board.s: src/board.cpp.s
@@ -174,7 +174,7 @@ src/board.s: src/board.cpp.s
 
 # target to generate assembly for a file
 src/board.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/board.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/board.cpp.s
 .PHONY : src/board.cpp.s
 
 src/helper_functions.o: src/helper_functions.cpp.o
@@ -182,7 +182,7 @@ src/helper_functions.o: src/helper_functions.cpp.o
 
 # target to build an object file
 src/helper_functions.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/helper_functions.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o
 .PHONY : src/helper_functions.cpp.o
 
 src/helper_functions.i: src/helper_functions.cpp.i
@@ -190,7 +190,7 @@ src/helper_functions.i: src/helper_functions.cpp.i
 
 # target to preprocess a source file
 src/helper_functions.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/helper_functions.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/helper_functions.cpp.i
 .PHONY : src/helper_functions.cpp.i
 
 src/helper_functions.s: src/helper_functions.cpp.s
@@ -198,7 +198,7 @@ src/helper_functions.s: src/helper_functions.cpp.s
 
 # target to generate assembly for a file
 src/helper_functions.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/helper_functions.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/helper_functions.cpp.s
 .PHONY : src/helper_functions.cpp.s
 
 src/main.o: src/main.cpp.o
@@ -206,7 +206,7 @@ src/main.o: src/main.cpp.o
 
 # target to build an object file
 src/main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/main.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/main.cpp.o
 .PHONY : src/main.cpp.o
 
 src/main.i: src/main.cpp.i
@@ -214,7 +214,7 @@ src/main.i: src/main.cpp.i
 
 # target to preprocess a source file
 src/main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/main.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/main.cpp.i
 .PHONY : src/main.cpp.i
 
 src/main.s: src/main.cpp.s
@@ -222,7 +222,7 @@ src/main.s: src/main.cpp.s
 
 # target to generate assembly for a file
 src/main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/main.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
 src/move_generator.o: src/move_generator.cpp.o
@@ -230,7 +230,7 @@ src/move_generator.o: src/move_generator.cpp.o
 
 # target to build an object file
 src/move_generator.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/move_generator.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/move_generator.cpp.o
 .PHONY : src/move_generator.cpp.o
 
 src/move_generator.i: src/move_generator.cpp.i
@@ -238,7 +238,7 @@ src/move_generator.i: src/move_generator.cpp.i
 
 # target to preprocess a source file
 src/move_generator.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/move_generator.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/move_generator.cpp.i
 .PHONY : src/move_generator.cpp.i
 
 src/move_generator.s: src/move_generator.cpp.s
@@ -246,7 +246,7 @@ src/move_generator.s: src/move_generator.cpp.s
 
 # target to generate assembly for a file
 src/move_generator.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/move_generator.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/move_generator.cpp.s
 .PHONY : src/move_generator.cpp.s
 
 src/player.o: src/player.cpp.o
@@ -254,7 +254,7 @@ src/player.o: src/player.cpp.o
 
 # target to build an object file
 src/player.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/player.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/player.cpp.o
 .PHONY : src/player.cpp.o
 
 src/player.i: src/player.cpp.i
@@ -262,7 +262,7 @@ src/player.i: src/player.cpp.i
 
 # target to preprocess a source file
 src/player.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/player.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/player.cpp.i
 .PHONY : src/player.cpp.i
 
 src/player.s: src/player.cpp.s
@@ -270,7 +270,7 @@ src/player.s: src/player.cpp.s
 
 # target to generate assembly for a file
 src/player.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/src/player.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/player.cpp.s
 .PHONY : src/player.cpp.s
 
 test/unit_tests.o: test/unit_tests.cpp.o
@@ -278,7 +278,7 @@ test/unit_tests.o: test/unit_tests.cpp.o
 
 # target to build an object file
 test/unit_tests.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o
 .PHONY : test/unit_tests.cpp.o
 
 test/unit_tests.i: test/unit_tests.cpp.i
@@ -286,7 +286,7 @@ test/unit_tests.i: test/unit_tests.cpp.i
 
 # target to preprocess a source file
 test/unit_tests.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/test/unit_tests.cpp.i
 .PHONY : test/unit_tests.cpp.i
 
 test/unit_tests.s: test/unit_tests.cpp.s
@@ -294,7 +294,7 @@ test/unit_tests.s: test/unit_tests.cpp.s
 
 # target to generate assembly for a file
 test/unit_tests.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/cpp_chess_engine.dir/build.make CMakeFiles/cpp_chess_engine.dir/test/unit_tests.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/test/unit_tests.cpp.s
 .PHONY : test/unit_tests.cpp.s
 
 # Help Target
@@ -305,7 +305,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... cpp_chess_engine"
+	@echo "... venus_chess"
 	@echo "... src/bit_fns.o"
 	@echo "... src/bit_fns.i"
 	@echo "... src/bit_fns.s"
