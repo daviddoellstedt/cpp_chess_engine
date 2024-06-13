@@ -1,6 +1,5 @@
 - update to UCI 
 - finish refactor/delete of bit_fns.
-- clean up unit tests and add documentation
 - add cmakelists to gitignore
 - improve eval function 
 - add ability to choose color
@@ -21,6 +20,6 @@
 
 build commands:
 cmake --build build 
-./build/cpp_chess_engine
+./build/venus_chess
 
 g++ --std=c++20 -o main  src/main.cpp src/bit_fns.cpp src/helper_functions.cpp test/unit_tests.cpp src/move_generator.cpp src/board.cpp src/player.cpp 

@@ -83,10 +83,24 @@ CMakeFiles/venus_chess.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/venus_chess.dir/src/main.cpp.s"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/main.cpp -o CMakeFiles/venus_chess.dir/src/main.cpp.s
 
+CMakeFiles/venus_chess.dir/src/uci.cpp.o: CMakeFiles/venus_chess.dir/flags.make
+CMakeFiles/venus_chess.dir/src/uci.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/uci.cpp
+CMakeFiles/venus_chess.dir/src/uci.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/venus_chess.dir/src/uci.cpp.o"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/uci.cpp.o -MF CMakeFiles/venus_chess.dir/src/uci.cpp.o.d -o CMakeFiles/venus_chess.dir/src/uci.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/uci.cpp
+
+CMakeFiles/venus_chess.dir/src/uci.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/venus_chess.dir/src/uci.cpp.i"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/uci.cpp > CMakeFiles/venus_chess.dir/src/uci.cpp.i
+
+CMakeFiles/venus_chess.dir/src/uci.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/venus_chess.dir/src/uci.cpp.s"
+	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/uci.cpp -o CMakeFiles/venus_chess.dir/src/uci.cpp.s
+
 CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/bit_fns.cpp
 CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o -MF CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o.d -o CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/bit_fns.cpp
 
 CMakeFiles/venus_chess.dir/src/bit_fns.cpp.i: cmake_force
@@ -100,7 +114,7 @@ CMakeFiles/venus_chess.dir/src/bit_fns.cpp.s: cmake_force
 CMakeFiles/venus_chess.dir/src/board.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/src/board.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/board.cpp
 CMakeFiles/venus_chess.dir/src/board.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/venus_chess.dir/src/board.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/venus_chess.dir/src/board.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/board.cpp.o -MF CMakeFiles/venus_chess.dir/src/board.cpp.o.d -o CMakeFiles/venus_chess.dir/src/board.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/board.cpp
 
 CMakeFiles/venus_chess.dir/src/board.cpp.i: cmake_force
@@ -114,7 +128,7 @@ CMakeFiles/venus_chess.dir/src/board.cpp.s: cmake_force
 CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/helper_functions.cpp
 CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o -MF CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o.d -o CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/helper_functions.cpp
 
 CMakeFiles/venus_chess.dir/src/helper_functions.cpp.i: cmake_force
@@ -128,7 +142,7 @@ CMakeFiles/venus_chess.dir/src/helper_functions.cpp.s: cmake_force
 CMakeFiles/venus_chess.dir/src/player.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/src/player.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/player.cpp
 CMakeFiles/venus_chess.dir/src/player.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/venus_chess.dir/src/player.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/venus_chess.dir/src/player.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/player.cpp.o -MF CMakeFiles/venus_chess.dir/src/player.cpp.o.d -o CMakeFiles/venus_chess.dir/src/player.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/player.cpp
 
 CMakeFiles/venus_chess.dir/src/player.cpp.i: cmake_force
@@ -142,7 +156,7 @@ CMakeFiles/venus_chess.dir/src/player.cpp.s: cmake_force
 CMakeFiles/venus_chess.dir/src/move_generator.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/src/move_generator.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move_generator.cpp
 CMakeFiles/venus_chess.dir/src/move_generator.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/venus_chess.dir/src/move_generator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/venus_chess.dir/src/move_generator.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/src/move_generator.cpp.o -MF CMakeFiles/venus_chess.dir/src/move_generator.cpp.o.d -o CMakeFiles/venus_chess.dir/src/move_generator.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move_generator.cpp
 
 CMakeFiles/venus_chess.dir/src/move_generator.cpp.i: cmake_force
@@ -156,7 +170,7 @@ CMakeFiles/venus_chess.dir/src/move_generator.cpp.s: cmake_force
 CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: CMakeFiles/venus_chess.dir/flags.make
 CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/unit_tests.cpp
 CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: CMakeFiles/venus_chess.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o"
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o -MF CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o.d -o CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o -c /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/unit_tests.cpp
 
 CMakeFiles/venus_chess.dir/test/unit_tests.cpp.i: cmake_force
@@ -170,6 +184,7 @@ CMakeFiles/venus_chess.dir/test/unit_tests.cpp.s: cmake_force
 # Object files for target venus_chess
 venus_chess_OBJECTS = \
 "CMakeFiles/venus_chess.dir/src/main.cpp.o" \
+"CMakeFiles/venus_chess.dir/src/uci.cpp.o" \
 "CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o" \
 "CMakeFiles/venus_chess.dir/src/board.cpp.o" \
 "CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o" \
@@ -181,6 +196,7 @@ venus_chess_OBJECTS = \
 venus_chess_EXTERNAL_OBJECTS =
 
 venus_chess: CMakeFiles/venus_chess.dir/src/main.cpp.o
+venus_chess: CMakeFiles/venus_chess.dir/src/uci.cpp.o
 venus_chess: CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o
 venus_chess: CMakeFiles/venus_chess.dir/src/board.cpp.o
 venus_chess: CMakeFiles/venus_chess.dir/src/helper_functions.cpp.o
@@ -189,7 +205,7 @@ venus_chess: CMakeFiles/venus_chess.dir/src/move_generator.cpp.o
 venus_chess: CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o
 venus_chess: CMakeFiles/venus_chess.dir/build.make
 venus_chess: CMakeFiles/venus_chess.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable venus_chess"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable venus_chess"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/venus_chess.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

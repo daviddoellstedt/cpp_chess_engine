@@ -758,6 +758,7 @@ CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/weak_result_type.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_destructor.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/uses_allocator_construction.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/move_generator.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/board.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/move.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/constants.h \
@@ -827,5 +828,4 @@ CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/sys/_types/_fsfilcnt_t.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types/_nl_item.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__locale_dir/locale_base_api/bsd_locale_defaults.h \
-  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/cstdarg \
-  /Users/daviddoellstedt/Documents/GitHub/venus_chess/test/../src/move_generator.h
+  /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/cstdarg

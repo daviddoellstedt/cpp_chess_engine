@@ -226,7 +226,8 @@ void fenToGameState(const std::string fen, GameState &game_state) {
         uint8_t row = fen[i + 1] - '0' - 1;
         game_state.en_passant = row * 8 + col;
       }
-      continue;
+      break;
+      ;
     default:
       logErrorAndExit("ERROR: Unexpected field value.");
       break;
@@ -292,12 +293,12 @@ void handleCapturedPiece(bool white_to_move, uint64_t P,
  * @param en_passant: The en passant bit, if applicable.
  * @param initial: Bitboard of the moving piece, pre-move.
  * @param final: Bitboard of the moving piece, post-move.
- * @param special: Special move type, if applicable.
+ * @param move_type: Move type, if applicable.
  */
 void realizeMovedPiece(bool white_to_move, ColorState &active_player,
                        int8_t &en_passant, uint64_t initial, uint64_t final,
-                       SpecialMove special) {
-  switch (special) {
+                       MoveType move_type) {
+  switch (move_type) {
   case NONE:
     if (active_player.queen & initial) {
       active_player.queen |= final;
@@ -373,18 +374,18 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
     active_player.knight |= final;
     en_passant = -1;
     return;
-  case EN_PASSANT:
-    active_player.pawn |= final;
-    active_player.pawn &= ~initial;
-    en_passant = -1;
-    return;
+  // case EN_PASSANT:
+  //   active_player.pawn |= final;
+  //   active_player.pawn &= ~initial;
+  //   en_passant = -1;
+  //   return;
   case PAWN_PUSH_2:
     active_player.pawn |= final;
     active_player.pawn &= ~initial;
     en_passant = white_to_move ? getSetBit(final >> 8) : getSetBit(final << 8);
     return;
   default:
-    logErrorAndExit("ERROR: Unexpected SpecialMove value!");
+    logErrorAndExit("ERROR: Unexpected move_type value!");
     return;
   }
 }
@@ -395,14 +396,14 @@ void realizeMovedPiece(bool white_to_move, ColorState &active_player,
  * @param move: Move.
  * @param initial: Bitboard of the moving piece, pre-move.
  * @param final: Bitboard of the moving piece, post-move.
- * @param special: Special move type, if applicable.
+ * @param move_type: Move type, if applicable.
  */
 void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
-                    uint64_t final, SpecialMove special) {
+                    uint64_t final, MoveType move_type) {
   handleCapturedPiece(game_state.whites_turn, game_state.white.pawn,
                       game_state.black, game_state.en_passant, initial, final);
   realizeMovedPiece(game_state.whites_turn, game_state.white,
-                    game_state.en_passant, initial, final, special);
+                    game_state.en_passant, initial, final, move_type);
 }
 
 /** Applies the black player's move.
@@ -411,24 +412,24 @@ void applyWhiteMove(GameState &game_state, const Move &move, uint64_t initial,
  * @param move: Move.
  * @param initial: Bitboard of the moving piece, pre-move.
  * @param final: Bitboard of the moving piece, post-move.
- * @param special: Special move type, if applicable.
+ * @param move_type: Move type, if applicable.
  */
 void applyBlackMove(GameState &game_state, const Move &move, uint64_t initial,
-                    uint64_t final, SpecialMove special) {
+                    uint64_t final, MoveType move_type) {
   handleCapturedPiece(game_state.whites_turn, game_state.black.pawn,
                       game_state.white, game_state.en_passant, initial, final);
   realizeMovedPiece(game_state.whites_turn, game_state.black,
-                    game_state.en_passant, initial, final, special);
+                    game_state.en_passant, initial, final, move_type);
 }
 
 void applyMove(Move move, GameState &game_state) {
   const uint64_t initial = move.getInitialBitboard();
   const uint64_t final = move.getFinalBitboard();
-  const SpecialMove special = move.getSpecial();
+  const MoveType move_type = move.getMoveType();
   if (game_state.whites_turn) {
-    applyWhiteMove(game_state, move, initial, final, special);
+    applyWhiteMove(game_state, move, initial, final, move_type);
   } else {
-    applyBlackMove(game_state, move, initial, final, special);
+    applyBlackMove(game_state, move, initial, final, move_type);
   }
   game_state.whites_turn = !game_state.whites_turn;
 }

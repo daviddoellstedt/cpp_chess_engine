@@ -273,6 +273,30 @@ src/player.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/player.cpp.s
 .PHONY : src/player.cpp.s
 
+src/uci.o: src/uci.cpp.o
+.PHONY : src/uci.o
+
+# target to build an object file
+src/uci.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/uci.cpp.o
+.PHONY : src/uci.cpp.o
+
+src/uci.i: src/uci.cpp.i
+.PHONY : src/uci.i
+
+# target to preprocess a source file
+src/uci.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/uci.cpp.i
+.PHONY : src/uci.cpp.i
+
+src/uci.s: src/uci.cpp.s
+.PHONY : src/uci.s
+
+# target to generate assembly for a file
+src/uci.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/venus_chess.dir/build.make CMakeFiles/venus_chess.dir/src/uci.cpp.s
+.PHONY : src/uci.cpp.s
+
 test/unit_tests.o: test/unit_tests.cpp.o
 .PHONY : test/unit_tests.o
 
@@ -324,6 +348,9 @@ help:
 	@echo "... src/player.o"
 	@echo "... src/player.i"
 	@echo "... src/player.s"
+	@echo "... src/uci.o"
+	@echo "... src/uci.i"
+	@echo "... src/uci.s"
 	@echo "... test/unit_tests.o"
 	@echo "... test/unit_tests.i"
 	@echo "... test/unit_tests.s"

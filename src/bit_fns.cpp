@@ -12,12 +12,6 @@
 #include <stdint.h>
 #include <string>
 
-struct AI_return {
-  Move move;
-  int16_t value = 0;
-  uint32_t nodes_searched = 0;
-};
-
 int16_t eval(const GameState game_state) {
   // material
   int16_t counter = 0;
@@ -39,8 +33,8 @@ int16_t eval(const GameState game_state) {
   return counter;
 }
 
-AI_return negamax(GameState game_state, uint8_t depth, int8_t color = 1,
-                  int16_t alpha = INT16_MIN, int16_t beta = INT16_MAX) {
+AI_return negamax(GameState game_state, uint8_t depth, int8_t color,
+                  int16_t alpha, int16_t beta) {
   AI_return node_max;
   node_max.value = INT16_MIN;
   node_max.nodes_searched++;

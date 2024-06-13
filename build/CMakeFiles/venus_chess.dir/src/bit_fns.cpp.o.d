@@ -758,6 +758,7 @@ CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__functional/weak_result_type.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/allocator_destructor.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__memory/uses_allocator_construction.h \
+  /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move_generator.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/board.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/constants.h \
@@ -828,7 +829,6 @@ CMakeFiles/venus_chess.dir/src/bit_fns.cpp.o: \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/_types/_nl_item.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__locale_dir/locale_base_api/bsd_locale_defaults.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/cstdarg \
-  /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move_generator.h \
   /Users/daviddoellstedt/Documents/GitHub/venus_chess/src/player.h \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/chrono \
   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.5.sdk/usr/include/c++/v1/__chrono/calendar.h \

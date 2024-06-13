@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 #include <utility>
 
 // Edge bits all set.
@@ -29,11 +30,11 @@ const uint64_t BLACK_ROOK_POST_KINGSIDE_CASTLE_POSITION = 0x2000000000000000;
 const uint64_t BLACK_ROOK_POST_QUEENSIDE_CASTLE_POSITION = 0x800000000000000;
 
 // Masks for reading/writing to move.
-const uint16_t X_INITIAL = 0x7;
-const uint16_t Y_INITIAL = 0x38;
-const uint16_t X_FINAL = 0x1C0;
-const uint16_t Y_FINAL = 0xE00;
-const uint16_t SPECIAL = 0xF000;
+const uint16_t X_INITIAL_MASK = 0x7;
+const uint16_t Y_INITIAL_MASK = 0x38;
+const uint16_t X_FINAL_MASK = 0x1C0;
+const uint16_t Y_FINAL_MASK = 0xE00;
+const uint16_t MOVE_TYPE_MASK = 0xF000;
 
 // Ranks.
 const uint64_t rank_1 = 0xFF;

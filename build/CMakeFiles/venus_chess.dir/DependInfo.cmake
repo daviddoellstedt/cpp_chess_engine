@@ -14,6 +14,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/daviddoellstedt/Documents/GitHub/venus_chess/src/main.cpp" "CMakeFiles/venus_chess.dir/src/main.cpp.o" "gcc" "CMakeFiles/venus_chess.dir/src/main.cpp.o.d"
   "/Users/daviddoellstedt/Documents/GitHub/venus_chess/src/move_generator.cpp" "CMakeFiles/venus_chess.dir/src/move_generator.cpp.o" "gcc" "CMakeFiles/venus_chess.dir/src/move_generator.cpp.o.d"
   "/Users/daviddoellstedt/Documents/GitHub/venus_chess/src/player.cpp" "CMakeFiles/venus_chess.dir/src/player.cpp.o" "gcc" "CMakeFiles/venus_chess.dir/src/player.cpp.o.d"
+  "/Users/daviddoellstedt/Documents/GitHub/venus_chess/src/uci.cpp" "CMakeFiles/venus_chess.dir/src/uci.cpp.o" "gcc" "CMakeFiles/venus_chess.dir/src/uci.cpp.o.d"
   "/Users/daviddoellstedt/Documents/GitHub/venus_chess/test/unit_tests.cpp" "CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o" "gcc" "CMakeFiles/venus_chess.dir/test/unit_tests.cpp.o.d"
   )
 

@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(SOURCE_FILES
 src/main.cpp
+src/uci.cpp
 src/bit_fns.cpp
 src/board.cpp
 src/helper_functions.cpp

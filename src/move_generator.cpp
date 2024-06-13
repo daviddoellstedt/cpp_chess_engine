@@ -953,14 +953,14 @@ void generateQueensideCastleMove(bool QK, uint64_t K, uint64_t EMPTY,
  * @param n_moves: Running total number of moves.
  */
 void addAllPromotionMoves(Move move, Move *moves, uint8_t &n_moves){
-    move.setSpecial(PROMOTION_QUEEN);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_ROOK);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_BISHOP);
-    moves[n_moves++] = move;
-    move.setSpecial(PROMOTION_KNIGHT);
-    moves[n_moves++] = move;
+  move.setMoveType(PROMOTION_QUEEN);
+  moves[n_moves++] = move;
+  move.setMoveType(PROMOTION_ROOK);
+  moves[n_moves++] = move;
+  move.setMoveType(PROMOTION_BISHOP);
+  moves[n_moves++] = move;
+  move.setMoveType(PROMOTION_KNIGHT);
+  moves[n_moves++] = move;
 }
 
 /** Generates the possible/legal moves for pinned pawns.
@@ -1087,8 +1087,7 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
     uint8_t final_bit = getSetBit(bb);
     uint8_t x = bitToX(final_bit);
     uint8_t y = bitToY(final_bit);
-    moves[n_moves++] =
-        Move(x + (white_to_move ? -1 : 1), y + 1, x, y, EN_PASSANT);
+    moves[n_moves++] = Move(x + (white_to_move ? -1 : 1), y + 1, x, y);
     clearLowestSetBit(P_EP_L);
   }
 
@@ -1098,8 +1097,7 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
     uint8_t final_bit = getSetBit(bb);
     uint8_t x = bitToX(final_bit);
     uint8_t y = bitToY(final_bit);
-    moves[n_moves++] =
-        Move(x + (white_to_move ? -1 : 1), y - 1, x, y, EN_PASSANT);
+    moves[n_moves++] = Move(x + (white_to_move ? -1 : 1), y - 1, x, y);
     clearLowestSetBit(P_EP_R);
   }
 }
