@@ -17,8 +17,8 @@ has compiled a nice list of them [here](https://github.com/official-stockfish/St
 
 # Project Structure
 
-* [src](https://github.com/daviddoellstedt/venus_chess/tree/master/src) : Subdirectory containing all source files
-* [test](https://github.com/daviddoellstedt/venus_chess/tree/master/test) : Subdirectory containing unit test files.
+* [src/](https://github.com/daviddoellstedt/venus_chess/tree/master/src) : Subdirectory containing all source files
+* [test/](https://github.com/daviddoellstedt/venus_chess/tree/master/test) : Subdirectory containing unit test files.
 * venus_chess : The executable.
 
 # Design Details
