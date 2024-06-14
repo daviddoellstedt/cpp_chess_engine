@@ -4,6 +4,7 @@
 #include <random>
 #include <stdint.h>
 #include <string>
+#include <fstream>
 
 uint64_t reverse(uint64_t x) {
   x = (x >> 32) | (x << 32);

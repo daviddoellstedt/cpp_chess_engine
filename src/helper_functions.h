@@ -71,6 +71,7 @@ inline uint8_t bitToX(uint8_t bit) { return bit / 8; }
  */
 inline uint8_t bitToY(uint8_t bit) { return bit % 8; }
 
+// TODO documentation.
 inline uint64_t getEnPassantBitboard(int8_t en_passant_bit) {
   return en_passant_bit == -1 ? 0 : 1ull << en_passant_bit;
 }
