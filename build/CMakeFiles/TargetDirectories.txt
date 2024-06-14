@@ -1,3 +1,0 @@
-/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/venus_chess.dir
-/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/edit_cache.dir
-/Users/daviddoellstedt/Documents/GitHub/venus_chess/build/CMakeFiles/rebuild_cache.dir
