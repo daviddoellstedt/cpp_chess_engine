@@ -19,7 +19,7 @@ has compiled a nice list of them [here](https://github.com/official-stockfish/St
 
 * [src](https://github.com/daviddoellstedt/venus_chess/tree/master/src) : Subdirectory containing all source files
 * [test](https://github.com/daviddoellstedt/venus_chess/tree/master/test) : Subdirectory containing unit test files.
-* [build](https://github.com/daviddoellstedt/venus_chess/tree/master/test) : Subdirectory containing build files. Here you will find a Makefile for compilation.
+* venus_chess : The executable.
 
 # Design Details
 Game state is represented with bitboards (64-bit integers). Each bit represents a square on the chess board. 12 bitboards are used to fully represent the game, 1 bitboard per piece type per color. Move generation is accomplished using bitwise operations and [magic bitboards](https://www.chessprogramming.org/Magic_Bitboards). The AI agent uses the minimax algorithm with alpha/beta pruning to search deep in the game tree and select the best move. The evaluation function is currently pretty naive, only based on material. The AI is able to look about 8 to 12 moves in the future, depending on the branching factor of the current game state. Tested on an Apple M1 chip, single threaded, performance details below:
