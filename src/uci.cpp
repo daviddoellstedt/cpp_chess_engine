@@ -17,6 +17,7 @@ bool stringContains(std::string substr, std::string str) {
 // TODO: DOCUMENTATION
 void checkForAndSetSpecialMoveTypes(const GameState &game_state, const std::string move_str, Move &move) {
   // Check for promotion moves.
+  // std::cout << move_str.size() << std::endl;
   if (move_str.size() == 5) {
     if (move_str[4] == 'q') {
       move.setMoveType(PROMOTION_QUEEN);
@@ -69,14 +70,11 @@ void extractAndApplyMoves(std::string input, GameState &game_state) {
   uint8_t n_moves = 0;
   uint8_t start_pos = input.find("moves") + 6;
   input = input.substr(start_pos, input.size() - start_pos) + " ";
- // printBoard(game_state);
   while (stringContains(" ", input)) {
     uint8_t space_pos = input.find(" ") + 1;
-    std::string move_str = input.substr(0, space_pos);
+    std::string move_str = input.substr(0, space_pos - 1);
     input = input.substr(space_pos, input.size() - space_pos);
-    // printAndWriteToLog(move_str);
     applyMove(algebraicMoveToInternalMove(move_str, game_state), game_state);
- //   printBoard(game_state);
   }
 }
 
@@ -106,8 +104,9 @@ void handleInput_position(std::string input, GameState &game_state) {
 }
 
 void handleInput_go(std::string input, const GameState &game_state) {
-  negamaxTuple choice = negamax(game_state, 6);
-  printAndWriteToLog("info score cp -1 pv " + choice.move.toString());
+  NegamaxTuple choice = negamax(game_state, 5, game_state.whites_turn ? 1 : -1);
+  printAndWriteToLog("info score cp " + std::to_string(choice.score) + " pv " +
+                     choice.move.toString());
   printAndWriteToLog("bestmove " + choice.move.toString());
 }
 

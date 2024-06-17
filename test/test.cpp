@@ -12,7 +12,7 @@ struct PerftTuple {
 };
 
 // https://www.chessprogramming.org/Perft_Results.
-PerftTuple perft_tests[5] = {
+PerftTuple perft_tests[6] = {
     {fen_standard, 5, 4865609},
     {"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 4,
      4085603},
@@ -20,7 +20,7 @@ PerftTuple perft_tests[5] = {
     {"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 5,
      15833292},
     {"rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 4, 2103487},
-};
+    {"rk6/1P6/4q3/8/1Q6/8/4p3/4K3 w - - 0 1", 4, 382695}};
 
 /** Runs the perft test to check accuracy of the move generator.
  *

@@ -664,7 +664,7 @@ uint64_t getKingAttackZone(uint64_t K) { return king_moves[getSetBit(K)]; }
  * @param EQ: Bitboard of the enemy player's queens.
  * @param OCCUPIED: Bitboard of all the occupied spaces on the board.
  * @param checker_zone: Bitboard of zone of the checkers, if applicable.
- * @return 1 if the rook/queen is putting the king in check, else 0.
+ * @return Number of rooks/queens putting the king in check (1 or 2), else 0.
  */
 uint8_t getHorizontalAndVerticalChecker(uint64_t K, uint64_t ER, uint64_t EQ,
                                         uint64_t OCCUPIED,
@@ -672,6 +672,9 @@ uint8_t getHorizontalAndVerticalChecker(uint64_t K, uint64_t ER, uint64_t EQ,
   uint64_t EHV = ER | EQ;
   uint64_t K_exposure = horizontalAndVerticalMoves(K, OCCUPIED);
   uint64_t new_checker = K_exposure & EHV;
+  if (countSetBits(new_checker) == 2) {
+    return 2;
+  }
   if (new_checker) {
     checker_zone |= new_checker;
     checker_zone |=

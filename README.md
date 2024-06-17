@@ -9,7 +9,7 @@
 
 # Background
 This has been a personal side project, originally started during the 2020 
-pandemic. I had no C++ experience when I started. It has been quite a ride.
+pandemic.
 
 The chess engine does not provide it's own GUI. However, it is compatible with 
 any UCI-compliant GUI. There are many free GUIs available for download/use; Stockfish

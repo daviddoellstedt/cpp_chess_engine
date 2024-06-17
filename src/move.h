@@ -42,7 +42,6 @@ private:
     case PROMOTION_BISHOP:
       return "b";
     default:
-      logErrorAndExit("ERROR: Unknown value received for move_type.");
       return "";
     }
   }
