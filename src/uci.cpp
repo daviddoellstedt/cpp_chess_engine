@@ -1,16 +1,13 @@
-#include "bit_fns.h"
 #include "board.h"
 #include "constants.h"
 #include "helper_functions.h"
+#include "log.h"
 #include "move.h"
+#include "search.h"
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <unistd.h>
-#include "log.h"
-
-std::string fen_standard =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // TODO: DOCUMENTATION (change location?)
 bool stringContains(std::string substr, std::string str) {
@@ -109,7 +106,7 @@ void handleInput_position(std::string input, GameState &game_state) {
 }
 
 void handleInput_go(std::string input, const GameState &game_state) {
-  AI_return choice = negamax(game_state, 3);
+  negamaxTuple choice = negamax(game_state, 6);
   printAndWriteToLog("info score cp -1 pv " + choice.move.toString());
   printAndWriteToLog("bestmove " + choice.move.toString());
 }

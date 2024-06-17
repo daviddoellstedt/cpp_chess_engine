@@ -1,7 +1,11 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 #include <utility>
+
+const std::string fen_standard =
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // Edge bits all set.
 const uint64_t OUTER_BITS = 0xFF818181818181FF;
@@ -399,44 +403,48 @@ const int16_t BISHOP_VALUE = 300;
 const int16_t ROOK_VALUE = 500;
 const int16_t QUEEN_VALUE = 900;
 
-const int8_t pawn_position_adjustment[N_SQUARES] = {
+const int8_t white_pawn_position_adjustment[N_SQUARES] = {
     0,  0,  0,   0,  0,  0,   0,  0,  5,  10, 10, -20, -20, 10, 10, 5,
     5,  -5, -10, 0,  0,  -10, -5, 5,  0,  0,  0,  20,  20,  0,  0,  0,
     5,  5,  10,  25, 25, 10,  5,  5,  10, 10, 20, 30,  30,  20, 10, 10,
     50, 50, 50,  50, 50, 50,  50, 50, 0,  0,  0,  0,   0,   0,  0,  0};
 
-const int8_t knight_position_adjustment[N_SQUARES] = {
+const int8_t white_knight_position_adjustment[N_SQUARES] = {
     -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0,   5,   5,
     0,   -20, -40, -30, 5,   10,  15,  15,  10,  5,   -30, -30, 0,
     15,  20,  20,  15,  0,   -30, -30, 5,   15,  20,  20,  15,  5,
     -30, -30, 0,   10,  15,  15,  10,  0,   -30, -40, -20, 0,   0,
     0,   0,   -20, -40, -50, -40, -30, -30, -30, -30, -40, -50};
 
-const int8_t rook_position_adjustment[N_SQUARES] = {
+const int8_t white_rook_position_adjustment[N_SQUARES] = {
     0,  0,  5,  10, 10, 5,  0,  0,  -5, 0, 0, 0, 0, 0, 0, -5,
     -5, 0,  0,  0,  0,  0,  0,  -5, -5, 0, 0, 0, 0, 0, 0, -5,
     -5, 0,  0,  0,  0,  0,  0,  -5, -5, 0, 0, 0, 0, 0, 0, -5,
-    5,  10, 10, 10, 10, 10, 10, 5,  0,  0, 0, 0, 0, 0, 0, 0,
-};
+    5,  10, 10, 10, 10, 10, 10, 5,  0,  0, 0, 0, 0, 0, 0, 0};
 
-const int8_t bishop_position_adjustment[N_SQUARES] = {
+const int8_t white_bishop_position_adjustment[N_SQUARES] = {
     -20, -10, -10, -10, -10, -10, -10, -20, -10, 5,   0,   0,   0,
     0,   5,   -10, -10, 10,  10,  10,  10,  10,  10,  -10, -10, 0,
     10,  10,  10,  10,  0,   -10, -10, 5,   5,   10,  10,  5,   5,
     -10, -10, 0,   5,   10,  10,  5,   0,   -10, -10, 0,   0,   0,
     0,   0,   0,   -10, -20, -10, -10, -10, -10, -10, -10, -20};
 
-const int8_t queen_position_adjustment[N_SQUARES] = {
-    -20, -10, -10, -5,  -5,  -10, -10, -20 - 10, 0,   5,   0,   0, 0,
-    0,   -10, -10, 5,   5,   5,   5,   5,        0,   -10, 0,   0, 5,
-    5,   5,   5,   0,   -5,  -5,  0,   5,        5,   5,   5,   0, -5,
-    -10, 0,   5,   5,   5,   5,   0,   -10,      -10, 0,   0,   0, 0,
-    0,   0,   -10, -20, -10, -10, -5,  -5,       -10, -10, -20,
-};
-const int8_t king_position_adjustment[N_SQUARES] = {
+const int8_t white_queen_position_adjustment[N_SQUARES] = {
+    -20, -10, -10, -5,  -5,  -10, -10, -20 - 10, 0,   5,   0,  0, 0,
+    0,   -10, -10, 5,   5,   5,   5,   5,        0,   -10, 0,  0, 5,
+    5,   5,   5,   0,   -5,  -5,  0,   5,        5,   5,   5,  0, -5,
+    -10, 0,   5,   5,   5,   5,   0,   -10,      -10, 0,   0,  0, 0,
+    0,   0,   -10, -20, -10, -10, -5,  -5,       -10, -10, -20};
+const int8_t white_king_position_adjustment[N_SQUARES] = {
     20,  30,  10,  0,   0,   10,  30,  20,  20,  20,  0,   0,   0,
     0,   20,  20,  -10, -20, -20, -20, -20, -20, -20, -10, -20, -30,
     -30, -40, -40, -30, -30, -20, -30, -40, -40, -50, -50, -40, -40,
     -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50,
-    -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30,
-};
+    -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30};
+
+extern int8_t black_pawn_position_adjustment[N_SQUARES];
+extern int8_t black_knight_position_adjustment[N_SQUARES];
+extern int8_t black_rook_position_adjustment[N_SQUARES];
+extern int8_t black_bishop_position_adjustment[N_SQUARES];
+extern int8_t black_queen_position_adjustment[N_SQUARES];
+extern int8_t black_king_position_adjustment[N_SQUARES];

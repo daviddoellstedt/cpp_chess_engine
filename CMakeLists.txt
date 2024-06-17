@@ -6,12 +6,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(SOURCE_FILES
 src/main.cpp
 src/uci.cpp
-src/bit_fns.cpp
+src/search.cpp
 src/board.cpp
 src/helper_functions.cpp
-src/player.cpp
 src/move_generator.cpp
-test/unit_tests.cpp
+src/constants.cpp
+src/evaluate.cpp
+test/test.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})

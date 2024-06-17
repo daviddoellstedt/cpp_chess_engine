@@ -1,5 +1,5 @@
-#include "../test/unit_tests.h"
-#include "bit_fns.h"
+#include "../test/test.h"
+#include "evaluate.h"
 #include "move_generator.h"
 #include "uci.h"
 #include <iostream>
@@ -7,8 +7,8 @@
 
 int main() {
   initializeMagicBitboardTables();
-  // testAllPerft();
+  initializePositionTables();
+  testAllPerft();
   UCIStart();
-  // generate_board("ba", 3);
   return 0;
 }
