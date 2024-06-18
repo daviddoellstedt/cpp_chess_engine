@@ -1,4 +1,5 @@
 #include "board.h"
+#include "constants.h"
 #include "helper_functions.h"
 #include "move.h"
 #include <iostream>
@@ -71,7 +72,6 @@ void printBoard(const GameState &game_state) {
   std::cout << dividing_line << std::endl;
 }
 
-// TODO REFACTOR?
 void fenToGameState(const std::string fen, GameState &game_state) {
   std::string regex_string =
       "^ *([rnbqkpRNBQKP1-8]+/){7}([rnbqkpRNBQKP1-8]+) ([wb]) "
@@ -90,7 +90,6 @@ void fenToGameState(const std::string fen, GameState &game_state) {
   // TODO: non active color is not in check.
   // For more info:
   // https://chess.stackexchange.com/questions/1482/how-do-you-know-when-a-fen-position-is-legal
-
   uint8_t n_p = 0, n_r = 0, n_n = 0, n_b = 0, n_q = 0, n_k = 0, n_P = 0,
           n_R = 0, n_N = 0, n_B = 0, n_Q = 0, n_K = 0;
 

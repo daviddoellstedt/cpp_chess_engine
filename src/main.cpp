@@ -1,10 +1,7 @@
 #include "../test/test.h"
 #include "evaluate.h"
 #include "move_generator.h"
-#include "search.h"
 #include "uci.h"
-#include <iostream>
-#include <string>
 
 int main() {
   initializeMagicBitboardTables();

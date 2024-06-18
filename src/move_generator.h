@@ -3,7 +3,6 @@
 #include "board.h"
 #include "move.h"
 #include <stdint.h>
-#include <string>
 
 /** Initializes the magic bitboard tables.
  */

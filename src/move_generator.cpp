@@ -11,8 +11,8 @@ uint64_t rookMagicTable[N_SQUARES][N_ROOK_BLOCKERS_PERMUTATIONS] = {0};
 
 /** Returns a bitboard of the line between two pieces.
  *
- * @param p1: First piece
- * @param p2: Second piece
+ * @param p1: First piece bitboard.
+ * @param p2: Second piece bitboard.
  * @return Bitboard mask of rank/file/diagonal connection between the two
  * pieces.
  */
@@ -212,7 +212,6 @@ uint64_t generateRookMagicNumber(
 uint64_t generateBishopMagicNumber(
     uint8_t bit,
     uint64_t blockers_array[N_SQUARES][N_BISHOP_BLOCKERS_PERMUTATIONS]) {
-  // TODO: Refator. A lot fo similar code with the rook function above.
   uint64_t bishopMagicTableTemp[N_BISHOP_BLOCKERS_PERMUTATIONS] = {0};
 
   while (true) {
@@ -983,7 +982,6 @@ void generatePawnMoves(bool white_to_move, uint64_t PINNED_MASK, uint64_t P,
                        uint64_t K, int8_t en_passant, uint64_t EMPTY,
                        uint64_t ENEMY_PIECES, uint64_t checker_zone,
                        Move *moves, uint8_t &n_moves) {
-  // TODO REFACTOR?
   uint64_t P_FORWARD_1 =
       EMPTY & PINNED_MASK & checker_zone &
       (white_to_move ? (P << 8) & ~rank_8 : (P >> 8) & ~rank_1);

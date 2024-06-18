@@ -22,9 +22,6 @@ public:
 
 class GameState {
 public:
-  // TODO: add total moves.
-  // TODO: add half moves.
-
   // State of the white pieces.
   ColorState white;
 

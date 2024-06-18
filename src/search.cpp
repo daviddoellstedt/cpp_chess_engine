@@ -1,5 +1,6 @@
 #include "search.h"
 #include "board.h"
+#include "constants.h"
 #include "evaluate.h"
 #include "move_generator.h"
 

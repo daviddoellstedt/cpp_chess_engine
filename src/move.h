@@ -1,9 +1,15 @@
 #pragma once
 
-#include "constants.h"
 #include "helper_functions.h"
 #include <stdint.h>
 #include <string>
+
+// Masks for reading/writing to move.
+const uint16_t X_INITIAL_MASK = 0x7;
+const uint16_t Y_INITIAL_MASK = 0x38;
+const uint16_t X_FINAL_MASK = 0x1C0;
+const uint16_t Y_FINAL_MASK = 0xE00;
+const uint16_t MOVE_TYPE_MASK = 0xF000;
 
 enum MoveType : uint8_t {
   NONE = 0,

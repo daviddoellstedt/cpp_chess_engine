@@ -10,7 +10,6 @@ src/search.cpp
 src/board.cpp
 src/helper_functions.cpp
 src/move_generator.cpp
-src/constants.cpp
 src/evaluate.cpp
 test/test.cpp
 )
